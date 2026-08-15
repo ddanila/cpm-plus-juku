@@ -88,8 +88,8 @@ out/cpm-plus-juku.img              host-backed A: volume
 `prebuilt/` contains byte-for-byte reference copies. `make check` first proves
 that a fresh build matches them. Current SHA-256 values are:
 
-- system: `2d06d8022a903e05fec81a1b6a89ac57371ec2b9aecdef797d0ef3c2324200e2`;
-- fastboot: `ef6fdc03e85414b7d1e18812180f28298ec55c6d0183e6e93ec2ee64aedc3b62`;
+- system: `170e3c2e91790ff08bcb846af65e0726cf8cfdbec53d813fde68f7762e6a96cd`;
+- fastboot: `5ae6c667d0fc0a23f93d184924b771adaca08fecc3319bae1d2e280664d7faec`;
 - A: volume: `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100`.
 
 The checked-in `third_party/cpm3/cpm3.sys` makes a normal build independent of
@@ -126,6 +126,11 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
 The immediate work preserves the simulator-proven compatibility adapter as the
 reference, completes CS00015 qualification, and builds the MODX-compatible
 compact console plus blinking cursor in RAM first.
+
+The RAM console milestone now passes its packed 80x24 framebuffer oracle. The
+binary extraction, period-document discrepancy, exact video timing, font
+provenance, and remaining physical checks are recorded in
+[`docs/modx-console-reference.md`](docs/modx-console-reference.md).
 
 The planned successor is a network-first 16 KiB ROM: bounded quick POST,
 automatic 19,200-baud boot with no menu or keypress, and a versioned resident

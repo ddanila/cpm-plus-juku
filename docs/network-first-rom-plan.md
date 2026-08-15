@@ -1,6 +1,6 @@
 # Network-first 16 KiB ROM plan
 
-Status: **PLANNED AFTER THE WORKING RAM-BIOS BASELINE**
+Status: **IN PROGRESS — NATIVE RAM CONSOLE ORACLE IMPLEMENTED**
 
 Decision date: **2026-08-15**
 
@@ -74,10 +74,10 @@ Filling all 16 KiB does not imply 16 KiB of callable runtime code.
 
 Move code here only after its RAM version has a passing reference test:
 
-- the native compact console, based on the period-documented MODX 80x25 layout
-  and 5x7 fonts (later catalogs sometimes label it 80x24), its control-character
-  handling, scrolling, and blinking underline cursor; the extracted binary is
-  the final geometry oracle;
+- the native compact console, based on MODX's binary-proven 80x24 packed layout
+  and 5x7 fonts (period prose calls it 80x25), its control-character handling,
+  scrolling, and blinking underline cursor; the extracted binary is the final
+  geometry oracle;
 - keyboard matrix scanning, debounce/repeat policy, and translation tables;
 - D57/D11 setup and the low-level polled serial primitives;
 - NetDisk-v3 framing, CRC, retry/resynchronization, descriptor decoding, and
@@ -161,6 +161,20 @@ better boot, console, keyboard, and disk behavior.
    CP/M Plus configuration only after it matches the frozen RAM-BIOS behavior
    and improves the measured TPA. Stock ROM and RAM BIOS remain recovery and
    comparison configurations.
+
+## Progress ledger
+
+| step | status | evidence / remaining work |
+| --- | --- | --- |
+| 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
+| 2. Native RAM console | Implemented; simulator-qualified | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`; the independent 9,600-byte oracle passes. See [`modx-console-reference.md`](modx-console-reference.md). An explicit full blink-cycle test and physical display check remain. |
+| 3. Inventory and budget | Next | Generate exact linked sizes and call graph, then choose the first 6 KiB/10 KiB placement without relying on source-line estimates. |
+| 4. ROM ABI | Not started | Define the shared versioned vector table and mode-crossing tests before moving a service. |
+| 5. Automatic network boot | Not started | Reuse the proven V15/NetDisk-v3 logic at fixed 19,200 baud, remove identity and keypress dependencies, and add bounded retry. |
+| 6. Move services / relink | Not started | Migrate against the RAM oracle one service at a time and publish measured TPA changes. |
+| 7. Recovery matrix | Not started | Exercise absent/restarted host, corrupt/truncated/duplicate/delayed traffic, USART overrun, and reset during transfer. |
+| 8. Physical qualification | Pending | Build/hash D15/D16, burn, and run the complete CS00015 matrix including display and cursor. |
+| 9. Acceptance audit | Pending | Publish final maps, artifacts, logs, hashes, timings, and parity decision. |
 
 ## Later improvements, outside the first ROM baseline
 
