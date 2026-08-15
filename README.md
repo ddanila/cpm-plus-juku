@@ -140,3 +140,7 @@ RAM, then be relinked upward to turn the saving into a measured larger TPA.
 The exact memory constraints, staged migration, recovery cases, and acceptance
 contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).
+The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing
+call graph, and provisional 33 KiB TPA target are in
+[`docs/rom-budget.md`](docs/rom-budget.md); `make rom-budget-check` enforces
+the allocation before the ABI is added.

@@ -168,7 +168,7 @@ better boot, console, keyboard, and disk behavior.
 | --- | --- | --- |
 | 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
 | 2. Native RAM console | Implemented; simulator-qualified | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`; the independent 9,600-byte oracle passes. See [`modx-console-reference.md`](modx-console-reference.md). An explicit full blink-cycle test and physical display check remain. |
-| 3. Inventory and budget | Next | Generate exact linked sizes and call graph, then choose the first 6 KiB/10 KiB placement without relying on source-line estimates. |
+| 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, records the mode-crossing call graph, and establishes a conservative 33 KiB TPA relink target. See [`rom-budget.md`](rom-budget.md). |
 | 4. ROM ABI | Not started | Define the shared versioned vector table and mode-crossing tests before moving a service. |
 | 5. Automatic network boot | Not started | Reuse the proven V15/NetDisk-v3 logic at fixed 19,200 baud, remove identity and keypress dependencies, and add bounded retry. |
 | 6. Move services / relink | Not started | Migrate against the RAM oracle one service at a time and publish measured TPA changes. |
