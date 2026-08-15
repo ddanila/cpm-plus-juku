@@ -16,10 +16,14 @@ import tty
 
 ROOT = Path(__file__).resolve().parents[1]
 COSIM = Path(os.environ.get("JUKU_COSIM_ROOT", ROOT.parent / "8080-cosim"))
-ROM = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4402.bin"
+ROM_DIRECT = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4402.bin"
+ROM_STOCK = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4401.bin"
 SYSTEM = ROOT / "out" / "cpm-plus-juku-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-fastboot-v15.bin"
 VOLUME = ROOT / "out" / "cpm-plus-juku.img"
+ZMAC = ROOT / "build" / "bin" / "zmac"
+LD80 = ROOT / "build" / "bin" / "ld80"
+ZX0 = ROOT / "build" / "bin" / "zx0"
 sys.path.insert(0, str(COSIM / "tools"))
 
 from janet_disk_server import serve_disk  # noqa: E402
@@ -36,13 +40,76 @@ def build_trace(output: Path) -> None:
         COSIM / "cosim" / name
         for name in ("trace.c", "i8080.c", "juk_disk.c", "juku_fdc.c")
     ]
-    require(ROM.is_file() and all(path.is_file() for path in sources),
-            f"8080-cosim checkout is incomplete at {COSIM}")
+    require(
+        ROM_DIRECT.is_file()
+        and ROM_STOCK.is_file()
+        and all(path.is_file() for path in sources),
+        f"8080-cosim checkout is incomplete at {COSIM}",
+    )
     subprocess.run(
         [os.environ.get("CC", "cc"), "-O2", "-Wall", "-Wextra",
          "-o", str(output), *(str(path) for path in sources)],
         check=True,
     )
+
+
+def build_timing_fixture(
+        work: Path, name: str, *, adapter_define: str | None = None,
+        netdisk_define: str | None = None) -> tuple[Path, Path]:
+    """Build an actual pre-fix code path, rather than injecting an error."""
+    fixture = work / name
+    fixture.mkdir()
+    platform = ROOT / "build" / "platform-adapter.rel"
+    netdisk = ROOT / "build" / "netdisk-v3.rel"
+    adapter_all = fixture / "adapter.all"
+    adapter = fixture / "adapter.bin"
+    system = fixture / "system.bin"
+    fastboot = fixture / "fastboot.bin"
+    required = (
+        ZMAC, LD80, ZX0, ROOT / "build" / "platform-adapter.rel",
+        ROOT / "build" / "netdisk-v3.rel",
+        ROOT / "build" / "ram-keyboard.rel",
+        ROOT / "build" / "netconsole.rel",
+        ROOT / "build" / "fastboot-core.cim",
+        ROOT / "build" / "fastboot-extension.cim",
+    )
+    require(all(path.is_file() for path in required),
+            "legacy timing regression requires a completed make all")
+    if adapter_define:
+        platform = fixture / "platform-adapter.rel"
+        subprocess.run([
+            str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+            f"-D{adapter_define}",
+            f"-I{ROOT / 'third_party' / 'juku-common' / 'platform'}",
+            "-o", str(platform), str(ROOT / "src" / "platform-adapter.asm"),
+        ], cwd=ROOT, check=True)
+    if netdisk_define:
+        netdisk = fixture / "netdisk-v3.rel"
+        subprocess.run([
+            str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+            "-DCPM3ADAPTER", f"-D{netdisk_define}", "-o", str(netdisk),
+            str(ROOT / "third_party" / "juku-common" / "platform" /
+                "netdisk-v3.asm"),
+        ], cwd=ROOT, check=True)
+    subprocess.run([
+        str(LD80), "-m", "-O", "bin", "-o", str(adapter_all),
+        "-s", "/dev/null", "-P0xa000",
+        str(platform), "-P0xa900",
+        str(ROOT / "build" / "ram-keyboard.rel"), "-P0xac10",
+        str(netdisk), "-P0xae80", str(ROOT / "build" / "netconsole.rel"),
+    ], cwd=ROOT, check=True)
+    adapter.write_bytes(adapter_all.read_bytes()[40960:])
+    subprocess.run([
+        sys.executable, str(ROOT / "tools" / "mksystem3.py"), str(adapter),
+        str(ROOT / "third_party" / "cpm3" / "cpm3.sys"), str(system),
+    ], cwd=ROOT, check=True)
+    subprocess.run([
+        sys.executable, str(ROOT / "tools" / "build_fastboot.py"),
+        str(ROOT / "build" / "fastboot-core.cim"),
+        str(ROOT / "build" / "fastboot-extension.cim"), str(system),
+        str(ZX0), str(fastboot),
+    ], cwd=ROOT, check=True)
+    return fastboot, system
 
 
 def read_console_until(fd: int, marker: bytes, timeout: float) -> bytes:
@@ -64,8 +131,10 @@ def read_console_until(fd: int, marker: bytes, timeout: float) -> bytes:
     )
 
 
-def run(trace: Path, work: Path) -> None:
-    container = SYSTEM.read_bytes()
+def run(trace: Path, work: Path, *, direct_core: bool,
+        fastboot: Path = FASTBOOT, system: Path = SYSTEM,
+        expect_disk_failure: str | None = None) -> None:
+    container = system.read_bytes()
     require(
         container[:8] == b"JUKURM1\x1a"
         and container[8:16][:4] == bytes.fromhex("00 70 00 9c")
@@ -80,7 +149,10 @@ def run(trace: Path, work: Path) -> None:
         resident[conout_vector + 1:conout_vector + 3], "little",
     )
 
-    case = work / "cpm3-direct"
+    case_name = "cpm3-direct" if direct_core else "cpm3-stock"
+    if expect_disk_failure:
+        case_name += f"-{expect_disk_failure}"
+    case = work / case_name
     case.mkdir()
     master, slave = pty.openpty()
     tty.setraw(slave)
@@ -95,10 +167,15 @@ def run(trace: Path, work: Path) -> None:
         JUKU_USART_TRANSFER_CYCLES="64",
         JUKU_USART_BYTE_CYCLES="2300",
         JUKU_USART_PIT_CLOCK="1",
-        JUKU_USART_PIT_CPU_HZ="1700000",
+        JUKU_USART_PIT_CPU_HZ=os.environ.get(
+            "CPM_PLUS_JUKU_CPU_HZ", "1700000",
+        ),
+        JUKU_REALTIME_HZ=os.environ.get(
+            "CPM_PLUS_JUKU_CPU_HZ", "1700000",
+        ),
         JUKU_TRACE_BANK="1",
         JUKU_DISABLE_SETTLE="1",
-        JUKU_KEYS="N",
+        JUKU_KEYS="N" if direct_core else "TN0201",
         JUKU_KEY_HOLD_FRAMES="6",
         JUKU_KEY_GAP_FRAMES="8",
         JUKU_CHECKPOINT_PREFIX=str(case / "final"),
@@ -109,16 +186,17 @@ def run(trace: Path, work: Path) -> None:
     with (case / "stdout.txt").open("w") as stdout, \
             (case / "stderr.txt").open("w") as stderr:
         process = subprocess.Popen(
-            [str(trace), str(ROM), "1000000000000", "0", "100000"],
+            [str(trace), str(ROM_DIRECT if direct_core else ROM_STOCK),
+             "1000000000000", "0", "100000"],
             cwd=case, env=environment, stdout=stdout, stderr=stderr,
         )
         os.close(slave)
         os.close(console_slave)
         try:
             boot = serve_fast(
-                master, FASTBOOT.read_bytes(), container,
+                master, fastboot.read_bytes(), container,
                 stock_timeout=120, reply_timeout=8, verbose=False,
-                configure_rate=False, direct_core=True,
+                configure_rate=False, direct_core=direct_core,
             )
 
             def disk_worker() -> None:
@@ -126,6 +204,15 @@ def run(trace: Path, work: Path) -> None:
                     serve_disk(
                         master, volume, timeout=180, idle_timeout=None,
                         verbose=False, stats=stats, protocol_version=3,
+                        read_ahead_records=int(os.environ.get(
+                            "CPM_PLUS_JUKU_READ_AHEAD_RECORDS", "3",
+                        )),
+                        tx_byte_delay=float(os.environ.get(
+                            "CPM_PLUS_JUKU_TX_BYTE_DELAY", "0",
+                        )),
+                        v3_wire_drain=(
+                            expect_disk_failure != "legacy-host-guard"
+                        ),
                         resume=True,
                     )
                 except BaseException as error:
@@ -133,14 +220,20 @@ def run(trace: Path, work: Path) -> None:
 
             worker = threading.Thread(target=disk_worker)
             worker.start()
-            first = read_console_until(
-                console_master, b"A>",
-                float(os.environ.get("CPM_PLUS_JUKU_PROMPT_TIMEOUT", "120")),
-            )
-            os.write(console_master, b"DIR\r")
-            second = read_console_until(console_master, b"A>", 120)
-            os.write(console_master, b"DIAG CPU\r")
-            third = read_console_until(console_master, b"A>", 120)
+            if expect_disk_failure:
+                first = read_console_until(console_master, b"Disk I/O", 30)
+                second = third = b""
+            else:
+                first = read_console_until(
+                    console_master, b"A>",
+                    float(os.environ.get(
+                        "CPM_PLUS_JUKU_PROMPT_TIMEOUT", "120",
+                    )),
+                )
+                os.write(console_master, b"DIR\r")
+                second = read_console_until(console_master, b"A>", 120)
+                os.write(console_master, b"DIAG CPU\r")
+                third = read_console_until(console_master, b"A>", 120)
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
@@ -156,16 +249,32 @@ def run(trace: Path, work: Path) -> None:
                 pass
             os.close(console_master)
 
-    require(boot["direct_core"] == 1 and boot["stock_sent_frames"] == 0,
-            f"CP/M Plus did not use direct ROM fastboot: {boot}")
+    if direct_core:
+        require(boot["direct_core"] == 1 and boot["stock_sent_frames"] == 0,
+                f"CP/M Plus did not use direct ROM fastboot: {boot}")
+    else:
+        require(
+            boot["direct_core"] == 0
+            and boot["stock_sent_frames"] > 0
+            and boot["protocol_version"] == 15,
+            f"CP/M Plus did not use stock Janet into V15: {boot}",
+        )
     require(b"CP/M Plus" in first or b"CP/M Version 3" in first,
             f"CP/M Plus banner is missing: {first!r}")
-    require(b"DIR" in second and b"CCP" in second,
-            f"CP/M Plus network DIR failed: {second!r}")
-    require(b"DIAG CPU" in third and b"CPU: PASS" in third,
-            f"CP/M Plus transient diagnostic failed: {third!r}")
-    require(stats.get("reads", 0) >= 1,
-            f"CP/M Plus issued no NetDisk reads: {stats}")
+    if expect_disk_failure:
+        require(b"Disk I/O" in first,
+                f"legacy drain did not reproduce the disk error: {first!r}")
+        require(stats.get("retries", 0) >= 2,
+                f"legacy drain did not provoke three N3 attempts: {stats}")
+    else:
+        require(b"DIR" in second and b"CCP" in second,
+                f"CP/M Plus network DIR failed: {second!r}")
+        require(b"DIAG CPU" in third and b"CPU: PASS" in third,
+                f"CP/M Plus transient diagnostic failed: {third!r}")
+        require(stats.get("reads", 0) >= 1,
+                f"CP/M Plus issued no NetDisk reads: {stats}")
+        require(stats.get("retries") == 0,
+                f"fixed NetDisk path required retries: {stats}")
     require(all(isinstance(error, OSError) for error in errors),
             f"CP/M Plus disk server failed: {errors!r}")
     state = dict(
@@ -173,32 +282,95 @@ def run(trace: Path, work: Path) -> None:
         for line in (case / "final.state").read_text().splitlines()
         if "=" in line
     )
-    require(state.get("mode") == "3" and state.get("pic_mask") == "FF",
+    require(state.get("mode") == "3",
             f"CP/M Plus did not retain the all-RAM state: {state}")
+    if expect_disk_failure == "legacy-unmasked-pic":
+        require(
+            state.get("pic_mask") != "FF"
+            and int(state.get("pic_frame_irq_count", "0")) > 0,
+            f"legacy PIC fixture did not leave stale IRQs live: {state}",
+        )
+    else:
+        require(state.get("pic_mask") == "FF",
+                f"CP/M Plus did not retain a fully masked PIC: {state}")
     require(state.get("usart_mode") == "5E",
             "CP/M Plus adapter did not select NetDisk 8O1 framing")
+    overruns = int(state.get("usart_rx_overruns", "-1"))
+    resident_overruns = int(state.get("usart_rx_overruns_in_all_ram", "-1"))
+    if expect_disk_failure:
+        require(overruns > 0,
+                f"legacy failure lacked a modeled 8251 overrun: {state}")
+        print(
+            "JUKU CP/M PLUS 3.1 TIMING: REPRODUCED "
+            f"({expect_disk_failure}, Disk I/O, retries={stats['retries']}, "
+            f"overruns={overruns})"
+        )
+        return
+    require(resident_overruns == 0,
+            f"fixed NetDisk path still overran the resident 8251: {state}")
     print(
         "JUKU CP/M PLUS 3.1: PASS "
-        f"(direct Ekta4402 boot, A>, DIR, DIAG CPU, reads={stats['reads']})"
+        f"({'direct Ekta4402 N' if direct_core else 'stock Ekta4401 TN'} "
+        f"boot, A>, DIR, DIAG CPU, reads={stats['reads']}, "
+        f"retries={stats['retries']}, resident-overruns={resident_overruns}, "
+        f"bootstrap-overruns={overruns - resident_overruns})"
     )
 
 
 def main() -> None:
-    for path in (ROM, SYSTEM, FASTBOOT, VOLUME):
+    for path in (ROM_DIRECT, ROM_STOCK, SYSTEM, FASTBOOT, VOLUME):
         require(path.is_file(), f"build input is missing: {path}")
+    selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
+    require(selected in ("both", "direct", "stock"),
+            f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
+    paths = (True, False) if selected == "both" else (selected == "direct",)
     retained = os.environ.get("CPM_PLUS_JUKU_WORK")
     if retained:
         work = Path(retained)
         work.mkdir(parents=True, exist_ok=True)
         trace = work / "trace"
         build_trace(trace)
-        run(trace, work)
+        legacy_fastboot, legacy_system = build_timing_fixture(
+            work, "legacy-target-drain",
+            netdisk_define="NETDISK_V3_LEGACY_DRAIN",
+        )
+        legacy_pic_fastboot, legacy_pic_system = build_timing_fixture(
+            work, "legacy-unmasked-pic",
+            adapter_define="CPM3_LEGACY_UNMASKED_PIC",
+        )
+        run(trace, work, direct_core=True, fastboot=legacy_fastboot,
+            system=legacy_system,
+            expect_disk_failure="legacy-target-drain")
+        run(trace, work, direct_core=True,
+            expect_disk_failure="legacy-host-guard")
+        run(trace, work, direct_core=False, fastboot=legacy_pic_fastboot,
+            system=legacy_pic_system,
+            expect_disk_failure="legacy-unmasked-pic")
+        for direct_core in paths:
+            run(trace, work, direct_core=direct_core)
         return
     with tempfile.TemporaryDirectory(prefix="cpm-plus-juku-cosim.") as name:
         work = Path(name)
         trace = work / "trace"
         build_trace(trace)
-        run(trace, work)
+        legacy_fastboot, legacy_system = build_timing_fixture(
+            work, "legacy-target-drain",
+            netdisk_define="NETDISK_V3_LEGACY_DRAIN",
+        )
+        legacy_pic_fastboot, legacy_pic_system = build_timing_fixture(
+            work, "legacy-unmasked-pic",
+            adapter_define="CPM3_LEGACY_UNMASKED_PIC",
+        )
+        run(trace, work, direct_core=True, fastboot=legacy_fastboot,
+            system=legacy_system,
+            expect_disk_failure="legacy-target-drain")
+        run(trace, work, direct_core=True,
+            expect_disk_failure="legacy-host-guard")
+        run(trace, work, direct_core=False, fastboot=legacy_pic_fastboot,
+            system=legacy_pic_system,
+            expect_disk_failure="legacy-unmasked-pic")
+        for direct_core in paths:
+            run(trace, work, direct_core=direct_core)
 
 
 if __name__ == "__main__":

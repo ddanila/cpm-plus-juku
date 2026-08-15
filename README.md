@@ -38,21 +38,33 @@ B000h..B409h  adapter state, buffers, and NetDisk-v3 cache
 ```
 
 Ekta4402 command `N` loads a 16 KiB container at `7000h` using direct V15
-fastboot at 19,200/8N1. The system then owns RAM and establishes a fresh
-19,200/8O1 NetDisk-v3 session. Its A: volume contains `CCP.COM`, `DIAG.COM`,
-and `README.TXT`.
+fastboot at 19,200/8N1. The same container also boots through the stock Janet
+`TN` path and a dynamically loaded V15 core, so Ekta4401 needs no ROM change.
+The system then owns RAM and establishes a fresh 19,200/8O1 NetDisk-v3
+session. Its A: volume contains `CCP.COM`, `DIAG.COM`, and `README.TXT`.
 
 The baseline is simulator-qualified through all of the following in one test:
 
+- physical-time pacing at CS00015's measured 1.70 MHz CPU rate;
+- reproduction of the old target-turnaround, host-guard, and stock-PIC
+  failures through their actual legacy code paths;
 - direct Ekta4402/V15 boot with zero stock Janet frames;
+- stock Ekta4401 `TN` bootstrap into the same V15 system;
 - the CP/M Plus banner and `A>` prompt;
 - NetDisk-v3 `DIR`;
 - loading `DIAG.COM` and passing `DIAG CPU`;
 - all-RAM memory mode, fully masked PIC, and 8O1 USART state.
 
-It is not yet qualified on physical Juku hardware. The adapter intentionally
-retains the proven CP/M-compatible hardware-call shape until a native CP/M 3
-implementation matches this baseline.
+Physical CS00015 testing reproduced the timing/ownership failures. With the
+corrected server manually retained at 19,200, the same running machine then
+recovered to `A>`, completed `DIR`, and ran the full `DIAG` successfully. This
+qualifies the corrected resident NetDisk-v3 path. The remaining physical issue
+is earlier in the stock-`TN` wrapper: it misses the final V15 `JA` completion,
+returns the host to 9,600, and leaves the already-started CP/M without its disk
+server. The evidence, cycle budgets, fixes, and remaining acceptance item are in
+[`docs/cs00015-netdisk-v3-timing.md`](docs/cs00015-netdisk-v3-timing.md).
+The adapter intentionally retains the proven CP/M-compatible hardware-call
+shape until a native CP/M 3 implementation matches this baseline.
 
 ## Build
 
@@ -76,8 +88,8 @@ out/cpm-plus-juku.img              host-backed A: volume
 `prebuilt/` contains byte-for-byte reference copies. `make check` first proves
 that a fresh build matches them. Current SHA-256 values are:
 
-- system: `f983ca17c7382048afb61b7e02afe29bfa1f86bedc3fde22ac1d2cba5f20f43d`;
-- fastboot: `be2393e02732c9d24a8dd2b95b5ba1a313d45b17d64bd7dcdf83901b181c93ce`;
+- system: `2d06d8022a903e05fec81a1b6a89ac57371ec2b9aecdef797d0ef3c2324200e2`;
+- fastboot: `ef6fdc03e85414b7d1e18812180f28298ec55c6d0183e6e93ec2ee64aedc3b62`;
 - A: volume: `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100`.
 
 The checked-in `third_party/cpm3/cpm3.sys` makes a normal build independent of
@@ -111,11 +123,15 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
 
 ## Roadmap
 
-1. Preserve the simulator-proven compatibility adapter as the reference.
-2. Verify A: and native-geometry B: traffic, writes, warm boot, and reconnect
-   recovery under CP/M Plus.
-3. Implement a native CP/M 3 Juku hardware module and compare it against the
-   reference before reclaiming the adapter/workspace gap for a larger TPA.
-4. Add build identity utilities and shared ROM diagnostics where useful.
-5. Qualify the direct boot and sustained NetDisk-v3 session on CS00015 before
-   changing the CP/Mish physical baseline.
+The immediate work preserves the simulator-proven compatibility adapter as the
+reference, completes CS00015 qualification, and builds the MODX-compatible
+compact console plus blinking cursor in RAM first.
+
+The planned successor is a network-first 16 KiB ROM: bounded quick POST,
+automatic 19,200-baud boot with no menu or keypress, and a versioned resident
+service ABI for the common console, keyboard, serial, NetDisk, sound, and small
+diagnostic code. CP/M Plus will retain only thin bindings and mutable state in
+RAM, then be relinked upward to turn the saving into a measured larger TPA.
+The exact memory constraints, staged migration, recovery cases, and acceptance
+contract are in
+[`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).

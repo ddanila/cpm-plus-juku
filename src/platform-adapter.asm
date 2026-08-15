@@ -198,6 +198,16 @@ BOOT:
         ; USART in bootstrap 8N1 framing.  CP/M Plus starts a fresh NetDisk-v3
         ; session directly, so select its 8O1 framing without waiting for the
         ; legacy NR capability exchange that the CP/Mish loader performs.
+        ; Stock TN enters through NetBios with its interrupt sources still
+        ; armed.  RAM keyboard and NetDisk are fully polled, so match the
+        ; proven CP/Mish RAM BIOS and mask every PIC input before the final EI.
+        ; Direct Ekta4402 happened to inherit this state from the ROM, which
+        ; is why the direct-only simulator baseline did not expose the gap.
+.ifndef CPM3_LEGACY_UNMASKED_PIC
+        mvi     a,0ffh
+        out     PICMASK
+        sta     PICSHADOW
+.endif
         mvi     a,015h
         out     PIT3CTL
         mvi     a,4
@@ -560,7 +570,10 @@ NETHEADER:
         ; D11 TxEMPTY is unconnected on Juku, so wait longer than one 8O1
         ; character at 19,200 baud before disabling the transmitter. TxRDY
         ; alone only proves that the holding register has emptied.
-        lxi     d,400
+        ; The final byte can sit behind one byte already in the shifter.  This
+        ; 128 * 24-cycle delay covers two 8O1 characters at 19,200 while still
+        ; releasing TxEN before the host's 2 ms reply guard expires.
+        lxi     d,128
 NETTXDRAIN:
         dcx     d
         mov     a,d
