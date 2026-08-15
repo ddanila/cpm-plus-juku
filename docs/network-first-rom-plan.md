@@ -1,6 +1,6 @@
 # Network-first 16 KiB ROM plan
 
-Status: **IN PROGRESS — NATIVE RAM CONSOLE ORACLE IMPLEMENTED**
+Status: **IN PROGRESS — ROM ABI PROVEN; AUTOMATIC BOOT UNDERWAY**
 
 Decision date: **2026-08-15**
 
@@ -16,6 +16,12 @@ The ROM will also become the common Juku platform layer. Stable code and
 read-only tables should live in ROM once their RAM implementations are proven,
 leaving only CP/M-specific policy, mutable state, buffers, and small call gates
 in RAM. This is the main route to a larger CP/M Plus TPA.
+
+CP/M Plus remains a separate port in this repository. CP/Mish is a useful
+working reference and may consume the same Juku platform services, but it is
+not being evolved into CP/M Plus and does not own this ROM. Hardware-common
+assembler belongs in `juku-common`; firmware and machine integration belong in
+`8080-cosim`; CP/M Plus BIOS bindings and memory policy belong here.
 
 This work does not replace the current compatibility baseline. The present
 RAM-BIOS system and the stock-ROM `TN` route remain frozen reference paths
@@ -93,6 +99,34 @@ Disk cache data, DMA state, DPH/DPB structures, keyboard and cursor state,
 protocol sequence state, and work stacks remain RAM objects. Large optional
 diagnostics and user programs remain files on A:, not permanent ROM residents.
 
+## Placement and migration policy
+
+The objective is not merely to fill the EPROM. Every candidate must reduce RAM
+use, remove duplication, or make reset/recovery possible. Use this order:
+
+1. Put one-shot reset, POST, link acquisition, and system loading in the lower
+   6 KiB. Do not spend resident space on code that cannot be called after boot.
+2. Put immutable tables and platform services shared by boot, CP/M Plus, and
+   later CP/Mish consumers in the resident 10 KiB.
+3. Prefer services that replace more RAM than their fixed call gate and state
+   require. Console/font, keyboard, serial, memory-mode control, and NetDisk
+   framing are the first candidates.
+4. Keep CP/M policy, buffers, caches, DMA/DPH/DPB data, protocol sequence state,
+   cursor/keyboard state, and stacks in RAM.
+5. Keep large, infrequent, or optional facilities such as exhaustive board
+   diagnostics and demos as network-disk programs.
+
+Migration is deliberately incremental: retain the working RAM implementation,
+add a ROM-ABI implementation, compare both against the same simulator oracle,
+then remove the RAM copy and relink. A source move without a measured TPA gain
+does not count as progress.
+
+The ABI should offer block operations where they amortize the mode-switch and
+call-gate cost. In particular, a string/cell-span console operation and a
+bounded multi-record NetDisk operation are preferable to forcing CP/M to cross
+the ROM boundary once per character or 128-byte record. Simple byte calls stay
+available for compatibility and diagnostics.
+
 ## ROM service ABI
 
 The resident half needs an explicit ABI rather than calls to incidental ROM
@@ -100,7 +134,8 @@ addresses. Reserve a fixed, versioned table containing:
 
 - a signature, ABI major/minor version, ROM build identity, and feature bits;
 - fixed entry vectors for console init/status/input/output, serial init and
-  byte I/O, NetDisk transaction entry, keyboard scan, sound, and diagnostics;
+  byte I/O, bounded block/string output, NetDisk single- and multi-record
+  transactions, keyboard scan, sound, and diagnostics;
 - documented register preservation, interrupt state, memory mode, stack, and
   timeout contracts for every entry;
 - a way for RAM software to reject an incompatible ROM cleanly.
@@ -143,14 +178,18 @@ better boot, console, keyboard, and disk behavior.
    6 KiB boot and 10 KiB resident windows without duplicating large routines.
 4. **Define and prove the ROM ABI.** Implement fixed service vectors and a RAM
    call gate. Add simulator tests for mode switching, stack safety, register
-   preservation, interrupt ownership, framebuffer write-through, and calls
-   made while network traffic is active.
+   preservation, interrupt ownership, overlay-write rejection, low-RAM
+   framebuffer helper access, and calls made while network traffic is active.
 5. **Build automatic network boot.** Reset, run quick POST, acquire the host at
    19,200, validate and load CP/M Plus, switch to NetDisk-v3 framing, and reach
-   `A>` without keyboard input. The host must remain identity-agnostic.
+   `A>` without keyboard input. The target should explicitly announce that it
+   is ready so a server started before reset cannot pollute the receive stream.
+   The host must remain identity-agnostic.
 6. **Move common services incrementally.** Replace one RAM implementation at a
-   time with its ROM ABI call, retaining old/new comparison fixtures. Relink
-   CP/M Plus after each meaningful RAM reduction and record the memory map.
+   time with its ROM ABI call, retaining old/new comparison fixtures. Migrate
+   serial/memory-mode primitives first, then keyboard, console/font, and
+   NetDisk framing/batching. Relink CP/M Plus after each meaningful RAM
+   reduction and record the memory map.
 7. **Qualify recovery.** Simulate absent host, corrupt/truncated blocks,
    delayed replies, duplicate frames, USART overrun, reset during transfer,
    and server restart. The ROM must resynchronize and boot without another
@@ -172,7 +211,7 @@ better boot, console, keyboard, and disk behavior.
 | 2. Native RAM console | Implemented; simulator-qualified | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`; the independent 9,600-byte oracle passes. See [`modx-console-reference.md`](modx-console-reference.md). An explicit full blink-cycle test and physical display check remain. |
 | 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, records the mode-crossing call graph, and establishes a conservative 33 KiB TPA relink target. See [`rom-budget.md`](rom-budget.md). |
 | 4. ROM ABI | Complete | `juku-common` defines ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`; the from-scratch ROM skeleton proves manifest rejection/acceptance, registers, stack guards, DI/PIC ownership, mode 0/1/3 crossings, overlay-write rejection, helper access, and concurrent 19,200 serial traffic. |
-| 5. Automatic network boot | Next | Replace the ABI self-test entry with reset-safe initialization, bounded quick POST, identity-free V15 acquisition, and absent-host retry before loading a test payload. |
+| 5. Automatic network boot | In progress | Replace the ABI self-test entry with reset-safe initialization, bounded quick POST, a target-ready handshake, identity-free V15 acquisition, and absent-host retry before loading a test payload. Then boot the real CP/M Plus image without keys. |
 | 6. Move services / relink | Not started | Migrate against the RAM oracle one service at a time and publish measured TPA changes. |
 | 7. Recovery matrix | Not started | Exercise absent/restarted host, corrupt/truncated/duplicate/delayed traffic, USART overrun, and reset during transfer. |
 | 8. Physical qualification | Pending | Build/hash D15/D16, burn, and run the complete CS00015 matrix including display and cursor. |
@@ -190,6 +229,14 @@ better boot, console, keyboard, and disk behavior.
   on station identity;
 - add a remote diagnostic/status channel that remains bounded and cannot stall
   normal disk or console traffic;
+- retain a small fixed RAM boot-status record containing the last POST stage,
+  transfer/retry reason, ROM build, and warm/cold-boot marker so the host and
+  `DIAG` can explain a failed or recovered boot without a display;
+- add an optional checksummed boot manifest with image length, load address,
+  entry, protocol requirements, and build identity; defer cryptographic
+  authentication until its EPROM and 8080 cost is measured;
+- consider two host-selectable system slots or a last-known-good image on the
+  server; recovery selection must not require enlarging the ROM menu;
 - investigate baud rates above 19,200 only as a separately named experiment;
   the proven mode-2/count-4 setting remains the production default;
 - consider a concealed recovery/service entry or local fallback only after the
@@ -217,6 +264,9 @@ better boot, console, keyboard, and disk behavior.
   scheduling;
 - cache the directory and allocation records CP/M predictably rereads, and
   coalesce sequential 128-byte records into bounded larger replies;
+- add ROM-ABI block transfer calls only after measuring their complete cost,
+  including target copy/CRC time and memory-mode crossings, against the current
+  NetDisk-v3 single-record baseline;
 - retain independent per-drive read-ahead and invalidation state, including
   native Juku geometry for B: and later drives;
 - add read-only, writable-copy, and snapshot-backed host modes so museum media
@@ -236,6 +286,9 @@ better boot, console, keyboard, and disk behavior.
   NetDisk checks into the structural HDL model after the C model is stable;
 - provide one deterministic command that builds the combined ROM, named D15
   and D16 programmer images, CP/M system, disk images, hashes, and build map;
+- generate a machine-readable ROM manifest and ABI-vector map from the same
+  build that produces the programmer images, and reject stale CP/M bindings in
+  CI rather than discovering an address mismatch on hardware;
 - keep explicit machine profiles and service records for CS00000, CS00014,
   CS00015, and CS00024 rather than generalizing a fault seen on one board;
 - keep CP/Mish and CP/M Plus as separate systems while moving only genuinely
@@ -258,3 +311,5 @@ The first network-first ROM is complete only when all of these are true:
   fixtures pass without synthetic error injection;
 - exact D15/D16 images, hashes, build identity, RAM/ROM map, TPA gain, simulator
   logs, and repeated CS00015 results are documented.
+- the relinked system provides at least the currently budgeted 33 KiB TPA, or a
+  smaller measured result is explicitly justified by the final RAM map.
