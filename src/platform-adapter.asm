@@ -120,8 +120,6 @@ PICMASK        equ     001h
 PICSHADOW      equ     0b0f0h
 .ifdef ROMABI
 ROMABISTATUS   equ     0b0f1h
-ROMKEYREADY    equ     0b0f2h
-ROMKEYCHAR     equ     0b0f3h
 .endif
 .else
 PICSHADOW      equ     0d454h
@@ -183,6 +181,7 @@ BOOT:
         sta     RATE
 
 .ifdef RAMCONSOLE
+.ifndef ROMABI
 .ifndef RAMKEYBOARD
         ; RomBios still owns the frame/keyboard interrupt in Stage 1.  Hide
         ; its independently tracked cursor before the RAM renderer takes over
@@ -195,6 +194,7 @@ BOOT:
         dw      WRCHR
 .endif
         call    RAMCONINIT
+.endif
 .endif
 .ifdef RAMKEYBOARD
 .ifndef ROMABI
@@ -240,8 +240,6 @@ BOOT:
         sta     ROMABISTATUS
         ora     a
         jnz     ROMABIFAIL
-        sta     ROMKEYREADY
-        sta     ROMKEYCHAR
 .else
         mvi     a,015h
         out     PIT3CTL
@@ -261,12 +259,13 @@ BOOT:
 .endif
         mvi     a,3
         call    N3ENA
-        call    RAMCONINIT
 .ifdef ROMABI
-        ; Resident keyboard initialization above replaces the linked RAM
-        ; scanner. The two-byte binding retains an event observed by CONST
-        ; until CP/M follows with CONIN.
+        call    JCGCONINITADDR
+        sta     ROMABISTATUS
+        ora     a
+        jnz     ROMABIFAIL
 .else
+        call    RAMCONINIT
         call    RKINIT
 .endif
         ei
@@ -403,8 +402,10 @@ FUNCTION:
 
 CONST:
 .ifdef RAMKEYBOARD
+.ifndef ROMABI
 .ifdef RAMCONSOLE
         call    RAMCONTICK
+.endif
 .endif
 .ifdef NETWORKCONSOLE
         call    NCSTAT
@@ -412,17 +413,7 @@ CONST:
         rnz
 .endif
 .ifdef ROMABI
-        lda     ROMKEYREADY
-        ora     a
-        jnz     CONSTROMREADY
-        call    JCGKEYSCANADDR
-        ora     a
-        rz
-        sta     ROMKEYCHAR
-        mvi     a,1
-        sta     ROMKEYREADY
-CONSTROMREADY:
-        mvi     a,0ffh
+        call    JCGCONSTATADDR
 .else
         call    RKSTAT
 .endif
@@ -435,8 +426,10 @@ CONSTROMREADY:
 CONIN:
 .ifdef RAMKEYBOARD
 CONINWAIT:
+.ifndef ROMABI
 .ifdef RAMCONSOLE
         call    RAMCONTICK
+.endif
 .endif
 .ifdef NETWORKCONSOLE
         call    NCSTAT
@@ -444,17 +437,7 @@ CONINWAIT:
         jnz     CONINREMOTE
 .endif
 .ifdef ROMABI
-        lda     ROMKEYREADY
-        ora     a
-        jnz     CONINROMREADY
-        call    JCGKEYSCANADDR
-        ora     a
-        jz      CONINWAIT
-        ret
-CONINROMREADY:
-        xra     a
-        sta     ROMKEYREADY
-        lda     ROMKEYCHAR
+        call    JCGCONINADDR
 .else
         call    RKSTAT
         ora     a
@@ -476,7 +459,11 @@ CONINREMOTE:
 CONOUT:
         mov     a,c
 .ifdef RAMCONSOLE
+.ifdef ROMABI
+        call    JCGCONOUTADDR
+.else
         call    RAMCONOUT
+.endif
 .ifdef NETWORKCONSOLE
         call    NCOUT
 .endif
@@ -489,7 +476,11 @@ CONOUT:
 LIST:
         mov     a,c
 .ifdef RAMKEYBOARD
+.ifdef ROMABI
+        call    JCGCONOUTADDR
+.else
         call    RAMCONOUT
+.endif
 .else
         call    ROMCALL
         dw      PRINTCH
@@ -1073,7 +1064,9 @@ CHK0     equ    ALLOC1+32
 CHK1     equ    CHK0+32
 
 .ifdef RAMCONSOLE
+.ifndef ROMABI
         include "ram-console.asm"
+.endif
 .endif
 
         end

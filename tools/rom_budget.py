@@ -109,12 +109,21 @@ def main() -> int:
         if not resident_source.is_file():
             raise SystemExit(f"network ROM source is missing: {resident_source}")
         sizes["rom-serial"] = assemble_span(
-            resident_source, temporary, "rom_serinit_impl", "rom_diag_impl",
+            resident_source, temporary, "rom_serinit_impl", "rom_serial_end",
             (resident_source.parent, COMMON / "platform"),
         )
         sizes["rom-keyboard"] = assemble_span(
             resident_source, temporary, "RKINIT", "ROMKEYEND",
             (resident_source.parent, COMMON / "platform"),
+        )
+        sizes["rom-console"] = assemble_span(
+            resident_source, temporary, "ROMCONINIT", "ROMCONEND",
+            (resident_source.parent, COMMON / "platform"),
+        )
+        helper_source = COMMON / "platform" / "rom-console-helper.asm"
+        sizes["rom-console-helper"] = assemble_span(
+            helper_source, temporary, "JROMHELPENTRY", "JROMHELPEND",
+            (COMMON / "platform",),
         )
 
     core = ROOT / "build" / "fastboot-core.cim"
@@ -129,7 +138,7 @@ def main() -> int:
         "diag-checksum",
     ))
     resident = (
-        ("console", sizes["console"], 0x500),
+        ("console", sizes["rom-console"], 0x500),
         ("keyboard", sizes["rom-keyboard"], 0x180),
         ("serial extraction", sizes["rom-serial"], 0x280),
         ("NetDisk v3", sizes["netdisk-v3"], 0x300),
@@ -144,14 +153,15 @@ def main() -> int:
     boot_measured = (
         sizes["fastboot-core"] + sizes["fastboot-extension"] +
         sizes["diag-cpu"] + sizes["diag-memory"] +
-        sizes["diag-address"] + sizes["diag-checksum"]
+        sizes["diag-address"] + sizes["diag-checksum"] +
+        sizes["rom-console-helper"]
     )
     boot = (
         ("reset/init/quick POST", sizes["diag-cpu"] + sizes["diag-memory"] +
          sizes["diag-address"] + sizes["diag-checksum"], 0x600),
         ("automatic boot transport", sizes["fastboot-core"], 0x600),
         ("validation/decompress/recovery", sizes["fastboot-extension"], 0x600),
-        ("RAM helper image/staging", 0, 0x400),
+        ("RAM helper image/staging", sizes["rom-console-helper"], 0x400),
         ("manifest/checksum/reserve", 0, 0x200),
     )
 

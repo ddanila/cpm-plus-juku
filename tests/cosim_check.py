@@ -35,6 +35,8 @@ sys.path.insert(0, str(COSIM / "tools"))
 from janet_disk_server import serve_disk  # noqa: E402
 from janet_fastboot import serve_fast  # noqa: E402
 
+ram_console_reference: bytes | None = None
+
 
 def require(condition: bool, message: str) -> None:
     if not condition:
@@ -318,8 +320,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     expected_mode = "1" if network_rom else "3"
     require(state.get("mode") == expected_mode,
             f"CP/M Plus did not retain memory mode {expected_mode}: {state}")
+    global ram_console_reference
+    ram = (case / "final.ram").read_bytes()
+    screen = ram[0xD800:0xD800 + 9600]
+    if not expect_disk_failure and direct_core and not network_rom:
+        ram_console_reference = screen
     if network_rom:
-        ram = (case / "final.ram").read_bytes()
         gate = ram[0xD620:0xD700]
         signature = gate.rfind(b"JUKUABI\0")
         require(signature > 0 and gate[signature - 1] == 1,
@@ -329,6 +335,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             and ram[0xB0F2] == 0 and ram[0xD788] == 0x0D,
             "CP/M Plus did not retain ROM serial/keyboard binding state",
         )
+        if ram_console_reference is not None:
+            require(
+                screen == ram_console_reference,
+                "resident and RAM console framebuffers differ after the "
+                "same A>/DIR/DIAG CPU transcript",
+            )
     if expect_disk_failure == "legacy-unmasked-pic":
         require(
             state.get("pic_mask") != "FF"

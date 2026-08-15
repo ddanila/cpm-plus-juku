@@ -22,7 +22,8 @@ Current measured ingredients are:
 
 | shared ingredient | linked bytes | intended first use |
 | --- | ---: | --- |
-| MODX-compatible console, including 665-byte font and current RAM state/helper code | 1,228 | resident ROM plus copied RAM helper |
+| MODX-compatible console, including 665-byte font | 1,228 RAM baseline; 1,191 resident | resident ROM implemented |
+| mode-3 console clear/scroll/packed-row helper | 119 | copied low RAM implemented |
 | keyboard matrix scanner | 331 RAM baseline; 328 resident code | resident ROM implemented; three mutable bytes remain in low RAM |
 | shared resident D57/D11 serial initializer and primitives | 86 | implemented resident ROM ABI service |
 | NetDisk v3 client, including its present private serial primitives | 547 | resident ROM |
@@ -50,12 +51,12 @@ being credited as savings before it exists.
 | `0000h..05FFh` | 1,536 | reset, deterministic hardware init, bounded quick POST | 623 shared mechanisms; 997-byte linked boot |
 | `0600h..0BFFh` | 1,536 | automatic 19,200-baud boot transport | 125-byte source; 141-byte stored core |
 | `0C00h..11FFh` | 1,536 | validation, decompression, timeout/retry recovery | 267 |
-| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | 196-byte gate plus 44-byte helper |
+| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | 196-byte gate plus 119-byte console helper |
 | `1600h..17FFh` | 512 | boot manifest, integrity values, growth reserve | 0 |
-| **total** | **6,144** | exact boot-only window | **1,015 reusable ingredients; 1,378 linked component bytes currently stored** |
+| **total** | **6,144** | exact boot-only window | **1,134 reusable ingredients; 1,453 linked component bytes currently stored** |
 
 The large headroom is intentional. The current builder places 997 bytes of
-reset/POST code, a 141-byte automatic core, a 196-byte gate, and a 44-byte
+reset/POST code, a 141-byte automatic core, a 196-byte gate, and a 119-byte
 helper without overlap. The 267-byte extension is still sent into RAM by the
 host rather than stored in ROM. Later recovery work and moving the complete
 receive/decompress path into the boot-only window must fit without borrowing
@@ -66,7 +67,7 @@ checks the exact linked layout and deterministic image.
 
 | runtime range | bytes | envelope | measured implementation |
 | --- | ---: | --- | ---: |
-| `D800h..DCFFh` | 1,280 | console policy, geometry, ASCII font | 1,228 |
+| `D800h..DCFFh` | 1,280 | console policy, geometry, ASCII font | 1,191 implemented; 89 bytes headroom |
 | `DD00h..DE7Fh` | 384 | keyboard scan and translation | 328 implemented; 56 bytes headroom |
 | `DE80h..E0FFh` | 640 | shared D57/D11 serial layer | 86-byte resident initializer/primitives implemented |
 | `E100h..E3FFh` | 768 | NetDisk v3 protocol | 547, currently including serial loops |
@@ -77,7 +78,7 @@ checks the exact linked layout and deterministic image.
 | `F000h..F7FFh` | 2,048 | locale/font banks and future services | 0 |
 | `F800h..FEFFh` | 1,792 | unassigned reserve | 0 |
 | `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | ABI 1.0 implemented and range-fixed |
-| **total** | **10,240** | exact runtime window | **3,326 measured** |
+| **total** | **10,240** | exact runtime window | **3,289 measured** |
 
 These are link fences, not permission to fill every service to its fence. The
 ABI table is deliberately at the top of ROM so its address survives internal
@@ -133,15 +134,15 @@ and all behavior rerun before the README may claim it. A 34 KiB target remains
 plausible if shared serial extraction and buffer placement remove another
 aligned 1 KiB without weakening cache or stack safety.
 
-The current ROM-ABI consumer replaces direct platform/serial initialization and
-the 331-byte linked RAM keyboard. Its platform object is 2,179 bytes versus
-2,132 for the baseline, so the net executable-code saving is 284 bytes. Fixed
-NetDisk and remote-console origins still extend both adapter files to 4,080
-initialized bytes; therefore this milestone proves the binding, resident state,
-mode-1, and matrix-input contracts but does not change the 31 KiB TPA. Console
-and whole NetDisk migration must remove the fixed holes before the system is
-relinked upward. Per-byte NetDisk loops stay in RAM until the whole bulk service
-can cross the memory-mode boundary once per operation rather than once per byte.
+The ROM-ABI platform binding is now 897 bytes. It replaces the 2,132-byte
+baseline platform object plus the separate 331-byte keyboard, for 1,566 bytes
+of linked-code saving. The resident console itself is 1,191 bytes and its
+mode-3 helper 119; full cosim proves its final 9,600-byte framebuffer identical
+to the RAM oracle after the same transcript. Fixed NetDisk and remote-console
+origins still extend both adapter files to 4,080 initialized bytes, so this does
+not yet change the 31 KiB TPA. Whole NetDisk migration must remove those holes
+before the system is relinked upward; the service crosses the memory-mode
+boundary once per operation rather than once per byte.
 
 ## Decisions entering resident-service migration
 
@@ -154,7 +155,7 @@ can cross the memory-mode boundary once per operation rather than once per byte.
   of preserving three subtly different polling loops.
 - Keep 19,200 baud, D57 mode 2/count 4 as the production contract.
 - Keep the full CPU diagnostic callable. The complete current POST reaches
-  target-ready in 722,002 cycles (about 425 ms at 1.70 MHz), which is accepted;
+  target-ready in 725,602 cycles (about 427 ms at 1.70 MHz), which is accepted;
   shrink it only if later physical timing shows a real usability cost.
 - Treat the first locale/font bank and the large reserves as optional growth;
   they may not postpone the baseline automatic boot and TPA gain.

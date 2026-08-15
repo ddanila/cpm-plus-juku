@@ -8,8 +8,8 @@ This checkpoint completes execution-plan step 5: the from-scratch 16 KiB ROM
 resets the modeled Juku, performs bounded POST, announces a direct 19,200-baud
 session, loads the real CP/M Plus system without a keypress or Janet identity,
 and reaches the existing NetDisk-v3 baseline. The dedicated consumer now stays
-in mode 1 for resident serial and keyboard calls, but does not yet claim a
-larger TPA because console/NetDisk code and their fixed placement remain in RAM.
+in mode 1 for resident serial, keyboard, and console calls, but does not yet
+claim a larger TPA because NetDisk code and its fixed placement remain in RAM.
 
 ## Reset and transfer path
 
@@ -32,7 +32,8 @@ larger TPA because console/NetDisk code and their fixed placement remain in RAM.
    the ZX0-compressed CP/M Plus image.
 6. The dedicated ROM-ABI consumer validates the resident manifest, calls
    `JCGINIT`, selects 19,200/8O1 through `JCGSERINIT`, initializes the shared
-   resident keyboard, and starts the qualified NetDisk-v3 RAM implementation.
+   resident keyboard and 80x24 console, then starts the qualified NetDisk-v3
+   RAM implementation.
 
 The POST status `C4h` and wire-ready byte `C4h` are intentionally on different
 channels: a ROM-integrity failure only writes RAM and halts, while a successful
@@ -73,23 +74,24 @@ The accepted output is:
 
 ```text
 NETWORK-FIRST-ROM-BOOT-TEST: PASS ...
-  POST C1/C2/C3/C4/C5; ready=722002 cycles;
+  POST C1/C2/C3/C4/C5; ready=725602 cycles;
   absent host; corrupt recovery; keyless 19200 handoff
 JUKU CP/M PLUS 3.1: PASS
   automatic network ROM boot, A>, DIR, DIAG CPU,
   reads=36, retries=0, resident-overruns=0, bootstrap-overruns=0
 ```
 
-The ABI check injects a shifted physical `T` through D26 ports 4/5 and proves
-translation, consumption, and low-RAM debounce state. The CP/M check asserts
+The ABI check injects a shifted physical `T` through D26 ports 4/5, then proves
+an exact 9,600-byte `Z` plus underline frame through the 119-byte helper. The CP/M check asserts
 that the copied gate reports ready at `D620h`, status at `B0F1h` is zero,
 `D785h` records 8O1, and all 13 matrix characters for `DIR` plus `DIAG CPU`
-were consumed by resident code while mode 1 remained selected. The normal
-system remains byte-identical. Removing the RAM keyboard saves 284 net linked
-code bytes after binding overhead, but fixed origins keep the initialized span
-unchanged; this is not yet a TPA-saving milestone.
+were consumed by resident code while mode 1 remained selected. Its complete
+framebuffer matches the RAM-console run byte for byte. The normal system remains
+byte-identical. The 897-byte binding saves 1,566 linked bytes versus the
+baseline platform/keyboard, but fixed NetDisk origins keep the initialized
+span unchanged; this is not yet a TPA-saving milestone.
 
-At CS00015's measured 1.70 MHz, 722,002 cycles are approximately 425 ms from
+At CS00015's measured 1.70 MHz, 725,602 cycles are approximately 427 ms from
 reset to target-ready C4. Failure paths are separately bounded below 1.5
 million cycles. The tests inject a changed CPU vector, stuck RAM bit, address
 alias, complete-ROM bit flip, D57 readback fault, and D11 readiness fault. They
@@ -118,8 +120,8 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
 ```
 
 Do not burn the present split artifacts. The next milestone is resident-service
-migration: compact console/font, then whole NetDisk framing and bulk
-operations. Per-byte protocol loops stay in RAM until the service boundary can
+migration: whole NetDisk framing and bulk operations. Per-byte protocol loops
+stay in RAM until the service boundary can
 avoid a memory-mode crossing for every byte. Each service must match its RAM
 oracle, remove the old RAM copy, and produce a measured relinked TPA before
 step 6 is complete.

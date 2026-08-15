@@ -93,9 +93,7 @@ $(BUILD)/platform-adapter.rel: src/platform-adapter.asm \
 		-I$(COMMON)/platform -o $@ $<
 
 $(BUILD)/platform-adapter-romabi.rel: src/platform-adapter.asm \
-		$(COMMON)/platform/rom-abi.inc \
-		$(COMMON)/platform/ram-console.asm \
-		$(COMMON)/platform/ram-console-font.asm $(ZMAC) | $(BUILD)
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI \
 		-I$(COMMON)/platform -o $@ $<
 
