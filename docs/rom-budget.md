@@ -100,13 +100,13 @@ CP/M Plus thin BIOS bindings in RAM
        -> sound -> D57 channel 1
 ```
 
-The console edge through a copied RAM helper is mandatory. Code executing in
-the upper ROM disappears when mode 3 exposes framebuffer RAM, while packed
-five-pixel cells require framebuffer read/modify/write. The resident service
-therefore handles text policy, geometry and font lookup in mode 1, then calls a
-small low-RAM helper which switches to mode 3, performs the bounded pixel,
-clear or scroll operation, restores mode 1, and returns. Ordinary CP/M code
-does not select mode 3.
+The console edge through a copied RAM helper is mandatory. The high ROM
+overlay rejects writes as well as hiding framebuffer reads; code executing in
+the upper ROM also disappears when mode 3 exposes framebuffer RAM. The
+resident service therefore handles text policy, geometry and font lookup in
+mode 1, then calls a small low-RAM helper which switches to mode 3, performs
+the bounded pixel, clear or scroll operation, restores mode 1, and returns.
+Ordinary CP/M code does not select mode 3.
 
 NetDisk cache data, CP/M DMA, directory/allocation/check vectors, serial state,
 cursor state, keyboard state, ABI work area, stack, and the copied video helper

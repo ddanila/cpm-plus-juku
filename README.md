@@ -144,3 +144,8 @@ The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing
 call graph, and provisional 33 KiB TPA target are in
 [`docs/rom-budget.md`](docs/rom-budget.md); `make rom-budget-check` enforces
 the allocation before the ABI is added.
+
+ABI 1.0 is now fixed at `FF00h`, with a copied low-RAM gate and framebuffer
+helper. The deterministic `8080-cosim` skeleton proves overlay, stack,
+register, interrupt, and live-serial contracts; its generated D15/D16 halves
+are explicitly simulator-only and are not physical programming candidates.

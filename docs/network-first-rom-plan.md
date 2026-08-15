@@ -32,9 +32,10 @@ ROM file 1800h..3FFFh  10 KiB at CPU 1800h..3FFFh in reset mode 0,
                               remapped to D800h..FFFFh in runtime mode 1
 ```
 
-Mode 1 leaves `0000h..D7FFh` as RAM. Reads at `D800h..FFFFh` see ROM, while
-writes fall through to the framebuffer RAM underneath. Mode 3 exposes all RAM
-but hides the resident ROM. Consequently the practical design is:
+Mode 1 leaves `0000h..D7FFh` as RAM and maps read-only ROM at
+`D800h..FFFFh`; writes into that overlay are rejected rather than reaching the
+framebuffer underneath. Mode 3 exposes all RAM but hides the resident ROM.
+Consequently the practical design is:
 
 - use the lower 6 KiB for reset, quick POST, automatic link acquisition, and
   initial loading;
@@ -42,8 +43,9 @@ but hides the resident ROM. Consequently the practical design is:
   tables;
 - keep a small, fixed RAM call gate and stack below `D800h` for services that
   must cross memory modes;
-- make ordinary ROM video code write-only, or copy a deliberately tiny helper
-  to RAM when a framebuffer read/modify/write operation is truly required;
+- route every framebuffer mutation through a deliberately small helper copied
+  to low RAM; it alone may hide the resident ROM in mode 3, update pixels,
+  restore mode 1, and return;
 - keep all mutable state, disk buffers, decompression destinations, and CP/M
   structures in RAM.
 
@@ -169,8 +171,8 @@ better boot, console, keyboard, and disk behavior.
 | 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
 | 2. Native RAM console | Implemented; simulator-qualified | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`; the independent 9,600-byte oracle passes. See [`modx-console-reference.md`](modx-console-reference.md). An explicit full blink-cycle test and physical display check remain. |
 | 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, records the mode-crossing call graph, and establishes a conservative 33 KiB TPA relink target. See [`rom-budget.md`](rom-budget.md). |
-| 4. ROM ABI | Not started | Define the shared versioned vector table and mode-crossing tests before moving a service. |
-| 5. Automatic network boot | Not started | Reuse the proven V15/NetDisk-v3 logic at fixed 19,200 baud, remove identity and keypress dependencies, and add bounded retry. |
+| 4. ROM ABI | Complete | `juku-common` defines ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`; the from-scratch ROM skeleton proves manifest rejection/acceptance, registers, stack guards, DI/PIC ownership, mode 0/1/3 crossings, overlay-write rejection, helper access, and concurrent 19,200 serial traffic. |
+| 5. Automatic network boot | Next | Replace the ABI self-test entry with reset-safe initialization, bounded quick POST, identity-free V15 acquisition, and absent-host retry before loading a test payload. |
 | 6. Move services / relink | Not started | Migrate against the RAM oracle one service at a time and publish measured TPA changes. |
 | 7. Recovery matrix | Not started | Exercise absent/restarted host, corrupt/truncated/duplicate/delayed traffic, USART overrun, and reset during transfer. |
 | 8. Physical qualification | Pending | Build/hash D15/D16, burn, and run the complete CS00015 matrix including display and cursor. |
