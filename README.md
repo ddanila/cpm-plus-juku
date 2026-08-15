@@ -22,7 +22,8 @@ The three cooperating projects have deliberately separate responsibilities:
 [`cpmish`](https://github.com/ddanila/cpmish) remains the separate CP/M
 2.2-compatible Juku distribution and the current physical baseline. Published
 CP/Mish history is not rewritten to hide the prototype from which this port
-was separated.
+was separated. [`HISTORY.md`](HISTORY.md) records the exact prototype,
+separation, and shared-code commits.
 
 ## Current baseline
 
