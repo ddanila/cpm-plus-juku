@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import tempfile
@@ -14,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMMON = ROOT / "third_party" / "juku-common"
 ZMAC = ROOT / "build" / "bin" / "zmac"
+COSIM = Path(os.environ.get("JUKU_COSIM_ROOT", ROOT.parent / "8080-cosim"))
 
 
 @dataclass(frozen=True)
@@ -39,6 +41,29 @@ def assemble_size(module: Module, temporary: Path) -> int:
     if len(matches) != 1:
         raise RuntimeError(f"cannot find unique byte count for {module.name}")
     return int(matches[0])
+
+
+def assemble_span(source: Path, temporary: Path, start: str, end: str,
+                  includes: tuple[Path, ...]) -> int:
+    output = temporary / "resident-span.cim"
+    command = [str(ZMAC), "--nmnv", "--zmac", "-8", "-l"]
+    for include in includes:
+        command.append(f"-I{include}")
+    command.extend(("-o", str(output), str(source)))
+    result = subprocess.run(
+        command, check=True, text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    values: dict[str, int] = {}
+    for symbol in (start, end):
+        matches = re.findall(
+            rf"^{re.escape(symbol)}\s+([0-9A-F]+)\s+", result.stdout,
+            re.MULTILINE | re.IGNORECASE,
+        )
+        if len(matches) != 1:
+            raise RuntimeError(f"cannot find unique resident symbol {symbol}")
+        values[symbol] = int(matches[0], 16)
+    return values[end] - values[start]
 
 
 def main() -> int:
@@ -77,6 +102,16 @@ def main() -> int:
         all_modules = (*modules, Module("sound", smoke))
         sizes = {module.name: assemble_size(module, temporary)
                  for module in all_modules}
+        resident_source = (
+            COSIM / "spinoffs" / "jukuravi" / "network-rom" /
+            "resident.asm"
+        )
+        if not resident_source.is_file():
+            raise SystemExit(f"network ROM source is missing: {resident_source}")
+        sizes["rom-serial"] = assemble_span(
+            resident_source, temporary, "rom_serinit_impl", "rom_diag_impl",
+            (resident_source.parent, COMMON / "platform"),
+        )
 
     core = ROOT / "build" / "fastboot-core.cim"
     extension = ROOT / "build" / "fastboot-extension.cim"
@@ -92,7 +127,7 @@ def main() -> int:
     resident = (
         ("console", sizes["console"], 0x500),
         ("keyboard", sizes["keyboard"], 0x180),
-        ("serial extraction", 0, 0x280),
+        ("serial extraction", sizes["rom-serial"], 0x280),
         ("NetDisk v3", sizes["netdisk-v3"], 0x300),
         ("remote console/status", sizes["netconsole"], 0x200),
         ("diagnostics", diagnostics, 0x300),

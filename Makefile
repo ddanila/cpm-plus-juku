@@ -13,17 +13,21 @@ COMMON := third_party/juku-common
 
 SYSTEM := $(OUT)/cpm-plus-juku-system.bin
 FASTBOOT := $(OUT)/cpm-plus-juku-fastboot-v15.bin
+ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-system.bin
+ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
 VOLUME := $(OUT)/cpm-plus-juku.img
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
 	network-rom-cosim-check regenerate-cpm3
-all: $(SYSTEM) $(FASTBOOT) $(VOLUME)
+all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME)
 
 tools: $(ZMAC) $(LD80) $(ZX0)
 
 verify-prebuilt: all
 	cmp $(SYSTEM) prebuilt/cpm-plus-juku-system.bin
 	cmp $(FASTBOOT) prebuilt/cpm-plus-juku-fastboot-v15.bin
+	cmp $(ROM_SYSTEM) prebuilt/cpm-plus-juku-network-rom-system.bin
+	cmp $(ROM_FASTBOOT) prebuilt/cpm-plus-juku-network-rom-fastboot-v15.bin
 	cmp $(VOLUME) prebuilt/cpm-plus-juku.img
 
 rom-budget-check: tools $(BUILD)/fastboot-core.cim $(BUILD)/fastboot-extension.cim
@@ -88,6 +92,13 @@ $(BUILD)/platform-adapter.rel: src/platform-adapter.asm \
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 \
 		-I$(COMMON)/platform -o $@ $<
 
+$(BUILD)/platform-adapter-romabi.rel: src/platform-adapter.asm \
+		$(COMMON)/platform/rom-abi.inc \
+		$(COMMON)/platform/ram-console.asm \
+		$(COMMON)/platform/ram-console-font.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI \
+		-I$(COMMON)/platform -o $@ $<
+
 $(BUILD)/ram-keyboard.rel: $(COMMON)/platform/ram-keyboard.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
 
@@ -110,9 +121,27 @@ $(BUILD)/adapter.bin: $(BUILD)/adapter.all
 	tail -c+40961 $< >$@
 	test $$(stat -c %s $@) -le 4096
 
+$(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
+		$(BUILD)/ram-keyboard.rel $(BUILD)/netdisk-v3.rel \
+		$(BUILD)/netconsole.rel $(LD80)
+	$(LD80) -m -O bin -o $@ -s /dev/null \
+		-P0xa000 $(BUILD)/platform-adapter-romabi.rel \
+		-P0xa900 $(BUILD)/ram-keyboard.rel \
+		-P0xac10 $(BUILD)/netdisk-v3.rel \
+		-P0xae80 $(BUILD)/netconsole.rel
+
+$(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
+	tail -c+40961 $< >$@
+	test $$(stat -c %s $@) -le 4096
+
 $(SYSTEM): $(BUILD)/adapter.bin third_party/cpm3/cpm3.sys \
 		tools/mksystem3.py | $(OUT)
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter.bin \
+		third_party/cpm3/cpm3.sys $@
+
+$(ROM_SYSTEM): $(BUILD)/adapter-romabi.bin third_party/cpm3/cpm3.sys \
+		tools/mksystem3.py | $(OUT)
+	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi.bin \
 		third_party/cpm3/cpm3.sys $@
 
 FASTBOOT_CORE_DEFS := FASTBOOT_8N1 FASTBOOT_ZX0 FASTBOOT_STREAM \
@@ -134,6 +163,12 @@ $(FASTBOOT): $(BUILD)/fastboot-core.cim \
 		tools/build_fastboot.py | $(OUT)
 	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension.cim $(SYSTEM) $(ZX0) $@
+
+$(ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
+		$(BUILD)/fastboot-extension.cim $(ROM_SYSTEM) $(ZX0) \
+		tools/build_fastboot.py | $(OUT)
+	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
+		$(BUILD)/fastboot-extension.cim $(ROM_SYSTEM) $(ZX0) $@
 
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<

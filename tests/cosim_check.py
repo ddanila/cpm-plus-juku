@@ -24,6 +24,8 @@ ROM_NETWORK = (
 )
 SYSTEM = ROOT / "out" / "cpm-plus-juku-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-fastboot-v15.bin"
+ROM_SYSTEM = ROOT / "out" / "cpm-plus-juku-network-rom-system.bin"
+ROM_FASTBOOT = ROOT / "out" / "cpm-plus-juku-network-rom-fastboot-v15.bin"
 VOLUME = ROOT / "out" / "cpm-plus-juku.img"
 ZMAC = ROOT / "build" / "bin" / "zmac"
 LD80 = ROOT / "build" / "bin" / "ld80"
@@ -142,6 +144,9 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         network_rom: bool = False) -> None:
     require(not network_rom or direct_core,
             "network ROM requires direct-core fastboot")
+    if network_rom:
+        fastboot = ROM_FASTBOOT
+        system = ROM_SYSTEM
     container = system.read_bytes()
     require(
         container[:8] == b"JUKURM1\x1a"
@@ -312,6 +317,14 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     )
     require(state.get("mode") == "3",
             f"CP/M Plus did not retain the all-RAM state: {state}")
+    if network_rom:
+        ram = (case / "final.ram").read_bytes()
+        gate = ram[0xD620:0xD700]
+        signature = gate.rfind(b"JUKUABI\0")
+        require(signature > 0 and gate[signature - 1] == 1,
+                "CP/M Plus did not initialize the fixed ROM call gate")
+        require(ram[0xB0F1] == 0 and ram[0xD785] == 1,
+                "CP/M Plus did not select ROM ABI 19,200/8O1 serial")
     if expect_disk_failure == "legacy-unmasked-pic":
         require(
             state.get("pic_mask") != "FF"
@@ -347,7 +360,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
 
 def main() -> None:
     for path in (
-        ROM_DIRECT, ROM_STOCK, ROM_NETWORK, SYSTEM, FASTBOOT, VOLUME,
+        ROM_DIRECT, ROM_STOCK, ROM_NETWORK, SYSTEM, FASTBOOT,
+        ROM_SYSTEM, ROM_FASTBOOT, VOLUME,
     ):
         require(path.is_file(), f"build input is missing: {path}")
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")

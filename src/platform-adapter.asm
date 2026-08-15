@@ -18,6 +18,10 @@ RAMCONSOLE     equ     1
 RAMKEYBOARD    equ     1
 CDISK          equ     0004h
 
+.ifdef ROMABI
+        include "rom-abi.inc"
+.endif
+
         cseg
         public  BBASE
 BBASE:
@@ -111,6 +115,9 @@ PIT3CTL        equ     01bh
 PICMASK        equ     001h
 .ifdef CPM3ADAPTER
 PICSHADOW      equ     0b0f0h
+.ifdef ROMABI
+ROMABISTATUS   equ     0b0f1h
+.endif
 .else
 PICSHADOW      equ     0d454h
 .endif
@@ -208,6 +215,21 @@ BOOT:
         out     PICMASK
         sta     PICSHADOW
 .endif
+.ifdef ROMABI
+        ; The network-ROM system is a separate artifact. Its fixed low-RAM
+        ; gate was installed before V15 loading and survives below 7000h.
+        ; Validate ABI 1 before consuming any service, then let the resident
+        ; serial initializer own D57/D11 and clear stale receive state.
+        call    JCGINITADDR
+        sta     ROMABISTATUS
+        ora     a
+        jnz     ROMABIFAIL
+        mvi     a,1                     ; 19,200/8O1 NetDisk framing
+        call    JCGSERINITADDR
+        sta     ROMABISTATUS
+        ora     a
+        jnz     ROMABIFAIL
+.else
         mvi     a,015h
         out     PIT3CTL
         mvi     a,4
@@ -223,12 +245,19 @@ BOOT:
         mvi     a,034h
         out     USARTCTL
         in      USARTDATA
+.endif
         mvi     a,3
         call    N3ENA
         call    RAMCONINIT
         call    RKINIT
         ei
         ret
+.ifdef ROMABI
+ROMABIFAIL:
+        di
+        hlt
+        jmp     ROMABIFAIL
+.endif
 WBOOT:  ret
 .else
 

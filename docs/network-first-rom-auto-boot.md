@@ -29,8 +29,9 @@ TPA because CP/M Plus deliberately continues with the proven all-RAM BIOS.
 5. The core establishes D57 mode 2/count 4 and D11 19,200/8N1, transmits C4 as
    a target-ready byte, accepts the checked 267-byte extension, and transfers
    the ZX0-compressed CP/M Plus image.
-6. The loaded system takes all-RAM mode 3 and starts the already-qualified
-   19,200/8O1 NetDisk-v3 RAM BIOS.
+6. The dedicated ROM-ABI consumer validates the resident manifest, calls
+   `JCGINIT`, and calls `JCGSERINIT` for 19,200/8O1 before starting the
+   already-qualified NetDisk-v3 RAM implementation.
 
 The POST status `C4h` and wire-ready byte `C4h` are intentionally on different
 channels: a ROM-integrity failure only writes RAM and halts, while a successful
@@ -78,6 +79,13 @@ JUKU CP/M PLUS 3.1: PASS
   reads=36, retries=0, resident-overruns=0, bootstrap-overruns=0
 ```
 
+The CP/M check also asserts that the copied ABI gate reports ready at `D620h`,
+the adapter status at `B0F1h` is zero, and resident serial mode state at
+`D785h` records the requested 8O1 setup. The normal and ROM-ABI systems are
+built separately; the normal adapter remains byte-identical to its prebuilt
+reference while the ROM-ABI adapter is 2,130 rather than 2,132 linked bytes.
+This is the first real service binding, not yet a TPA-saving milestone.
+
 At CS00015's measured 1.70 MHz, 722,002 cycles are approximately 425 ms from
 reset to target-ready C4. Failure paths are separately bounded below 1.5
 million cycles. The tests inject a changed CPU vector, stuck RAM bit, address
@@ -106,6 +114,8 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
 ```
 
 Do not burn the present split artifacts. The next milestone is resident-service
-migration: serial/memory-mode primitives, keyboard, compact console/font, then
-NetDisk framing and batching. Each must match its RAM oracle, remove the old
-RAM copy, and produce a measured relinked TPA before step 6 is complete.
+migration: keyboard, compact console/font, then whole NetDisk framing and bulk
+operations. Per-byte protocol loops stay in RAM until the service boundary can
+avoid a memory-mode crossing for every byte. Each service must match its RAM
+oracle, remove the old RAM copy, and produce a measured relinked TPA before
+step 6 is complete.

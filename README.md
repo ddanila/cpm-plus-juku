@@ -57,10 +57,13 @@ The baseline is simulator-qualified through all of the following in one test:
 
 The network-first ROM now adds a third simulator-qualified entry path. Reset
 runs bounded POST, announces C4 at 19,200/8N1, and loads this same CP/M Plus
-system with no monitor command, keypress, or Janet station identity. It reaches
+system with no monitor command, keypress, or Janet station identity. A separate
+ROM-ABI consumer image now validates the resident manifest and delegates the
+CP/M 19,200/8O1 serial initialization to `JCGINIT`/`JCGSERINIT`; it reaches
 `A>`, completes `DIR`, and passes `DIAG CPU` with no USART overrun. This is
-still a desk image rather than a D15/D16 programming release, and it returns to
-the same all-RAM BIOS, so it does not yet claim a larger TPA.
+still a desk image rather than a D15/D16 programming release. The first binding
+changes the adapter from 2,132 to 2,130 linked bytes, so it deliberately makes
+no larger-TPA claim yet.
 
 Physical CS00015 testing reproduced the timing/ownership failures. With the
 corrected server manually retained at 19,200, the same running machine then
@@ -89,6 +92,8 @@ The build compiles the pinned zmac, ld80, and ZX0 sources locally. It produces:
 ```text
 out/cpm-plus-juku-system.bin       V15 RAM container
 out/cpm-plus-juku-fastboot-v15.bin direct-fastboot bundle
+out/cpm-plus-juku-network-rom-system.bin       ROM-ABI consumer container
+out/cpm-plus-juku-network-rom-fastboot-v15.bin ROM-ABI consumer fastboot bundle
 out/cpm-plus-juku.img              host-backed A: volume
 ```
 
@@ -97,6 +102,8 @@ that a fresh build matches them. Current SHA-256 values are:
 
 - system: `170e3c2e91790ff08bcb846af65e0726cf8cfdbec53d813fde68f7762e6a96cd`;
 - fastboot: `5ae6c667d0fc0a23f93d184924b771adaca08fecc3319bae1d2e280664d7faec`;
+- network-ROM system: `234aa1726857e22a18b13330073db849987745c8f02b83aabb4e2c75dd3599a2`;
+- network-ROM fastboot: `3d71aa9854728a04ab3146ada1caea80c4c6ddfda5cc2dc8468878a5ab462697`;
 - A: volume: `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100`.
 
 The checked-in `third_party/cpm3/cpm3.sys` makes a normal build independent of
@@ -146,16 +153,17 @@ provenance, and remaining physical checks are recorded in
 
 The network-first 16 KiB ROM now has bounded quick POST, automatic
 19,200-baud boot with no menu or keypress, and a proven versioned resident ABI.
-The next milestone moves the common console, keyboard, serial, NetDisk, sound,
-and small diagnostic code behind that ABI. CP/M Plus will retain only thin
-bindings and mutable state in RAM, then be relinked upward to turn the saving
-into a measured larger TPA. The exact memory constraints, staged migration,
+The first real CP/M consumer validates that ABI and uses its serial initializer.
+The next milestone moves keyboard, console/font, and the complete NetDisk
+service behind the same interface. CP/M Plus will retain only thin bindings and
+mutable state in RAM, then be relinked upward to turn the saving into a measured
+larger TPA. The exact memory constraints, staged migration,
 recovery cases, and acceptance contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).
 The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing
 call graph, and provisional 33 KiB TPA target are in
 [`docs/rom-budget.md`](docs/rom-budget.md); `make rom-budget-check` enforces
-the allocation before the ABI is added.
+the allocation and measures the first resident serial implementation.
 
 ABI 1.0 is now fixed at `FF00h`, with a copied low-RAM gate and framebuffer
 helper. The deterministic `8080-cosim` skeleton proves overlay, stack,

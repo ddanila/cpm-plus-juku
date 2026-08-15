@@ -24,6 +24,7 @@ Current measured ingredients are:
 | --- | ---: | --- |
 | MODX-compatible console, including 665-byte font and current RAM state/helper code | 1,228 | resident ROM plus copied RAM helper |
 | keyboard matrix scanner | 331 | resident ROM |
+| shared resident D57/D11 serial initializer and primitives | 86 | implemented resident ROM ABI service |
 | NetDisk v3 client, including its present private serial primitives | 547 | resident ROM |
 | remote console/status client | 368 | resident ROM, optional at boot |
 | CPU diagnostic | 517 | quick POST and resident diagnostic service |
@@ -67,7 +68,7 @@ checks the exact linked layout and deterministic image.
 | --- | ---: | --- | ---: |
 | `D800h..DCFFh` | 1,280 | console policy, geometry, ASCII font | 1,228 |
 | `DD00h..DE7Fh` | 384 | keyboard scan and translation | 331 |
-| `DE80h..E0FFh` | 640 | shared D57/D11 serial layer | not yet extracted |
+| `DE80h..E0FFh` | 640 | shared D57/D11 serial layer | 86-byte resident initializer/primitives implemented |
 | `E100h..E3FFh` | 768 | NetDisk v3 protocol | 547, currently including serial loops |
 | `E400h..E5FFh` | 512 | remote console and bounded status | 368 |
 | `E600h..E8FFh` | 768 | common diagnostic mechanisms | 655 |
@@ -76,7 +77,7 @@ checks the exact linked layout and deterministic image.
 | `F000h..F7FFh` | 2,048 | locale/font banks and future services | 0 |
 | `F800h..FEFFh` | 1,792 | unassigned reserve | 0 |
 | `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | ABI 1.0 implemented and range-fixed |
-| **total** | **10,240** | exact runtime window | **3,243 measured** |
+| **total** | **10,240** | exact runtime window | **3,329 measured** |
 
 These are link fences, not permission to fill every service to its fence. The
 ABI table is deliberately at the top of ROM so its address survives internal
@@ -131,6 +132,13 @@ It is not yet an achieved result: the system must be relinked, its maps checked,
 and all behavior rerun before the README may claim it. A 34 KiB target remains
 plausible if shared serial extraction and buffer placement remove another
 aligned 1 KiB without weakening cache or stack safety.
+
+The first real ROM-ABI consumer is intentionally smaller in scope: it replaces
+only direct platform/serial initialization. Its adapter is 2,130 linked bytes
+versus 2,132 bytes for the byte-identical baseline. This proves the binding and
+resident state contract but does not move the per-byte NetDisk loops or change
+the 31 KiB TPA; those loops stay in RAM until the whole bulk service can cross
+the memory-mode boundary once per operation rather than once per byte.
 
 ## Decisions entering resident-service migration
 
