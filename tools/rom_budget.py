@@ -112,6 +112,10 @@ def main() -> int:
             resident_source, temporary, "rom_serinit_impl", "rom_diag_impl",
             (resident_source.parent, COMMON / "platform"),
         )
+        sizes["rom-keyboard"] = assemble_span(
+            resident_source, temporary, "RKINIT", "ROMKEYEND",
+            (resident_source.parent, COMMON / "platform"),
+        )
 
     core = ROOT / "build" / "fastboot-core.cim"
     extension = ROOT / "build" / "fastboot-extension.cim"
@@ -126,7 +130,7 @@ def main() -> int:
     ))
     resident = (
         ("console", sizes["console"], 0x500),
-        ("keyboard", sizes["keyboard"], 0x180),
+        ("keyboard", sizes["rom-keyboard"], 0x180),
         ("serial extraction", sizes["rom-serial"], 0x280),
         ("NetDisk v3", sizes["netdisk-v3"], 0x300),
         ("remote console/status", sizes["netconsole"], 0x200),

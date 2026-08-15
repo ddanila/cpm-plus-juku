@@ -315,16 +315,20 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         for line in (case / "final.state").read_text().splitlines()
         if "=" in line
     )
-    require(state.get("mode") == "3",
-            f"CP/M Plus did not retain the all-RAM state: {state}")
+    expected_mode = "1" if network_rom else "3"
+    require(state.get("mode") == expected_mode,
+            f"CP/M Plus did not retain memory mode {expected_mode}: {state}")
     if network_rom:
         ram = (case / "final.ram").read_bytes()
         gate = ram[0xD620:0xD700]
         signature = gate.rfind(b"JUKUABI\0")
         require(signature > 0 and gate[signature - 1] == 1,
                 "CP/M Plus did not initialize the fixed ROM call gate")
-        require(ram[0xB0F1] == 0 and ram[0xD785] == 1,
-                "CP/M Plus did not select ROM ABI 19,200/8O1 serial")
+        require(
+            ram[0xB0F1] == 0 and ram[0xD785] == 1
+            and ram[0xB0F2] == 0 and ram[0xD788] == 0x0D,
+            "CP/M Plus did not retain ROM serial/keyboard binding state",
+        )
     if expect_disk_failure == "legacy-unmasked-pic":
         require(
             state.get("pic_mask") != "FF"

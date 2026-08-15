@@ -20,6 +20,7 @@ CDISK          equ     0004h
 
 .ifdef ROMABI
         include "rom-abi.inc"
+RAMCONSOLE_MODE1 equ   1
 .endif
 
         cseg
@@ -29,9 +30,11 @@ BBASE:
         public  VERMSG
 .endif
 .ifdef RAMKEYBOARD
+.ifndef ROMABI
         extrn   RKINIT
         extrn   RKSTAT
         extrn   RKIN
+.endif
 .endif
 .ifdef NETWORKV3
         extrn   N3READ
@@ -117,6 +120,8 @@ PICMASK        equ     001h
 PICSHADOW      equ     0b0f0h
 .ifdef ROMABI
 ROMABISTATUS   equ     0b0f1h
+ROMKEYREADY    equ     0b0f2h
+ROMKEYCHAR     equ     0b0f3h
 .endif
 .else
 PICSHADOW      equ     0d454h
@@ -192,7 +197,9 @@ BOOT:
         call    RAMCONINIT
 .endif
 .ifdef RAMKEYBOARD
+.ifndef ROMABI
         call    RKINIT
+.endif
 .endif
 
         xra     a
@@ -229,6 +236,12 @@ BOOT:
         sta     ROMABISTATUS
         ora     a
         jnz     ROMABIFAIL
+        call    JCGKEYINITADDR
+        sta     ROMABISTATUS
+        ora     a
+        jnz     ROMABIFAIL
+        sta     ROMKEYREADY
+        sta     ROMKEYCHAR
 .else
         mvi     a,015h
         out     PIT3CTL
@@ -249,7 +262,13 @@ BOOT:
         mvi     a,3
         call    N3ENA
         call    RAMCONINIT
+.ifdef ROMABI
+        ; Resident keyboard initialization above replaces the linked RAM
+        ; scanner. The two-byte binding retains an event observed by CONST
+        ; until CP/M follows with CONIN.
+.else
         call    RKINIT
+.endif
         ei
         ret
 .ifdef ROMABI
@@ -392,7 +411,21 @@ CONST:
         ora     a
         rnz
 .endif
+.ifdef ROMABI
+        lda     ROMKEYREADY
+        ora     a
+        jnz     CONSTROMREADY
+        call    JCGKEYSCANADDR
+        ora     a
+        rz
+        sta     ROMKEYCHAR
+        mvi     a,1
+        sta     ROMKEYREADY
+CONSTROMREADY:
+        mvi     a,0ffh
+.else
         call    RKSTAT
+.endif
 .else
         call    ROMCALL
         dw      CONSTA
@@ -410,10 +443,24 @@ CONINWAIT:
         ora     a
         jnz     CONINREMOTE
 .endif
+.ifdef ROMABI
+        lda     ROMKEYREADY
+        ora     a
+        jnz     CONINROMREADY
+        call    JCGKEYSCANADDR
+        ora     a
+        jz      CONINWAIT
+        ret
+CONINROMREADY:
+        xra     a
+        sta     ROMKEYREADY
+        lda     ROMKEYCHAR
+.else
         call    RKSTAT
         ora     a
         jz      CONINWAIT
         call    RKIN
+.endif
         ret
 .ifdef NETWORKCONSOLE
 CONINREMOTE:

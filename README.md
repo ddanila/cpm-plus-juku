@@ -58,12 +58,13 @@ The baseline is simulator-qualified through all of the following in one test:
 The network-first ROM now adds a third simulator-qualified entry path. Reset
 runs bounded POST, announces C4 at 19,200/8N1, and loads this same CP/M Plus
 system with no monitor command, keypress, or Janet station identity. A separate
-ROM-ABI consumer image now validates the resident manifest and delegates the
-CP/M 19,200/8O1 serial initialization to `JCGINIT`/`JCGSERINIT`; it reaches
-`A>`, completes `DIR`, and passes `DIAG CPU` with no USART overrun. This is
-still a desk image rather than a D15/D16 programming release. The first binding
-changes the adapter from 2,132 to 2,130 linked bytes, so it deliberately makes
-no larger-TPA claim yet.
+ROM-ABI consumer image now validates the resident manifest, delegates the CP/M
+19,200/8O1 serial initialization, and consumes local input through the shared
+resident keyboard. It reaches `A>`, accepts `DIR` and `DIAG CPU` through the
+matrix, and completes both with no USART overrun. This remains a desk image,
+not a D15/D16 programming release. Removing the 331-byte RAM keyboard while
+adding the bindings cuts 284 linked code bytes, but fixed placement keeps the
+initialized adapter span at 4,080 bytes, so no larger-TPA claim is made yet.
 
 Physical CS00015 testing reproduced the timing/ownership failures. With the
 corrected server manually retained at 19,200, the same running machine then
@@ -102,8 +103,8 @@ that a fresh build matches them. Current SHA-256 values are:
 
 - system: `170e3c2e91790ff08bcb846af65e0726cf8cfdbec53d813fde68f7762e6a96cd`;
 - fastboot: `5ae6c667d0fc0a23f93d184924b771adaca08fecc3319bae1d2e280664d7faec`;
-- network-ROM system: `234aa1726857e22a18b13330073db849987745c8f02b83aabb4e2c75dd3599a2`;
-- network-ROM fastboot: `3d71aa9854728a04ab3146ada1caea80c4c6ddfda5cc2dc8468878a5ab462697`;
+- network-ROM system: `59372cc7cf6802f023337cedcef6ea0485c07967dd3bf1566a738f2c35a33295`;
+- network-ROM fastboot: `c5d2f07d8e5e8f223f5c9e331c3a9a362b49d185b2661702a19aa8261908e801`;
 - A: volume: `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100`.
 
 The checked-in `third_party/cpm3/cpm3.sys` makes a normal build independent of
@@ -153,8 +154,8 @@ provenance, and remaining physical checks are recorded in
 
 The network-first 16 KiB ROM now has bounded quick POST, automatic
 19,200-baud boot with no menu or keypress, and a proven versioned resident ABI.
-The first real CP/M consumer validates that ABI and uses its serial initializer.
-The next milestone moves keyboard, console/font, and the complete NetDisk
+The first real CP/M consumer validates that ABI and uses its serial and keyboard
+services. The next milestone moves console/font and the complete NetDisk
 service behind the same interface. CP/M Plus will retain only thin bindings and
 mutable state in RAM, then be relinked upward to turn the saving into a measured
 larger TPA. The exact memory constraints, staged migration,
