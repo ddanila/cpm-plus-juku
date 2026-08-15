@@ -7,9 +7,10 @@ Date: **2026-08-16**
 This checkpoint completes execution-plan step 5: the from-scratch 16 KiB ROM
 resets the modeled Juku, performs bounded POST, announces a direct 19,200-baud
 session, loads the real CP/M Plus system without a keypress or Janet identity,
-and reaches the existing NetDisk-v3 baseline. The dedicated consumer now stays
-in mode 1 for resident serial, keyboard, and console calls, but does not yet
-claim a larger TPA until CP/M itself is regenerated for the compact RAM map.
+and reaches the existing NetDisk-v3 baseline. The dedicated consumer stays in
+mode 1 for resident serial, keyboard, console, and NetDisk-read calls. Its CP/M
+system is now regenerated for the compact map and exposes an exact 39,168-byte
+(38.25 KiB) transient span, 8 KiB larger than the frozen RAM-BIOS baseline.
 
 ## Reset and transfer path
 
@@ -81,14 +82,16 @@ JUKU CP/M PLUS 3.1: PASS
 ```
 
 The ABI check injects a shifted physical `T` through D26 ports 4/5, then proves
-an exact 9,600-byte `Z` plus underline frame through the 119-byte helper. The CP/M check asserts
-that the copied gate reports ready at `D620h`, status at `B0F1h` is zero,
+an exact 9,600-byte `Z` plus underline frame through the 119-byte helper. The
+CP/M check asserts that the copied gate reports ready at `D620h`, status at
+`C5F1h` is zero,
 `D785h` records 8O1, and all 13 matrix characters for `DIR` plus `DIAG CPU`
 were consumed by resident code while mode 1 remained selected. Its complete
 framebuffer matches the RAM-console run byte for byte. The normal system remains
 byte-identical. Packing the binding and remote console shrinks initialized
-adapter RAM from 4,080 to 1,360 bytes. This is not yet a TPA-saving milestone
-because the CP/M SYS file still has the frozen 31 KiB map.
+adapter RAM from 4,080 to 1,360 bytes. The test additionally checks the live
+page-zero chain through loader `9A06h` to BDOS `9D06h`, proving an exact
+8,192-byte TPA gain over the frozen `7A06h`/`7D06h` chain.
 
 At CS00015's measured 1.70 MHz, 725,602 cycles are approximately 427 ms from
 reset to target-ready C4. Failure paths are separately bounded below 1.5
@@ -118,7 +121,7 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   --disk-baud 19200 --disk-protocol 3 --timeout 86400
 ```
 
-Do not burn the present split artifacts. The next milestone is resident-service
-migration: network writes, then CP/M SYS regeneration and relinking. The read
-path already crosses the ABI once per record and completes its full transaction
-in resident ROM. A measured TPA is required before step 6 is complete.
+Do not burn the present split artifacts. The next milestones are resident
+network writes and the recovery matrix. The read path already crosses the ABI
+once per record and completes its full transaction in resident ROM; the CP/M
+SYS regeneration and measured TPA gain are complete.

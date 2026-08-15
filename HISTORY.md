@@ -18,3 +18,11 @@ Juku platform and direct-fastboot modules moved to `ddanila/juku-common` commit
 `aa1b4bfa2cc623c946e5d31ae6003d9b341dc4ce`. CP/Mish and this project consume
 the same pinned shared sources but retain independent BIOS policy, memory map,
 system generation, artifacts, tests, and release plans.
+
+On 2026-08-16 the network-first ROM consumer completed its first measured
+relink milestone. `juku-common` commit `84e3a59` added the dedicated fastboot
+layout; this repository regenerated CP/M Plus with loader/BDOS/BIOS at
+`9A00h`/`9D00h`/`BC00h` and moved its thin adapter to `C000h`. The live
+page-zero chain proves a 39,168-byte transient span, exactly 8 KiB larger than
+the frozen baseline, while the complete simulator matrix retains all legacy
+failure reproductions and passes direct, stock, and automatic-ROM boot paths.

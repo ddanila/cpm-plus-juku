@@ -1,6 +1,6 @@
 # Network-first 16 KiB ROM plan
 
-Status: **IN PROGRESS — AUTOMATIC BOOT PROVEN; RESIDENT MIGRATION NEXT**
+Status: **IN PROGRESS — AUTOMATIC BOOT AND 8 KiB TPA GAIN PROVEN**
 
 Decision date: **2026-08-15**
 
@@ -147,11 +147,12 @@ but it is not a prerequisite for the CP/M Plus ROM.
 
 ## CP/M Plus memory objective
 
-The current conservative system uses a 31 KiB TPA because BDOS begins at
-`7D00h`, followed by the RAM BIOS, compatibility adapter, and NetDisk state.
-Moving code to ROM is useful only if the CP/M Plus image is relinked so that
-BDOS and the remaining resident RAM move upward. The implementation must
-therefore publish an exact before/after map containing:
+The relink milestone is now measured. The frozen system's live page-zero chain
+places its loader at `7A00h` and BDOS at `7D00h`, leaving `0100h..79FFh`
+(30,976 bytes) for transient programs. The resident-ROM system places its
+loader at `9A00h`, BDOS at `9D00h`, BIOS at `BC00h`, and thin adapter at
+`C000h`, leaving `0100h..99FFh` (39,168 bytes). The exact gain is 8,192 bytes.
+The before/after record contains:
 
 - highest TPA address and total TPA bytes;
 - RAM bytes used by BIOS vectors/bindings, mutable state, cache, stacks, and
@@ -160,9 +161,9 @@ therefore publish an exact before/after map containing:
 - framebuffer and reserved hardware workspace boundaries;
 - worst-case stack and buffer non-overlap proofs.
 
-No TPA gain will be claimed merely because source code moved into an EPROM.
-The desired outcome is a materially larger transient area with the same or
-better boot, console, keyboard, and disk behavior.
+The simulator checks the live page-zero loader/BDOS vectors and the real
+prompt, directory, transient diagnostic, framebuffer, keyboard, and NetDisk
+path. The gain is therefore not inferred merely from source placement.
 
 ## Execution plan
 
@@ -209,11 +210,11 @@ better boot, console, keyboard, and disk behavior.
 | --- | --- | --- |
 | 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
 | 2. Native RAM console | Implemented; simulator-qualified | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`; the independent 9,600-byte oracle passes. See [`modx-console-reference.md`](modx-console-reference.md). An explicit full blink-cycle test and physical display check remain. |
-| 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, records the mode-crossing call graph, and establishes a conservative 33 KiB TPA relink target. See [`rom-budget.md`](rom-budget.md). |
+| 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, and records the mode-crossing call graph. The conservative target was exceeded by the measured 38.25 KiB transient span. See [`rom-budget.md`](rom-budget.md). |
 | 4. ROM ABI | Complete | `juku-common` defines ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`; the retained ABI self-test image proves manifest rejection/acceptance, registers, stack guards, DI/PIC ownership, mode 0/1/3 crossings, overlay-write rejection, helper access, and concurrent 19,200 serial traffic. |
 | 5. Automatic network boot | Complete in simulation | Reset establishes PPI/PIC and stock raster/refresh state; POST has distinct C1..C5 failures and reaches C4 target readiness in 725,602 cycles. Identity-free V15 rejects a corrupt extension, recovers, and boots the real CP/M Plus image without keys; `A>`, `DIR`, and `DIAG CPU` pass with zero retries/overruns. The host also recovers when its one-shot C4 observation was missed. See [`network-first-rom-auto-boot.md`](network-first-rom-auto-boot.md). |
-| 6. Move services / relink | In progress | Resident serial, keyboard, console/font, and the 606-byte versioned NetDisk-v3 read-ahead service pass. The real system completes 36 reads with zero retries/overruns and retains byte-exact screen parity. Packing the 986-byte binding and remote console shrinks initialized adapter RAM from 4,080 to 1,360 bytes. Network writes still use the RAM compatibility path; CP/M regeneration/relinking remains before a TPA claim. |
-| 7. Recovery matrix | Not started | Exercise absent/restarted host, corrupt/truncated/duplicate/delayed traffic, USART overrun, and reset during transfer. |
+| 6. Move services / relink | Relink complete; writes remain | Resident serial, keyboard, console/font, and the 606-byte versioned NetDisk-v3 read-ahead service pass. The regenerated system moves loader/BDOS/BIOS to `9A00h`/`9D00h`/`BC00h`; the 1,360-byte adapter at `C000h` yields a measured 39,168-byte transient span, exactly 8 KiB over baseline. The real system completes 36 reads with zero retries/overruns and byte-exact screen parity. Network writes still use the RAM compatibility path. |
+| 7. Recovery matrix | Partly covered | Absent-host wait, corrupt-extension retry, and missed-ready recovery already pass. Still exercise truncated/duplicate/delayed disk traffic, deliberate USART overrun, reset mid-transfer, and server restart during both bootstrap and NetDisk service. |
 | 8. Physical qualification | Pending | Build/hash D15/D16, burn, and run the complete CS00015 matrix including display and cursor. |
 | 9. Acceptance audit | Pending | Publish final maps, artifacts, logs, hashes, timings, and parity decision. |
 
@@ -256,6 +257,9 @@ better boot, console, keyboard, and disk behavior.
   it without making boot or disk service depend on a clock server;
 - grow the shared `DIAG` program from the same `juku-common` diagnostic sources
   used by the ROM, retaining large and infrequently used tests on disk.
+- add a resident memory-map/status command which reports the live loader, BDOS,
+  BIOS, TPA limit, ROM ABI version, and last recovery reason without requiring
+  a host-side log.
 
 ### NetDisk performance and media handling
 
@@ -273,6 +277,9 @@ better boot, console, keyboard, and disk behavior.
   cannot be modified accidentally;
 - add write caching only with explicit flush, warm-boot, retry, disconnect, and
   power-loss contracts; correctness takes precedence over benchmark gains;
+- first move the current single-record write transaction behind the resident
+  ABI, preserving synchronous write-through semantics and invalidating every
+  affected per-drive read-ahead entry before considering any write cache;
 - let a boot manifest advertise available system and data images while keeping
   the server independent of Janet station identity.
 
@@ -310,6 +317,6 @@ The first network-first ROM is complete only when all of these are true:
 - old failure fixtures still fail for the original reason and corrected
   fixtures pass without synthetic error injection;
 - exact D15/D16 images, hashes, build identity, RAM/ROM map, TPA gain, simulator
-  logs, and repeated CS00015 results are documented.
-- the relinked system provides at least the currently budgeted 33 KiB TPA, or a
-  smaller measured result is explicitly justified by the final RAM map.
+  logs, and repeated CS00015 results are documented;
+- the relinked system retains its measured 39,168-byte transient span, exceeding
+  the original minimum target, through final physical qualification.

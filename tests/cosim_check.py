@@ -150,14 +150,19 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot = ROM_FASTBOOT
         system = ROM_SYSTEM
     container = system.read_bytes()
+    load_address = 0x9000 if network_rom else 0x7000
+    entry_address = 0xBC00 if network_rom else 0x9C00
+    adapter_address = 0xC000 if network_rom else 0xA000
+    container_size = 0x4600 if network_rom else 0x4000
     require(
         container[:8] == b"JUKURM1\x1a"
-        and container[8:16][:4] == bytes.fromhex("00 70 00 9c")
-        and int.from_bytes(container[12:14], "little") == 0x4000,
+        and int.from_bytes(container[8:10], "little") == load_address
+        and int.from_bytes(container[10:12], "little") == entry_address
+        and int.from_bytes(container[12:14], "little") == container_size,
         "CP/M Plus RAM container has an unexpected layout",
     )
     resident = container[512:]
-    conout_vector = 0xA000 - 0x7000 + 0x000C
+    conout_vector = adapter_address - load_address + 0x000C
     require(resident[conout_vector] == 0xC3,
             "CP/M Plus adapter CONOUT vector is not a JMP")
     conout_pc = int.from_bytes(
@@ -251,7 +256,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             worker = threading.Thread(target=disk_worker)
             worker.start()
             if expect_disk_failure:
-                first = read_console_until(console_master, b"Disk I/O", 60)
+                first = read_console_until(
+                    console_master, b"Disk I/O",
+                    float(os.environ.get(
+                        "CPM_PLUS_JUKU_FAILURE_TIMEOUT", "120",
+                    )),
+                )
                 second = third = b""
             else:
                 first = read_console_until(
@@ -322,6 +332,18 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             f"CP/M Plus did not retain memory mode {expected_mode}: {state}")
     global ram_console_reference
     ram = (case / "final.ram").read_bytes()
+    loader_address = 0x9A00 if network_rom else 0x7A00
+    bdos_address = 0x9D00 if network_rom else 0x7D00
+    if not expect_disk_failure:
+        require(
+            int.from_bytes(ram[6:8], "little") == loader_address + 6
+            and ram[loader_address + 6] == 0xC3
+            and ram[loader_address + 9] == 0xC3
+            and int.from_bytes(
+                ram[loader_address + 10:loader_address + 12], "little",
+            ) == bdos_address + 6,
+            "CP/M did not publish its expected TPA loader/BDOS chain",
+        )
     screen = ram[0xD800:0xD800 + 9600]
     if not expect_disk_failure and direct_core and not network_rom:
         ram_console_reference = screen
@@ -331,7 +353,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         require(signature > 0 and gate[signature - 1] == 1,
                 "CP/M Plus did not initialize the fixed ROM call gate")
         require(
-            ram[0xB0F1] == 0 and ram[0xD785] == 1
+            ram[0xC5F1] == 0 and ram[0xD785] == 1
             and ram[0xD788] == 0x0D,
             "CP/M Plus did not retain ROM serial/keyboard binding state",
         )

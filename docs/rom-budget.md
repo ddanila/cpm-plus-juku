@@ -1,6 +1,6 @@
 # Network-first ROM inventory and byte budget
 
-Status: **MEASURED BASELINE; AUTOMATIC BOOT FITS; SERVICE MIGRATION NEXT**
+Status: **MEASURED; AUTOMATIC BOOT AND 8 KiB TPA GAIN ACHIEVED**
 
 Measurement date: **2026-08-16**
 
@@ -119,31 +119,30 @@ remain RAM. Only code and immutable tables are candidates for resident ROM.
 
 ## RAM and TPA consequence
 
-The frozen baseline has a 31 KiB TPA and 5,114 bytes above its CP/M 3 BIOS:
+The frozen baseline's live page-zero chain places the CP/M loader at `7A00h`
+and BDOS at `7D00h`. Its exact transient span is `0100h..79FFh`, or 30,976
+bytes (30.25 KiB). It also has 5,114 bytes above its CP/M 3 BIOS:
 
 - 4,080 initialized adapter bytes at `A000h..AFEFh`;
 - 1,034 bytes of mutable state/buffers through `B409h`.
 
-The already measured console, keyboard, NetDisk and remote-console modules
-account for 2,474 initialized bytes. Moving them behind the ROM ABI would leave
-1,606 initialized adapter bytes before further policy cleanup, plus the 1,034
-mutable bytes and a bounded RAM framebuffer helper. This supports a
-conservative first relink target of at least **33 KiB TPA**, a real 2 KiB gain.
-It is not yet an achieved result: the system must be relinked, its maps checked,
-and all behavior rerun before the README may claim it. A 34 KiB target remains
-plausible if shared serial extraction and buffer placement remove another
-aligned 1 KiB without weakening cache or stack safety.
+The ROM-ABI platform binding is 986 bytes. Together with the packed 368-byte
+remote console it produces a 1,360-byte initialized adapter, versus 4,080 bytes
+for the baseline. The system has now been regenerated and relinked with loader
+`9A00h`, BDOS `9D00h`, BIOS `BC00h`, and adapter `C000h`. Its exact transient
+span is `0100h..99FFh`, or 39,168 bytes (38.25 KiB): an exact 8,192-byte gain.
+The live test verifies page zero -> loader `9A06h` -> BDOS `9D06h`, rather than
+inferring the gain from link addresses alone.
 
-The ROM-ABI platform binding is now 986 bytes. Together with the packed
-368-byte remote console it produces a 1,360-byte initialized adapter, versus
-4,080 bytes for the baseline. The resident console itself is 1,191 bytes and its
-mode-3 helper 119; full cosim proves its final 9,600-byte framebuffer identical
-to the RAM oracle after the same transcript. The resident read-ahead NetDisk
-service is 606 bytes. This still does not change the 31 KiB
-TPA: the checked CP/M system was generated for BIOS `9C00h`, BDOS `7D00h`, and
-adapter `A000h`. Network writes also retain their RAM compatibility code. The
-CP/M hosted build must be regenerated with the compact map before a TPA gain is
-claimed.
+The dedicated initialized container occupies `9000h..D5FFh`; the adapter code
+is `C000h..C54Fh`. Sparse mutable state is kept at `C5ECh..C909h`, below the
+fixed ROM gate/workspace beginning at `D600h`. The resident console is 1,191
+bytes, its mode-3 helper 119, and the resident read-ahead NetDisk service 606.
+Full cosim reaches `A>`, completes `DIR` and `DIAG CPU`, performs 36 reads with
+no retry or resident overrun, and proves the final 9,600-byte framebuffer equal
+to the frozen RAM oracle. Network writes still retain their RAM compatibility
+path; moving them is a code-ownership improvement, not a prerequisite for the
+already measured TPA gain.
 
 ## Decisions entering resident-service migration
 

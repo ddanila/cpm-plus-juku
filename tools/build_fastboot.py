@@ -80,6 +80,7 @@ def main() -> int:
         if system_image[8:12] not in (
             bytes.fromhex("00 b0 00 c6"),
             bytes.fromhex("00 70 00 9c"),
+            bytes.fromhex("00 90 00 bc"),
         ):
             raise ValueError(
                 "fastboot v15 requires a supported Juku RAM layout"

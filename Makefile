@@ -18,7 +18,7 @@ ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
 VOLUME := $(OUT)/cpm-plus-juku.img
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
-	network-rom-cosim-check regenerate-cpm3
+	network-rom-cosim-check regenerate-cpm3 regenerate-cpm3-rom
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME)
 
 tools: $(ZMAC) $(LD80) $(ZX0)
@@ -122,11 +122,11 @@ $(BUILD)/adapter.bin: $(BUILD)/adapter.all
 $(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
 		$(BUILD)/netconsole.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
-		-P0xa000 $(BUILD)/platform-adapter-romabi.rel \
-		-P0xa3e0 $(BUILD)/netconsole.rel
+		-P0xc000 $(BUILD)/platform-adapter-romabi.rel \
+		-P0xc3e0 $(BUILD)/netconsole.rel
 
 $(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
-	tail -c+40961 $< >$@
+	tail -c+49153 $< >$@
 	test $$(stat -c %s $@) -le 4096
 
 $(SYSTEM): $(BUILD)/adapter.bin third_party/cpm3/cpm3.sys \
@@ -134,10 +134,13 @@ $(SYSTEM): $(BUILD)/adapter.bin third_party/cpm3/cpm3.sys \
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter.bin \
 		third_party/cpm3/cpm3.sys $@
 
-$(ROM_SYSTEM): $(BUILD)/adapter-romabi.bin third_party/cpm3/cpm3.sys \
+$(ROM_SYSTEM): $(BUILD)/adapter-romabi.bin \
+		third_party/cpm3/cpm3-network-rom.sys \
 		tools/mksystem3.py | $(OUT)
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi.bin \
-		third_party/cpm3/cpm3.sys $@
+		third_party/cpm3/cpm3-network-rom.sys $@ \
+		--load-address 0x9000 --adapter-address 0xc000 \
+		--entry-address 0xbc00 --end-address 0xd600
 
 FASTBOOT_CORE_DEFS := FASTBOOT_8N1 FASTBOOT_ZX0 FASTBOOT_STREAM \
 	FASTBOOT_V15 FASTBOOT_EXACT FASTBOOT_EXT_ACK FASTBOOT_PROBE_SYNC
@@ -153,6 +156,12 @@ $(BUILD)/fastboot-extension.cim: \
 	$(ZMAC) --nmnv --zmac -m -8 \
 		$(addprefix -D,$(FASTBOOT_EXTENSION_DEFS)) -o $@ $<
 
+$(BUILD)/fastboot-extension-rom.cim: \
+		$(COMMON)/transport/fastboot-extension.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 \
+		$(addprefix -D,$(FASTBOOT_EXTENSION_DEFS) FASTBOOT_CPM3_ROM) \
+		-o $@ $<
+
 $(FASTBOOT): $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension.cim $(SYSTEM) $(ZX0) \
 		tools/build_fastboot.py | $(OUT)
@@ -160,10 +169,10 @@ $(FASTBOOT): $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension.cim $(SYSTEM) $(ZX0) $@
 
 $(ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension.cim $(ROM_SYSTEM) $(ZX0) \
+		$(BUILD)/fastboot-extension-rom.cim $(ROM_SYSTEM) $(ZX0) \
 		tools/build_fastboot.py | $(OUT)
 	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension.cim $(ROM_SYSTEM) $(ZX0) $@
+		$(BUILD)/fastboot-extension-rom.cim $(ROM_SYSTEM) $(ZX0) $@
 
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<
@@ -177,3 +186,9 @@ regenerate-cpm3:
 	test -n "$(ZXCC)" -a -n "$(CPM3_TOOLS)"
 	$(PYTHON) tools/regenerate_cpm3.py --zxcc "$(ZXCC)" \
 		--tools "$(CPM3_TOOLS)"
+
+regenerate-cpm3-rom:
+	test -n "$(ZXCC)" -a -n "$(CPM3_TOOLS)"
+	$(PYTHON) tools/regenerate_cpm3.py --zxcc "$(ZXCC)" \
+		--tools "$(CPM3_TOOLS)" --adapter-address 0xc000 \
+		--top-page 0xbf --output third_party/cpm3/cpm3-network-rom.sys

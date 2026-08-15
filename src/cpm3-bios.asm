@@ -6,7 +6,9 @@
 ;
 ; CP/M Plus retains the standard first seventeen CP/M 2 BIOS calls.  This
 ; compact non-banked BIOS delegates those hardware operations to the tested
-; adapter at A000h and implements only the CP/M 3 glue locally.
+; adapter at A000h and implements only the CP/M 3 glue locally. The reproducible
+; ROM-system generator substitutes C000h in its temporary source copy; the
+; frozen baseline source and binary remain unchanged.
 
 true            equ     0ffffh
 jmpop           equ     0c3h

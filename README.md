@@ -25,12 +25,13 @@ CP/Mish history is not rewritten to hide the prototype from which this port
 was separated. [`HISTORY.md`](HISTORY.md) records the exact prototype,
 separation, and shared-code commits.
 
-## Current baseline
+## Current memory maps
 
-The initial baseline is deliberately conservative:
+The frozen stock-ROM/RAM-BIOS baseline remains deliberately conservative:
 
 ```text
-0100h..7CFFh  31 KiB transient program area
+0100h..79FFh  30,976-byte (30.25 KiB) transient program area
+7A00h..7CFFh  CP/M Plus loader
 7D00h..9BFFh  CP/M Plus BDOS
 9C00h..9FFFh  Juku CP/M 3 BIOS
 A000h..AFFFh  CP/M-compatible Juku hardware adapter
@@ -64,11 +65,24 @@ resident keyboard, and renders through the resident 80x24 console/font plus a
 119-byte low-RAM pixel helper. It reaches `A>`, accepts `DIR` and `DIAG CPU`,
 and completes both with no USART overrun. Its final 9,600-byte framebuffer is
 byte-identical to the RAM baseline. This remains a desk image, not a D15/D16
-programming release. Resident NetDisk-v3 now owns the bounded read-ahead path;
-writes retain the RAM compatibility path. The 986-byte binding plus packed
-remote console produce a 1,360-byte initialized adapter versus 4,080 bytes in
-the baseline. No larger-TPA claim is made until CP/M itself is regenerated and
-relinked upward.
+programming release. Resident NetDisk-v3 owns the bounded read-ahead path;
+writes retain the RAM compatibility path. The dedicated CP/M system is now
+regenerated and relinked as follows:
+
+```text
+0100h..99FFh  39,168-byte (38.25 KiB) transient program area
+9A00h..9CFFh  CP/M Plus loader
+9D00h..BBFFh  CP/M Plus BDOS
+BC00h..BFFFh  Juku CP/M 3 BIOS
+C000h..C54Fh  1,360-byte ROM-ABI binding and remote console
+C5ECh..C909h  sparse mutable adapter state, directory buffer, and cache
+D600h..D7FFh  fixed ROM call gate/state and framebuffer helper
+D800h..FFFFh  resident runtime ROM
+```
+
+The exact transient span is 8,192 bytes larger than the frozen baseline. The
+cosimulator validates the live page-zero loader/BDOS chain as well as `A>`,
+`DIR`, `DIAG CPU`, console parity, and zero resident USART overruns.
 
 Physical CS00015 testing reproduced the timing/ownership failures. With the
 corrected server manually retained at 19,200, the same running machine then
@@ -107,16 +121,18 @@ that a fresh build matches them. Current SHA-256 values are:
 
 - system: `170e3c2e91790ff08bcb846af65e0726cf8cfdbec53d813fde68f7762e6a96cd`;
 - fastboot: `5ae6c667d0fc0a23f93d184924b771adaca08fecc3319bae1d2e280664d7faec`;
-- network-ROM system: `6679eb3bb7bfca994c4debbb281e04d44af341d5859e365790fd3da56a8d5e84`;
-- network-ROM fastboot: `720d5eda99bab5747be8e1e25fc59ef1aacc3c1c749d81191324ecebb8c6e507`;
+- network-ROM system: `a3f4d2ebbbd0929cd351be97bf20631919533c86c79a0d0ee410a6329b324c65`;
+- network-ROM fastboot: `e6c6b88bb646116e1b333ae538512f488be50c5adc9a82cd3279abd92e533c7f`;
 - A: volume: `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100`.
 
-The checked-in `third_party/cpm3/cpm3.sys` makes a normal build independent of
-the historical CP/M-hosted development tools. To regenerate it exactly, also
-provide ZXCC plus `RMAC.COM`, `LINK.COM`, and `GENCPM.COM`:
+The checked-in baseline `third_party/cpm3/cpm3.sys` and relinked
+`cpm3-network-rom.sys` make a normal build independent of the CP/M-hosted
+development tools. To regenerate either, provide ZXCC plus `RMAC.COM`,
+`LINK.COM`, and `GENCPM.COM` from the matching CP/M 3 tool set:
 
 ```sh
 make regenerate-cpm3 ZXCC=/path/to/zxcc CPM3_TOOLS=/path/to/tools
+make regenerate-cpm3-rom ZXCC=/path/to/zxcc CPM3_TOOLS=/path/to/tools
 ```
 
 ## Simulation
@@ -159,14 +175,14 @@ provenance, and remaining physical checks are recorded in
 The network-first 16 KiB ROM now has bounded quick POST, automatic
 19,200-baud boot with no menu or keypress, and a proven versioned resident ABI.
 The CP/M consumer validates that ABI and uses its serial, keyboard, and compact
-console/font and NetDisk-v3 read services. The next milestone moves network
-writes, then regenerates/relinks CP/M Plus upward. CP/M Plus will retain thin bindings and
-mutable state in RAM, then be relinked upward to turn the saving into a measured
-larger TPA. The exact memory constraints, staged migration,
+console/font and NetDisk-v3 read services. CP/M Plus has been regenerated and
+relinked upward, yielding an exact 8 KiB TPA gain while retaining thin bindings
+and mutable state in RAM. The next service milestone moves network writes. The
+exact memory constraints, staged migration,
 recovery cases, and acceptance contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).
 The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing
-call graph, and provisional 33 KiB TPA target are in
+call graph, and achieved 38.25 KiB transient span are in
 [`docs/rom-budget.md`](docs/rom-budget.md); `make rom-budget-check` enforces
 the allocation and measures the first resident serial implementation.
 

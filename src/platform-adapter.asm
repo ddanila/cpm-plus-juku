@@ -79,10 +79,15 @@ BDOSADDR       equ     0ff64h
 CONCW          equ     0ffb4h
 
 ; Runtime workspace.  The normal CP/M 2 build keeps the established RomBios
-; addresses.  The first CP/M Plus baseline deliberately limits its TPA below
-; A000h; its compatibility adapter lives at A000h and owns B000h..B409h.
+; addresses. The frozen CP/M Plus baseline limits its TPA below A000h; its
+; compatibility adapter lives at A000h and owns B000h..B409h. The resident-ROM
+; build relinks this binding at C000h and keeps its state at C5ECh..C909h.
 .ifdef CPM3ADAPTER
+.ifdef ROMABI
+TYP            equ     0c600h
+.else
 TYP            equ     0b100h
+.endif
 .else
 TYP            equ     0d600h
 .endif
@@ -119,10 +124,12 @@ PIT3CTL        equ     01bh
 .endif
 PICMASK        equ     001h
 .ifdef CPM3ADAPTER
-PICSHADOW      equ     0b0f0h
 .ifdef ROMABI
-ROMABISTATUS   equ     0b0f1h
-ROMNETREQUEST  equ     0b0f2h
+PICSHADOW      equ     0c5f0h
+ROMABISTATUS   equ     0c5f1h
+ROMNETREQUEST  equ     0c5f2h
+.else
+PICSHADOW      equ     0b0f0h
 .endif
 .else
 PICSHADOW      equ     0d454h
@@ -590,7 +597,7 @@ READ:
         sta     ROMNETREQUEST+7
         mvi     a,080h
         sta     ROMNETREQUEST+8
-        mvi     a,0b2h
+        mvi     a,0c7h
         sta     ROMNETREQUEST+9
         lxi     h,ROMNETREQUEST
         call    JCGNETDISKADDR
@@ -1084,8 +1091,13 @@ NETTRIES:db     0
 ; overlay active. EKDOS therefore keeps them above the overlay window rather
 ; than inside the CA00h BIOS image.
 .ifdef CPM3ADAPTER
+.ifdef ROMABI
+SAVEHL   equ    0c5eeh
+SAVESP   equ    0c5ech
+.else
 SAVEHL   equ    0b0eeh
 SAVESP   equ    0b0ech
+.endif
 .else
 SAVEHL   equ    0d2feh
 SAVESP   equ    0d2fch
@@ -1096,7 +1108,11 @@ ROMSTACK equ    SAVESP
 ; Fixed outside both initialized resident layouts. This gives the relocated
 ; RAM-console BIOS its complete C600h..CDFFh window.
 .ifdef CPM3ADAPTER
+.ifdef ROMABI
+DIRBUF   equ    0c680h
+.else
 DIRBUF   equ    0b180h
+.endif
 .else
 .ifdef NETWORKV3
 ; The earlier 40-column font exposed a CE00h directory-buffer collision. Keep
