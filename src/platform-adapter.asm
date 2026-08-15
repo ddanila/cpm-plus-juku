@@ -37,9 +37,11 @@ BBASE:
 .endif
 .endif
 .ifdef NETWORKV3
+.ifndef ROMABI
         extrn   N3READ
         extrn   N3INV
         extrn   N3ENA
+.endif
 .endif
 .ifdef NETWORKCONSOLE
         extrn   NCENA
@@ -120,6 +122,7 @@ PICMASK        equ     001h
 PICSHADOW      equ     0b0f0h
 .ifdef ROMABI
 ROMABISTATUS   equ     0b0f1h
+ROMNETREQUEST  equ     0b0f2h
 .endif
 .else
 PICSHADOW      equ     0d454h
@@ -257,14 +260,25 @@ BOOT:
         out     USARTCTL
         in      USARTDATA
 .endif
-        mvi     a,3
-        call    N3ENA
 .ifdef ROMABI
+        mvi     a,1
+        sta     ROMNETREQUEST
+        mvi     a,2
+        sta     ROMNETREQUEST+1
+        mvi     a,3
+        sta     ROMNETREQUEST+2
+        lxi     h,ROMNETREQUEST
+        call    JCGNETDISKADDR
+        sta     ROMABISTATUS
+        ora     a
+        jnz     ROMABIFAIL
         call    JCGCONINITADDR
         sta     ROMABISTATUS
         ora     a
         jnz     ROMABIFAIL
 .else
+        mvi     a,3
+        call    N3ENA
         call    RAMCONINIT
         call    RKINIT
 .endif
@@ -557,8 +571,34 @@ SETDMA:
 
 READ:
 .ifdef NETWORKV3
+.ifdef ROMABI
+        mvi     a,1
+        sta     ROMNETREQUEST
+        xra     a
+        sta     ROMNETREQUEST+1
+        lda     SEKDSK
+        sta     ROMNETREQUEST+2
+        lda     SEKTRK
+        sta     ROMNETREQUEST+3
+        lda     SEKTRK+1
+        sta     ROMNETREQUEST+4
+        lda     SEKSEC
+        sta     ROMNETREQUEST+5
+        lda     MEMADR
+        sta     ROMNETREQUEST+6
+        lda     MEMADR+1
+        sta     ROMNETREQUEST+7
+        mvi     a,080h
+        sta     ROMNETREQUEST+8
+        mvi     a,0b2h
+        sta     ROMNETREQUEST+9
+        lxi     h,ROMNETREQUEST
+        call    JCGNETDISKADDR
+        ret
+.else
         call    N3READ
         ret
+.endif
 .else
 .ifdef NETWORKV2
         lda     NETV2
@@ -581,7 +621,15 @@ NETV2SINGLE:
 
 WRITE:
 .ifdef NETWORKV3
+.ifdef ROMABI
+        mvi     a,1
+        sta     ROMNETREQUEST
+        sta     ROMNETREQUEST+1
+        lxi     h,ROMNETREQUEST
+        call    JCGNETDISKADDR
+.else
         call    N3INV
+.endif
 .endif
         mvi     a,DKWR
 
@@ -887,7 +935,9 @@ NETV4MARK:
 .endif
 NETV3DONE:
         mov     a,c
+.ifndef ROMABI
         call    N3ENA
+.endif
 .else
 .ifdef NETWORKV2
         ; A v2 host appends N2 to NR.  With a legacy host these reads consume

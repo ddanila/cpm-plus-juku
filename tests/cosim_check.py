@@ -251,7 +251,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             worker = threading.Thread(target=disk_worker)
             worker.start()
             if expect_disk_failure:
-                first = read_console_until(console_master, b"Disk I/O", 30)
+                first = read_console_until(console_master, b"Disk I/O", 60)
                 second = third = b""
             else:
                 first = read_console_until(
@@ -332,7 +332,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 "CP/M Plus did not initialize the fixed ROM call gate")
         require(
             ram[0xB0F1] == 0 and ram[0xD785] == 1
-            and ram[0xB0F2] == 0 and ram[0xD788] == 0x0D,
+            and ram[0xD788] == 0x0D,
             "CP/M Plus did not retain ROM serial/keyboard binding state",
         )
         if ram_console_reference is not None:

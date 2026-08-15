@@ -26,7 +26,7 @@ Current measured ingredients are:
 | mode-3 console clear/scroll/packed-row helper | 119 | copied low RAM implemented |
 | keyboard matrix scanner | 331 RAM baseline; 328 resident code | resident ROM implemented; three mutable bytes remain in low RAM |
 | shared resident D57/D11 serial initializer and primitives | 86 | implemented resident ROM ABI service |
-| NetDisk v3 client, including its present private serial primitives | 547 | resident ROM |
+| NetDisk v3 read-ahead client and versioned ABI binding | 606 resident; 547 RAM baseline | resident ROM implemented for reads |
 | remote console/status client | 368 | resident ROM, optional at boot |
 | CPU diagnostic | 517 | quick POST and resident diagnostic service |
 | byte-cell RAM diagnostic | 29 | quick POST and resident service |
@@ -70,7 +70,7 @@ checks the exact linked layout and deterministic image.
 | `D800h..DCFFh` | 1,280 | console policy, geometry, ASCII font | 1,191 implemented; 89 bytes headroom |
 | `DD00h..DE7Fh` | 384 | keyboard scan and translation | 328 implemented; 56 bytes headroom |
 | `DE80h..E0FFh` | 640 | shared D57/D11 serial layer | 86-byte resident initializer/primitives implemented |
-| `E100h..E3FFh` | 768 | NetDisk v3 protocol | 547, currently including serial loops |
+| `E100h..E3FFh` | 768 | NetDisk v3 protocol | 606 implemented; 162 bytes headroom |
 | `E400h..E5FFh` | 512 | remote console and bounded status | 368 |
 | `E600h..E8FFh` | 768 | common diagnostic mechanisms | 655 |
 | `E900h..E9FFh` | 256 | sound and platform initialization | 114 |
@@ -78,7 +78,7 @@ checks the exact linked layout and deterministic image.
 | `F000h..F7FFh` | 2,048 | locale/font banks and future services | 0 |
 | `F800h..FEFFh` | 1,792 | unassigned reserve | 0 |
 | `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | ABI 1.0 implemented and range-fixed |
-| **total** | **10,240** | exact runtime window | **3,289 measured** |
+| **total** | **10,240** | exact runtime window | **3,348 measured** |
 
 These are link fences, not permission to fill every service to its fence. The
 ABI table is deliberately at the top of ROM so its address survives internal
@@ -134,15 +134,16 @@ and all behavior rerun before the README may claim it. A 34 KiB target remains
 plausible if shared serial extraction and buffer placement remove another
 aligned 1 KiB without weakening cache or stack safety.
 
-The ROM-ABI platform binding is now 897 bytes. It replaces the 2,132-byte
-baseline platform object plus the separate 331-byte keyboard, for 1,566 bytes
-of linked-code saving. The resident console itself is 1,191 bytes and its
+The ROM-ABI platform binding is now 986 bytes. Together with the packed
+368-byte remote console it produces a 1,360-byte initialized adapter, versus
+4,080 bytes for the baseline. The resident console itself is 1,191 bytes and its
 mode-3 helper 119; full cosim proves its final 9,600-byte framebuffer identical
-to the RAM oracle after the same transcript. Fixed NetDisk and remote-console
-origins still extend both adapter files to 4,080 initialized bytes, so this does
-not yet change the 31 KiB TPA. Whole NetDisk migration must remove those holes
-before the system is relinked upward; the service crosses the memory-mode
-boundary once per operation rather than once per byte.
+to the RAM oracle after the same transcript. The resident read-ahead NetDisk
+service is 606 bytes. This still does not change the 31 KiB
+TPA: the checked CP/M system was generated for BIOS `9C00h`, BDOS `7D00h`, and
+adapter `A000h`. Network writes also retain their RAM compatibility code. The
+CP/M hosted build must be regenerated with the compact map before a TPA gain is
+claimed.
 
 ## Decisions entering resident-service migration
 

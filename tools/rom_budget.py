@@ -125,6 +125,10 @@ def main() -> int:
             helper_source, temporary, "JROMHELPENTRY", "JROMHELPEND",
             (COMMON / "platform",),
         )
+        sizes["rom-netdisk-v3"] = assemble_span(
+            resident_source, temporary, "N3ENA", "rom_netdisk_end",
+            (resident_source.parent, COMMON / "platform"),
+        )
 
     core = ROOT / "build" / "fastboot-core.cim"
     extension = ROOT / "build" / "fastboot-extension.cim"
@@ -141,7 +145,7 @@ def main() -> int:
         ("console", sizes["rom-console"], 0x500),
         ("keyboard", sizes["rom-keyboard"], 0x180),
         ("serial extraction", sizes["rom-serial"], 0x280),
-        ("NetDisk v3", sizes["netdisk-v3"], 0x300),
+        ("NetDisk v3", sizes["rom-netdisk-v3"], 0x300),
         ("remote console/status", sizes["netconsole"], 0x200),
         ("diagnostics", diagnostics, 0x300),
         ("sound/platform init", sizes["sound"], 0x100),

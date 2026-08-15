@@ -9,7 +9,7 @@ resets the modeled Juku, performs bounded POST, announces a direct 19,200-baud
 session, loads the real CP/M Plus system without a keypress or Janet identity,
 and reaches the existing NetDisk-v3 baseline. The dedicated consumer now stays
 in mode 1 for resident serial, keyboard, and console calls, but does not yet
-claim a larger TPA because NetDisk code and its fixed placement remain in RAM.
+claim a larger TPA until CP/M itself is regenerated for the compact RAM map.
 
 ## Reset and transfer path
 
@@ -32,8 +32,7 @@ claim a larger TPA because NetDisk code and its fixed placement remain in RAM.
    the ZX0-compressed CP/M Plus image.
 6. The dedicated ROM-ABI consumer validates the resident manifest, calls
    `JCGINIT`, selects 19,200/8O1 through `JCGSERINIT`, initializes the shared
-   resident keyboard and 80x24 console, then starts the qualified NetDisk-v3
-   RAM implementation.
+   resident keyboard, 80x24 console, and versioned NetDisk-v3 read-ahead service.
 
 The POST status `C4h` and wire-ready byte `C4h` are intentionally on different
 channels: a ROM-integrity failure only writes RAM and halts, while a successful
@@ -87,9 +86,9 @@ that the copied gate reports ready at `D620h`, status at `B0F1h` is zero,
 `D785h` records 8O1, and all 13 matrix characters for `DIR` plus `DIAG CPU`
 were consumed by resident code while mode 1 remained selected. Its complete
 framebuffer matches the RAM-console run byte for byte. The normal system remains
-byte-identical. The 897-byte binding saves 1,566 linked bytes versus the
-baseline platform/keyboard, but fixed NetDisk origins keep the initialized
-span unchanged; this is not yet a TPA-saving milestone.
+byte-identical. Packing the binding and remote console shrinks initialized
+adapter RAM from 4,080 to 1,360 bytes. This is not yet a TPA-saving milestone
+because the CP/M SYS file still has the frozen 31 KiB map.
 
 At CS00015's measured 1.70 MHz, 725,602 cycles are approximately 427 ms from
 reset to target-ready C4. Failure paths are separately bounded below 1.5
@@ -120,8 +119,6 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
 ```
 
 Do not burn the present split artifacts. The next milestone is resident-service
-migration: whole NetDisk framing and bulk operations. Per-byte protocol loops
-stay in RAM until the service boundary can
-avoid a memory-mode crossing for every byte. Each service must match its RAM
-oracle, remove the old RAM copy, and produce a measured relinked TPA before
-step 6 is complete.
+migration: network writes, then CP/M SYS regeneration and relinking. The read
+path already crosses the ABI once per record and completes its full transaction
+in resident ROM. A measured TPA is required before step 6 is complete.

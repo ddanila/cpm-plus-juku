@@ -120,12 +120,10 @@ $(BUILD)/adapter.bin: $(BUILD)/adapter.all
 	test $$(stat -c %s $@) -le 4096
 
 $(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
-		$(BUILD)/netdisk-v3.rel \
 		$(BUILD)/netconsole.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xa000 $(BUILD)/platform-adapter-romabi.rel \
-		-P0xac10 $(BUILD)/netdisk-v3.rel \
-		-P0xae80 $(BUILD)/netconsole.rel
+		-P0xa3e0 $(BUILD)/netconsole.rel
 
 $(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
 	tail -c+40961 $< >$@
