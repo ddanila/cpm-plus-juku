@@ -1,0 +1,5 @@
+# Generated images and byte-preserved third-party inputs are not text diffs.
+prebuilt/** -text -diff
+third_party/ld80/** -text -diff
+third_party/zmac/** -text -diff
+third_party/zx0/** -text -diff
