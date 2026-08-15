@@ -1,6 +1,6 @@
 # Network-first ROM inventory and byte budget
 
-Status: **MEASURED BASELINE; ALLOCATION ACCEPTED FOR ABI IMPLEMENTATION**
+Status: **MEASURED BASELINE; AUTOMATIC BOOT FITS; SERVICE MIGRATION NEXT**
 
 Measurement date: **2026-08-16**
 
@@ -33,7 +33,7 @@ Current measured ingredients are:
 | checksum primitive | 18 | ROM/load integrity |
 | complete diagnostic mechanisms | 655 | boot selects a bounded subset |
 | sound routine plus tune | 114 | resident feedback/service |
-| proven V15 direct core | 125 | automatic bootstrap seed |
+| proven V15 direct core | 125 source bytes; 141 stored with target-ready prelude | automatic bootstrap seed |
 | proven V15 receive/decompress extension | 267 | automatic load engine seed |
 
 The sum is not a proposed final ROM size. Several current modules contain
@@ -44,19 +44,22 @@ being credited as savings before it exists.
 
 ## Lower 6 KiB: reset-visible, boot-only
 
-| ROM file range | bytes | envelope | currently measured reusable code |
+| ROM file range | bytes | envelope | reusable/current implementation evidence |
 | --- | ---: | --- | ---: |
-| `0000h..05FFh` | 1,536 | reset, deterministic hardware init, bounded quick POST | 623 |
-| `0600h..0BFFh` | 1,536 | automatic 19,200-baud boot transport | 125 |
+| `0000h..05FFh` | 1,536 | reset, deterministic hardware init, bounded quick POST | 623 shared mechanisms; 997-byte linked boot |
+| `0600h..0BFFh` | 1,536 | automatic 19,200-baud boot transport | 125-byte source; 141-byte stored core |
 | `0C00h..11FFh` | 1,536 | validation, decompression, timeout/retry recovery | 267 |
-| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | 0 |
+| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | 196-byte gate plus 44-byte helper |
 | `1600h..17FFh` | 512 | boot manifest, integrity values, growth reserve | 0 |
-| **total** | **6,144** | exact boot-only window | **1,015 measured** |
+| **total** | **6,144** | exact boot-only window | **1,015 reusable ingredients; 1,378 linked component bytes currently stored** |
 
-The large headroom is intentional. Existing fastboot code proves the compact
-mechanisms, but the network-first ROM still needs reset-safe initialization,
-timeouts, absent-host retry, load policy, POST reporting, and a manifest. Those
-contracts must fit without borrowing bytes from the runtime ABI.
+The large headroom is intentional. The current builder places 997 bytes of
+reset/POST code, a 141-byte automatic core, a 196-byte gate, and a 44-byte
+helper without overlap. The 267-byte extension is still sent into RAM by the
+host rather than stored in ROM. Later recovery work and moving the complete
+receive/decompress path into the boot-only window must fit without borrowing
+bytes from the runtime ABI. `network_first_rom_abi_check.sh` independently
+checks the exact linked layout and deterministic image.
 
 ## Upper 10 KiB: runtime-mapped at `D800h..FFFFh`
 
@@ -72,7 +75,7 @@ contracts must fit without borrowing bytes from the runtime ABI.
 | `EA00h..EFFFh` | 1,536 | near-term implementation growth | 0 |
 | `F000h..F7FFh` | 2,048 | locale/font banks and future services | 0 |
 | `F800h..FEFFh` | 1,792 | unassigned reserve | 0 |
-| `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | not yet implemented |
+| `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | ABI 1.0 implemented and range-fixed |
 | **total** | **10,240** | exact runtime window | **3,243 measured** |
 
 These are link fences, not permission to fill every service to its fence. The
@@ -83,11 +86,11 @@ document and the executable budget check.
 ## Call and ownership graph
 
 ```text
-reset
+target-state reset/runtime graph
   -> hardware init
   -> quick POST -> CPU / RAM / address / ROM-check mechanisms
   -> automatic boot -> serial -> checked receive / ZX0 -> RAM system
-  -> CP/M Plus entry in mode 1
+  -> CP/M Plus entry (current RAM baseline selects mode 3; final ABI path uses mode 1)
 
 CP/M Plus thin BIOS bindings in RAM
   -> fixed ROM ABI table at FF00h
@@ -129,7 +132,7 @@ and all behavior rerun before the README may claim it. A 34 KiB target remains
 plausible if shared serial extraction and buffer placement remove another
 aligned 1 KiB without weakening cache or stack safety.
 
-## Decisions entering the ABI phase
+## Decisions entering resident-service migration
 
 - Keep the whole current implementation inside each initial envelope; do not
   depend on hypothetical compression or dead-code removal.
@@ -139,7 +142,8 @@ aligned 1 KiB without weakening cache or stack safety.
 - Extract one shared serial layer for boot, NetDisk and remote status instead
   of preserving three subtly different polling loops.
 - Keep 19,200 baud, D57 mode 2/count 4 as the production contract.
-- Keep the full CPU diagnostic callable, but run a smaller measured subset at
-  every cold boot if the full 517-byte path adds noticeable delay.
+- Keep the full CPU diagnostic callable. The complete current POST reaches
+  target-ready in 722,002 cycles (about 425 ms at 1.70 MHz), which is accepted;
+  shrink it only if later physical timing shows a real usability cost.
 - Treat the first locale/font bank and the large reserves as optional growth;
   they may not postpone the baseline automatic boot and TPA gain.

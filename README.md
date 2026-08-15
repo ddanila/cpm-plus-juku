@@ -55,6 +55,13 @@ The baseline is simulator-qualified through all of the following in one test:
 - loading `DIAG.COM` and passing `DIAG CPU`;
 - all-RAM memory mode, fully masked PIC, and 8O1 USART state.
 
+The network-first ROM now adds a third simulator-qualified entry path. Reset
+runs bounded POST, announces C4 at 19,200/8N1, and loads this same CP/M Plus
+system with no monitor command, keypress, or Janet station identity. It reaches
+`A>`, completes `DIR`, and passes `DIAG CPU` with no USART overrun. This is
+still a desk image rather than a D15/D16 programming release, and it returns to
+the same all-RAM BIOS, so it does not yet claim a larger TPA.
+
 Physical CS00015 testing reproduced the timing/ownership failures. With the
 corrected server manually retained at 19,200, the same running machine then
 recovered to `A>`, completed `DIR`, and ran the full `DIAG` successfully. This
@@ -107,6 +114,7 @@ Place `cpm-plus-juku` and `8080-cosim` beside each other, or set
 
 ```sh
 make check
+make network-rom-cosim-check  # focused keyless reset-ROM path
 ```
 
 ## Future physical test
@@ -121,6 +129,10 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   /dev/ttyUSB0 out/cpm-plus-juku-system.bin out/cpm-plus-juku.img
 ```
 
+The corresponding automatic-ROM command and its explicit do-not-program gate
+are recorded in
+[`docs/network-first-rom-auto-boot.md`](docs/network-first-rom-auto-boot.md).
+
 ## Roadmap
 
 The immediate work preserves the simulator-proven compatibility adapter as the
@@ -132,13 +144,13 @@ binary extraction, period-document discrepancy, exact video timing, font
 provenance, and remaining physical checks are recorded in
 [`docs/modx-console-reference.md`](docs/modx-console-reference.md).
 
-The planned successor is a network-first 16 KiB ROM: bounded quick POST,
-automatic 19,200-baud boot with no menu or keypress, and a versioned resident
-service ABI for the common console, keyboard, serial, NetDisk, sound, and small
-diagnostic code. CP/M Plus will retain only thin bindings and mutable state in
-RAM, then be relinked upward to turn the saving into a measured larger TPA.
-The exact memory constraints, staged migration, recovery cases, and acceptance
-contract are in
+The network-first 16 KiB ROM now has bounded quick POST, automatic
+19,200-baud boot with no menu or keypress, and a proven versioned resident ABI.
+The next milestone moves the common console, keyboard, serial, NetDisk, sound,
+and small diagnostic code behind that ABI. CP/M Plus will retain only thin
+bindings and mutable state in RAM, then be relinked upward to turn the saving
+into a measured larger TPA. The exact memory constraints, staged migration,
+recovery cases, and acceptance contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).
 The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing
 call graph, and provisional 33 KiB TPA target are in

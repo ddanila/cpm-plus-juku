@@ -18,6 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 COSIM = Path(os.environ.get("JUKU_COSIM_ROOT", ROOT.parent / "8080-cosim"))
 ROM_DIRECT = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4402.bin"
 ROM_STOCK = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4401.bin"
+ROM_NETWORK = (
+    COSIM / "spinoffs" / "jukuravi" / "network-rom" /
+    "juku-network-rom-abi1.bin"
+)
 SYSTEM = ROOT / "out" / "cpm-plus-juku-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-fastboot-v15.bin"
 VOLUME = ROOT / "out" / "cpm-plus-juku.img"
@@ -43,6 +47,7 @@ def build_trace(output: Path) -> None:
     require(
         ROM_DIRECT.is_file()
         and ROM_STOCK.is_file()
+        and ROM_NETWORK.is_file()
         and all(path.is_file() for path in sources),
         f"8080-cosim checkout is incomplete at {COSIM}",
     )
@@ -133,7 +138,10 @@ def read_console_until(fd: int, marker: bytes, timeout: float) -> bytes:
 
 def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot: Path = FASTBOOT, system: Path = SYSTEM,
-        expect_disk_failure: str | None = None) -> None:
+        expect_disk_failure: str | None = None,
+        network_rom: bool = False) -> None:
+    require(not network_rom or direct_core,
+            "network ROM requires direct-core fastboot")
     container = system.read_bytes()
     require(
         container[:8] == b"JUKURM1\x1a"
@@ -149,7 +157,18 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         resident[conout_vector + 1:conout_vector + 3], "little",
     )
 
-    case_name = "cpm3-direct" if direct_core else "cpm3-stock"
+    if network_rom:
+        case_name = "cpm3-network-rom"
+        rom = ROM_NETWORK
+        boot_label = "automatic network ROM"
+    elif direct_core:
+        case_name = "cpm3-direct"
+        rom = ROM_DIRECT
+        boot_label = "direct Ekta4402 N"
+    else:
+        case_name = "cpm3-stock"
+        rom = ROM_STOCK
+        boot_label = "stock Ekta4401 TN"
     if expect_disk_failure:
         case_name += f"-{expect_disk_failure}"
     case = work / case_name
@@ -175,18 +194,21 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         ),
         JUKU_TRACE_BANK="1",
         JUKU_DISABLE_SETTLE="1",
-        JUKU_KEYS="N" if direct_core else "TN0201",
         JUKU_KEY_HOLD_FRAMES="6",
         JUKU_KEY_GAP_FRAMES="8",
         JUKU_CHECKPOINT_PREFIX=str(case / "final"),
     )
+    if network_rom:
+        environment.pop("JUKU_KEYS", None)
+    else:
+        environment["JUKU_KEYS"] = "N" if direct_core else "TN0201"
     volume = bytearray(VOLUME.read_bytes())
     stats: dict[str, int] = {}
     errors: list[BaseException] = []
     with (case / "stdout.txt").open("w") as stdout, \
             (case / "stderr.txt").open("w") as stderr:
         process = subprocess.Popen(
-            [str(trace), str(ROM_DIRECT if direct_core else ROM_STOCK),
+            [str(trace), str(rom),
              "1000000000000", "0", "100000"],
             cwd=case, env=environment, stdout=stdout, stderr=stderr,
         )
@@ -197,6 +219,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 master, fastboot.read_bytes(), container,
                 stock_timeout=120, reply_timeout=8, verbose=False,
                 configure_rate=False, direct_core=direct_core,
+                auto_rom_ready=network_rom,
             )
 
             def disk_worker() -> None:
@@ -250,8 +273,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             os.close(console_master)
 
     if direct_core:
-        require(boot["direct_core"] == 1 and boot["stock_sent_frames"] == 0,
-                f"CP/M Plus did not use direct ROM fastboot: {boot}")
+        require(
+            boot["direct_core"] == 1
+            and boot["stock_sent_frames"] == 0
+            and boot["auto_rom_ready"] == int(network_rom)
+            and boot["auto_ready_seen"] == int(network_rom),
+            f"CP/M Plus did not use the requested direct ROM path: {boot}",
+        )
     else:
         require(
             boot["direct_core"] == 0
@@ -310,7 +338,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             f"fixed NetDisk path still overran the resident 8251: {state}")
     print(
         "JUKU CP/M PLUS 3.1: PASS "
-        f"({'direct Ekta4402 N' if direct_core else 'stock Ekta4401 TN'} "
+        f"({boot_label} "
         f"boot, A>, DIR, DIAG CPU, reads={stats['reads']}, "
         f"retries={stats['retries']}, resident-overruns={resident_overruns}, "
         f"bootstrap-overruns={overruns - resident_overruns})"
@@ -318,18 +346,25 @@ def run(trace: Path, work: Path, *, direct_core: bool,
 
 
 def main() -> None:
-    for path in (ROM_DIRECT, ROM_STOCK, SYSTEM, FASTBOOT, VOLUME):
+    for path in (
+        ROM_DIRECT, ROM_STOCK, ROM_NETWORK, SYSTEM, FASTBOOT, VOLUME,
+    ):
         require(path.is_file(), f"build input is missing: {path}")
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
-    require(selected in ("both", "direct", "stock"),
+    require(selected in ("both", "direct", "stock", "network", "all"),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
-    paths = (True, False) if selected == "both" else (selected == "direct",)
+    paths = (True, False) if selected in ("both", "all") else \
+        (selected == "direct",) if selected in ("direct", "stock") else ()
+    include_network = selected in ("network", "all")
     retained = os.environ.get("CPM_PLUS_JUKU_WORK")
     if retained:
         work = Path(retained)
         work.mkdir(parents=True, exist_ok=True)
         trace = work / "trace"
         build_trace(trace)
+        if selected == "network":
+            run(trace, work, direct_core=True, network_rom=True)
+            return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
             netdisk_define="NETDISK_V3_LEGACY_DRAIN",
@@ -348,11 +383,16 @@ def main() -> None:
             expect_disk_failure="legacy-unmasked-pic")
         for direct_core in paths:
             run(trace, work, direct_core=direct_core)
+        if include_network:
+            run(trace, work, direct_core=True, network_rom=True)
         return
     with tempfile.TemporaryDirectory(prefix="cpm-plus-juku-cosim.") as name:
         work = Path(name)
         trace = work / "trace"
         build_trace(trace)
+        if selected == "network":
+            run(trace, work, direct_core=True, network_rom=True)
+            return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
             netdisk_define="NETDISK_V3_LEGACY_DRAIN",
@@ -371,6 +411,8 @@ def main() -> None:
             expect_disk_failure="legacy-unmasked-pic")
         for direct_core in paths:
             run(trace, work, direct_core=direct_core)
+        if include_network:
+            run(trace, work, direct_core=True, network_rom=True)
 
 
 if __name__ == "__main__":

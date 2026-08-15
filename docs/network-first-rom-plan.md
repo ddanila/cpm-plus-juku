@@ -1,6 +1,6 @@
 # Network-first 16 KiB ROM plan
 
-Status: **IN PROGRESS — ROM ABI PROVEN; AUTOMATIC BOOT UNDERWAY**
+Status: **IN PROGRESS — AUTOMATIC BOOT PROVEN; RESIDENT MIGRATION NEXT**
 
 Decision date: **2026-08-15**
 
@@ -210,9 +210,9 @@ better boot, console, keyboard, and disk behavior.
 | 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
 | 2. Native RAM console | Implemented; simulator-qualified | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`; the independent 9,600-byte oracle passes. See [`modx-console-reference.md`](modx-console-reference.md). An explicit full blink-cycle test and physical display check remain. |
 | 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, records the mode-crossing call graph, and establishes a conservative 33 KiB TPA relink target. See [`rom-budget.md`](rom-budget.md). |
-| 4. ROM ABI | Complete | `juku-common` defines ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`; the from-scratch ROM skeleton proves manifest rejection/acceptance, registers, stack guards, DI/PIC ownership, mode 0/1/3 crossings, overlay-write rejection, helper access, and concurrent 19,200 serial traffic. |
-| 5. Automatic network boot | In progress | Replace the ABI self-test entry with reset-safe initialization, bounded quick POST, a target-ready handshake, identity-free V15 acquisition, and absent-host retry before loading a test payload. Then boot the real CP/M Plus image without keys. |
-| 6. Move services / relink | Not started | Migrate against the RAM oracle one service at a time and publish measured TPA changes. |
+| 4. ROM ABI | Complete | `juku-common` defines ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`; the retained ABI self-test image proves manifest rejection/acceptance, registers, stack guards, DI/PIC ownership, mode 0/1/3 crossings, overlay-write rejection, helper access, and concurrent 19,200 serial traffic. |
+| 5. Automatic network boot | Complete in simulation | Reset establishes PPI/PIC and stock raster/refresh state; POST has distinct C1..C5 failures and reaches C4 target readiness in 722,002 cycles. Identity-free V15 rejects a corrupt extension, recovers, and boots the real CP/M Plus image without keys; `A>`, `DIR`, and `DIAG CPU` pass with zero retries/overruns. The host also recovers when its one-shot C4 observation was missed. See [`network-first-rom-auto-boot.md`](network-first-rom-auto-boot.md). |
+| 6. Move services / relink | Next | Migrate against the RAM oracle in the recorded serial/memory-mode, keyboard, console/font, then NetDisk order; remove each displaced RAM copy and publish measured TPA changes. |
 | 7. Recovery matrix | Not started | Exercise absent/restarted host, corrupt/truncated/duplicate/delayed traffic, USART overrun, and reset during transfer. |
 | 8. Physical qualification | Pending | Build/hash D15/D16, burn, and run the complete CS00015 matrix including display and cursor. |
 | 9. Acceptance audit | Pending | Publish final maps, artifacts, logs, hashes, timings, and parity decision. |
