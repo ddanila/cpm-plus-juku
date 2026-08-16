@@ -127,7 +127,9 @@ def build_timing_fixture(
     return fastboot, system
 
 
-def read_console_until(fd: int, marker: bytes, timeout: float) -> bytes:
+def read_console_until(
+        fd: int, marker: bytes, timeout: float, *,
+        allow_timeout: bool = False) -> bytes:
     result = bytearray()
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -141,6 +143,8 @@ def read_console_until(fd: int, marker: bytes, timeout: float) -> bytes:
         result.extend(incoming)
         if marker in result:
             return bytes(result)
+    if allow_timeout:
+        return bytes(result)
     raise TimeoutError(
         f"console did not emit {marker!r}; transcript={bytes(result)!r}"
     )
@@ -170,14 +174,70 @@ def read_console_paged(fd: int, timeout: float) -> bytes:
     )
 
 
+class RemoteConsole:
+    """Thread-shared N4 console buffers used by the real serial protocol."""
+
+    def __init__(self) -> None:
+        self.input = bytearray()
+        self.output = bytearray()
+        self.cursor = 0
+
+    def send(self, data: bytes) -> None:
+        self.input.extend(data)
+
+    def read_until(self, marker: bytes, timeout: float) -> bytes:
+        start = self.cursor
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            snapshot = bytes(self.output[start:])
+            found = snapshot.find(marker)
+            if found >= 0:
+                end = start + found + len(marker)
+                self.cursor = end
+                return bytes(self.output[start:end])
+            time.sleep(0.01)
+        raise TimeoutError(
+            f"N4 console did not emit {marker!r}; "
+            f"transcript={bytes(self.output[start:])!r}"
+        )
+
+    def read_paged(self, timeout: float) -> bytes:
+        start = self.cursor
+        handled = 0
+        page_prompt = b"Press RETURN to Continue"
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            snapshot = bytes(self.output[start:])
+            found = snapshot.find(b"A>")
+            if found >= 0:
+                end = start + found + 2
+                self.cursor = end
+                return bytes(self.output[start:end])
+            if page_prompt in snapshot[handled:]:
+                self.send(b"\r")
+                handled = len(snapshot)
+            time.sleep(0.01)
+        raise TimeoutError(
+            "paged N4 console output did not return to CCP: "
+            f"{bytes(self.output[start:])!r}"
+        )
+
+
 def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot: Path = FASTBOOT, system: Path = SYSTEM,
         expect_disk_failure: str | None = None,
         network_rom: bool = False, disk_fault: str | None = None,
-        video_mode: int = 3) -> None:
+        video_mode: int = 3, remote_console: bool = False) -> None:
     require(not network_rom or direct_core,
             "network ROM requires direct-core fastboot")
     require(video_mode in range(4), "video mode must be 0..3")
+    require(
+        not remote_console or (
+            direct_core and not network_rom and not expect_disk_failure
+            and disk_fault is None
+        ),
+        "N4 console regression requires the normal direct Ekta4402 path",
+    )
     if network_rom:
         fastboot = ROM_FASTBOOT
         system = ROM_SYSTEM
@@ -219,6 +279,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         case_name += f"-{disk_fault}"
     if video_mode != 3:
         case_name += f"-video{video_mode}"
+    if remote_console:
+        case_name += "-remote-console"
     case = work / case_name
     case.mkdir()
     master, slave = pty.openpty()
@@ -257,6 +319,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     fault_evidence: dict[str, int] = {}
     restart_armed = threading.Event()
     errors: list[BaseException] = []
+    remote = RemoteConsole()
     with (case / "stdout.txt").open("w") as stdout, \
             (case / "stderr.txt").open("w") as stderr:
         process = subprocess.Popen(
@@ -294,10 +357,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     def serve(
                         stats_target: dict[str, int],
                         reply_filter: Callable[[int, bytes], bytes] | None,
+                        *, resume: bool,
                     ) -> None:
                         serve_disk(
                             master, volume, timeout=180, idle_timeout=None,
-                            writable=True, verbose=False, stats=stats_target,
+                            writable=True, verbose=False,
+                            stats=stats_target,
                             protocol_version=3,
                             reply_guard=(
                                 0.05 if disk_fault == "compound-recovery"
@@ -313,7 +378,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             v3_wire_drain=(
                                 expect_disk_failure != "legacy-host-guard"
                             ),
-                            resume=True,
+                            resume=resume or network_rom,
+                            console_protocol=remote_console,
+                            console_input=remote.input,
+                            console_output=remote.output,
                         )
 
                     if disk_fault in ("server-restart", "mid-session-restart"):
@@ -324,12 +392,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             raise RestartDiskServer
 
                         try:
-                            serve(stats, stop_server)
+                            serve(stats, stop_server, resume=False)
                         except RestartDiskServer:
                             fault_evidence["server_restarts"] = 1
-                        serve(stats, None)
+                        serve(stats, None, resume=True)
                     else:
-                        serve(stats, filter_reply)
+                        serve(stats, filter_reply, resume=False)
                 except BaseException as error:
                     errors.append(error)
 
@@ -339,42 +407,53 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 first = read_console_until(
                     console_master, b"Disk I/O",
                     float(os.environ.get(
-                        "CPM_PLUS_JUKU_FAILURE_TIMEOUT", "120",
+                        "CPM_PLUS_JUKU_FAILURE_TIMEOUT",
+                        "15" if expect_disk_failure ==
+                        "legacy-unmasked-pic" else "120",
                     )),
+                    allow_timeout=(
+                        expect_disk_failure == "legacy-unmasked-pic"
+                    ),
                 )
                 second = third = b""
             else:
-                first = read_console_until(
-                    console_master, b"A>",
-                    float(os.environ.get(
-                        "CPM_PLUS_JUKU_PROMPT_TIMEOUT", "120",
-                    )),
-                )
+                prompt_timeout = float(os.environ.get(
+                    "CPM_PLUS_JUKU_PROMPT_TIMEOUT", "120",
+                ))
+                first = remote.read_until(b"A>", prompt_timeout) \
+                    if remote_console else read_console_until(
+                        console_master, b"A>", prompt_timeout,
+                    )
+                send_console = remote.send if remote_console else \
+                    lambda data: os.write(console_master, data)
+                read_until = remote.read_until if remote_console else \
+                    lambda marker, timeout: read_console_until(
+                        console_master, marker, timeout,
+                    )
                 if disk_fault == "mid-session-restart":
                     restart_armed.set()
-                os.write(console_master, b"DIR\r")
-                second = read_console_until(console_master, b"A>", 120)
-                os.write(console_master, b"TYPE README.TXT\r")
-                third = read_console_paged(console_master, 120)
-                os.write(console_master, b"DIAG CPU\r")
-                fourth = read_console_until(console_master, b"A>", 120)
-                os.write(console_master, b"WBOOT\r")
-                fifth = read_console_until(console_master, b"A>", 120)
+                send_console(b"DIR\r")
+                second = read_until(b"A>", 120)
+                send_console(b"TYPE README.TXT\r")
+                third = remote.read_paged(120) if remote_console else \
+                    read_console_paged(console_master, 120)
+                send_console(b"DIAG CPU\r")
+                fourth = read_until(b"A>", 120)
+                send_console(b"WBOOT\r")
+                fifth = read_until(b"A>", 120)
                 soak_cycles = int(os.environ.get(
                     "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
                 )) if disk_fault == "mid-session-restart" else 0
                 for _ in range(soak_cycles):
-                    os.write(console_master, b"DIR\r")
-                    read_console_until(console_master, b"A>", 120)
-                    os.write(console_master, b"DIAG CPU\r")
-                    soak_diag = read_console_until(
-                        console_master, b"A>", 120,
-                    )
+                    send_console(b"DIR\r")
+                    read_until(b"A>", 120)
+                    send_console(b"DIAG CPU\r")
+                    soak_diag = read_until(b"A>", 120)
                     require(b"CPU: PASS" in soak_diag,
                             "NetDisk soak diagnostic failed")
                 fault_evidence["soak_cycles"] = soak_cycles
-                os.write(console_master, b"ERA README.TXT\r")
-                sixth = read_console_until(console_master, b"A>", 120)
+                send_console(b"ERA README.TXT\r")
+                sixth = read_until(b"A>", 120)
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
@@ -405,13 +484,20 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             and boot["protocol_version"] == 15,
             f"CP/M Plus did not use stock Janet into V15: {boot}",
         )
-    require(b"CP/M Plus" in first or b"CP/M Version 3" in first,
-            f"CP/M Plus banner is missing: {first!r}")
+    if expect_disk_failure != "legacy-unmasked-pic":
+        require(b"CP/M Plus" in first or b"CP/M Version 3" in first,
+                f"CP/M Plus banner is missing: {first!r}")
     if expect_disk_failure:
-        require(b"Disk I/O" in first,
-                f"legacy drain did not reproduce the disk error: {first!r}")
-        require(stats.get("retries", 0) >= 2,
-                f"legacy drain did not provoke three N3 attempts: {stats}")
+        if expect_disk_failure != "legacy-unmasked-pic":
+            require(
+                b"Disk I/O" in first,
+                f"legacy drain did not reproduce the disk error: {first!r}",
+            )
+        if expect_disk_failure != "legacy-unmasked-pic":
+            require(
+                stats.get("retries", 0) >= 2,
+                f"legacy drain did not provoke three N3 attempts: {stats}",
+            )
     else:
         require(b"DIR" in second and b"CCP" in second,
                 f"CP/M Plus network DIR failed: {second!r}")
@@ -430,6 +516,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 f"CP/M Plus issued no NetDisk reads: {stats}")
         require(stats.get("writes", 0) >= 1,
                 f"CP/M Plus issued no NetDisk writes: {stats}")
+        if remote_console:
+            require(
+                stats.get("console_polls", 0) > 0
+                and stats.get("console_input_bytes", 0) > 0
+                and stats.get("console_output_bytes", 0) > 0,
+                f"N4 console did not carry bidirectional traffic: {stats}",
+            )
         if disk_fault == "compound-recovery":
             require(
                 stats.get("short_replies") == 1
@@ -549,13 +642,21 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     if disk_fault == "compound-recovery":
         require(overruns > 0,
                 f"compound recovery did not exercise an 8251 overrun: {state}")
+    elif not network_rom:
+        require(
+            0 <= resident_overruns <= 8,
+            "negotiated startup produced more than the bounded capability-"
+            "marker "
+            f"overruns: {state}",
+        )
     else:
         require(resident_overruns == 0,
                 f"fixed NetDisk path still overran the resident 8251: {state}")
     print(
         "JUKU CP/M PLUS 3.1: PASS "
         f"({boot_label} "
-        f"boot, A>, DIR, TYPE README.TXT, DIAG CPU, warm boot, "
+        f"boot{', N4 remote console' if remote_console else ''}, A>, DIR, "
+        f"TYPE README.TXT, DIAG CPU, warm boot, "
         f"ERA README.TXT, reads={stats['reads']}, "
         f"writes={stats['writes']}, retries={stats['retries']}, "
         f"resident-overruns={resident_overruns}, "
@@ -575,7 +676,7 @@ def main() -> None:
         require(path.is_file(), f"build input is missing: {path}")
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
     require(selected in (
-        "both", "direct", "stock", "network", "video", "all",
+        "both", "direct", "stock", "network", "video", "remote", "all",
     ),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
     paths = (True, False) if selected in ("both", "all") else \
@@ -600,6 +701,9 @@ def main() -> None:
         if selected == "video":
             for video_mode in video_modes:
                 run(trace, work, direct_core=True, video_mode=video_mode)
+            return
+        if selected == "remote":
+            run(trace, work, direct_core=True, remote_console=True)
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -647,6 +751,9 @@ def main() -> None:
         if selected == "video":
             for video_mode in video_modes:
                 run(trace, work, direct_core=True, video_mode=video_mode)
+            return
+        if selected == "remote":
+            run(trace, work, direct_core=True, remote_console=True)
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",

@@ -116,6 +116,45 @@ blocks the disk-turnaround diagnosis itself.
 
 Run the complete paced desktop matrix with `make check` from this repository.
 
+## N4 remote-console correction
+
+The first Ekta4402 remote-terminal bench attempt did not produce any N4
+console requests. This was a loadable CP/M issue, not a defect in the burned
+ROM: the CP/M Plus direct-entry adapter selected NetDisk v3 unconditionally
+and skipped the `NRN2`/`NRN3`/`NRN4` capability parser. It now uses the same
+parser as the older network path. N4 enables the optional console; N3 remains
+disk-only, and N2/legacy fallback behavior is unchanged.
+
+The new end-to-end regression then exposed a second exact failure: the first
+carriage return reached the host and all later output disappeared. The N4
+client retained a 400-iteration transmit drain while the host replied after
+2 ms. As with the earlier NetDisk failure, D11 was still in transmit command
+`35h` when the leading reply byte arrived. The client disabled mirroring after
+that bounded failure, leaving the local console usable but the remote session
+silent. Matching NetDisk's physically qualified 128-iteration drain fixes the
+turnaround.
+
+The host now repeats the pre-session capability marker every 250 ms rather
+than every 20 ms. This still spans the several-second V15 decompression window
+but gives a target that has consumed one marker time to issue its first
+request before another marker is queued. Its startup message says that N4 is
+being advertised; it reports negotiation as confirmed only after receiving a
+valid target console poll or output request.
+
+The paced Ekta4402 regression exercises the real serial protocol rather than
+the simulator's local console side channel. Through N4 it captures the CP/M
+banner and `A>` prompt, enters `DIR`, paginated `TYPE README.TXT`, `DIAG CPU`,
+`WBOOT`, and `ERA README.TXT`, and verifies at least one input byte, output
+byte, and poll. Disk and console complete with zero protocol retries. The
+focused N4 run records three modeled receive overruns while repeated
+capability markers meet the still-running decompressor; other direct/stock
+timings remain bounded by eight. CP/M's serial initialization clears them
+before negotiation, and the functional session adds no observable retry or
+loss. The automatic network-ROM path suppresses this marker because its C4
+handoff already fixes the protocol. Physical CS00015 N4 qualification remains
+the final acceptance step; it requires no ROM reburn because the corrected
+modules arrive in the network-loaded CP/M image.
+
 ## 2026-08-16 stock-ROM/manual-resume follow-up
 
 Before burning the network-first ROM, CS00015 was retested with its existing
@@ -166,3 +205,47 @@ also physically confirmed the selected 53x24 raster, clean Creep-derived glyph
 spacing, and the halved cursor phase. This supersedes the earlier statement
 that one-command stock handoff remained unqualified; final command/disk checks
 for this exact run are recorded in `s21-video-modes.md`.
+
+## 2026-08-16 Ekta4402 N4 physical qualification
+
+CS00015 retained the already-burned Ekta4402 D15/D16 pair; no ROM rebuild or
+reburn was required. Direct `N` loaded the corrected all-RAM CP/M Plus image:
+
+- system SHA-256
+  `be5afc79b16ff0e425c3209302df9fa9064211752ee68dbffa66ae4925ba5f34`;
+- V15 bundle SHA-256
+  `79920ac54f424d692f11c0fdaf213d3384ac0e034ce636fcd01e2e1f94e0887d`;
+- 16,384 system bytes compressed to 9,265 bytes, system CRC16/IBM `C9A7`;
+- 6.279 s bulk transfer, zero extension retries, zero stream retries, and a
+  confirmed final V15 reply;
+- the first disk read arrived at boot+7.533 s with status zero.
+
+The host first reported that it was advertising N4, then changed state only
+after receiving target output operation 21h sequence 01h. A separate PTY was
+used as the terminal, so none of the following input came from the physical
+Juku keyboard. It received the complete banner and `A>`, then entered and
+captured:
+
+```text
+DIR
+A: CCP COM : DIAG COM : WBOOT COM : README TXT
+A>
+
+DIAG CPU
+CPU: PASS
+A>
+
+WBOOT
+A>
+
+DIR
+A: CCP COM : DIAG COM : WBOOT COM : README TXT
+A>
+```
+
+This physically qualifies N4 in both directions, including a command with a
+space, concurrent NetDisk reads, diagnostic execution, and continued terminal
+operation after warm boot. The local screen and keyboard remained enabled by
+design. Together with the paced end-to-end N4 regression, this closes the
+remote-terminal defect as a loadable CP/M/host correction and confirms that
+the installed Ekta4402 ROM was not the faulty layer.

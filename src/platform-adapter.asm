@@ -219,9 +219,10 @@ BOOT:
 
 .ifdef CPM3ADAPTER
         ; Ekta4402 V15 enters with the 19,200 clock selected but leaves the
-        ; USART in bootstrap 8N1 framing.  CP/M Plus starts a fresh NetDisk-v3
-        ; session directly, so select its 8O1 framing without waiting for the
-        ; legacy NR capability exchange that the CP/Mish loader performs.
+        ; USART in bootstrap 8N1 framing. CP/M Plus starts a fresh NetDisk
+        ; session directly, so select 8O1 and consume the host's repeated
+        ; NRN2/NRN3/NRN4 capability marker before issuing the first request.
+        ; N4 is the only path that enables the optional serial console.
         ; Stock TN enters through NetBios with its interrupt sources still
         ; armed.  RAM keyboard and NetDisk are fully polled, so match the
         ; proven CP/Mish RAM BIOS and mask every PIC input before the final EI.
@@ -284,8 +285,7 @@ BOOT:
         ora     a
         jnz     ROMABIFAIL
 .else
-        mvi     a,3
-        call    N3ENA
+        call    NETCAP
         call    RAMCONINIT
         call    RKINIT
 .endif
@@ -888,31 +888,12 @@ NETRXREADY:
         ret
 .endif
 
-NETINIT:
-        di
-.ifdef NETWORK19200
-        ; BAUDTEST2 proved this exact clock on physical CS00014: mode 2,
-        ; BCD, LSB-only, count 4 gives the 8251 a reliable 19,200/x16 RxC.
-        ; The sustained bidirectional disk soak also passes on CS00014. Keep
-        ; it in a separate high-speed image until another board confirms it.
-        mvi     a,015h
-        out     PIT3CTL
-        mvi     a,4
-.else
-        mvi     a,8
-.endif
-        out     PIT3COUNT0
-        xra     a
-        out     USARTCTL
-        out     USARTCTL
-        out     USARTCTL
-        mvi     a,040h
-        out     USARTCTL
-        mvi     a,05eh
-        out     USARTCTL
-        mvi     a,034h
-        out     USARTCTL      ; receive-only until NETRWDISK owns a Tx turn
-        in      USARTDATA
+.ifdef NETWORKV3
+; Consume the repeated host capability marker. N4 selects NetDisk v3 and the
+; optional remote console, N3 selects disk-only v3, N2 selects compact v2,
+; and a legacy repeated NR stream falls back to mode 1. Both the CP/M Plus
+; direct entry and the older NETINIT path use this one parser.
+NETCAP:
 NETREADY:
         call    NETRX
         cpi     'N'
@@ -920,10 +901,6 @@ NETREADY:
         call    NETRX
         cpi     'R'
         jnz     NETREADY
-.ifdef NETWORKV3
-        ; N4 selects v3 plus the optional remote console, N3 selects disk only,
-        ; N2 selects compact single-record fallback, and repeated legacy NR
-        ; leaves mode 1. The helper owns all four paths.
         mvi     c,1
         call    NETRX
         cpi     'N'
@@ -952,7 +929,44 @@ NETV3DONE:
 .ifndef ROMABI
         call    N3ENA
 .endif
+        ret
+.endif
+
+NETINIT:
+        di
+.ifdef NETWORK19200
+        ; BAUDTEST2 proved this exact clock on physical CS00014: mode 2,
+        ; BCD, LSB-only, count 4 gives the 8251 a reliable 19,200/x16 RxC.
+        ; The sustained bidirectional disk soak also passes on CS00014. Keep
+        ; it in a separate high-speed image until another board confirms it.
+        mvi     a,015h
+        out     PIT3CTL
+        mvi     a,4
 .else
+        mvi     a,8
+.endif
+        out     PIT3COUNT0
+        xra     a
+        out     USARTCTL
+        out     USARTCTL
+        out     USARTCTL
+        mvi     a,040h
+        out     USARTCTL
+        mvi     a,05eh
+        out     USARTCTL
+        mvi     a,034h
+        out     USARTCTL      ; receive-only until NETRWDISK owns a Tx turn
+        in      USARTDATA
+.ifdef NETWORKV3
+        call    NETCAP
+.else
+NETREADY:
+        call    NETRX
+        cpi     'N'
+        jnz     NETREADY
+        call    NETRX
+        cpi     'R'
+        jnz     NETREADY
 .ifdef NETWORKV2
         ; A v2 host appends N2 to NR.  With a legacy host these reads consume
         ; its next repeated NR marker and fall back after about 20 ms.
