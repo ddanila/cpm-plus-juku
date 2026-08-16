@@ -9,6 +9,10 @@ BIN := $(BUILD)/bin
 ZMAC := $(BIN)/zmac
 LD80 := $(BIN)/ld80
 ZX0 := $(BIN)/zx0
+ZXCC := $(BIN)/zxcc
+ZXCC_ARCHIVE := third_party/zxcc/releases/zxcc-0.5.7.tar.gz
+ZXCC_SOURCE := $(BUILD)/zxcc-0.5.7
+ZXCC_PREFIX := $(BUILD)/zxcc-install
 COMMON := third_party/juku-common
 
 SYSTEM := $(OUT)/cpm-plus-juku-system.bin
@@ -29,6 +33,7 @@ DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
 	network-rom-cosim-check network-rom-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check \
+	cpm3-toolchain cpm3-system-check \
 	regenerate-cpm3 regenerate-cpm3-rom
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) distribution
 
@@ -48,7 +53,8 @@ verify-prebuilt: all
 rom-budget-check: tools $(BUILD)/fastboot-core.cim $(BUILD)/fastboot-extension.cim
 	$(PYTHON) tools/rom_budget.py --check
 
-check: verify-prebuilt rom-budget-check distribution-input-check distribution-check
+check: verify-prebuilt rom-budget-check distribution-input-check \
+	distribution-check cpm3-system-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
 distribution-input-check:
@@ -126,6 +132,17 @@ $(LD80): $(LD80_SOURCES) third_party/ld80/ld80.h | $(BIN)
 ZX0_SOURCES := $(wildcard third_party/zx0/*.c)
 $(ZX0): $(ZX0_SOURCES) third_party/zx0/zx0.h | $(BIN)
 	$(CC) -O2 -Wno-sign-compare -Ithird_party/zx0 -o $@ $(ZX0_SOURCES)
+
+$(ZXCC): $(ZXCC_ARCHIVE) | $(BUILD) $(BIN)
+	test "$$(sha256sum $< | cut -d' ' -f1)" = \
+		6095119a31a610de84ff8f049d17421dd912c6fd2df18373e5f0a3bc796eb4bf
+	mkdir -p $(ZXCC_SOURCE) $(ZXCC_PREFIX)
+	tar -xzf $< --strip-components=1 -C $(ZXCC_SOURCE)
+	cd $(ZXCC_SOURCE) && CFLAGS='-O2 -std=gnu17' \
+		./configure --prefix=$(abspath $(ZXCC_PREFIX))
+	$(MAKE) -C $(ZXCC_SOURCE)
+	$(MAKE) -C $(ZXCC_SOURCE) install
+	cp $(ZXCC_PREFIX)/bin/zxcc $@
 
 $(BUILD)/platform-adapter.rel: src/platform-adapter.asm \
 		$(COMMON)/platform/ram-console.asm \
@@ -261,13 +278,19 @@ $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/demo.json \
 		--output $(DEMO_VOLUME) --report $(DEMO_REPORT)
 
-regenerate-cpm3:
-	test -n "$(ZXCC)" -a -n "$(CPM3_TOOLS)"
-	$(PYTHON) tools/regenerate_cpm3.py --zxcc "$(ZXCC)" \
-		--tools "$(CPM3_TOOLS)"
+cpm3-toolchain: $(ZXCC)
 
-regenerate-cpm3-rom:
-	test -n "$(ZXCC)" -a -n "$(CPM3_TOOLS)"
-	$(PYTHON) tools/regenerate_cpm3.py --zxcc "$(ZXCC)" \
-		--tools "$(CPM3_TOOLS)" --adapter-address 0xc000 \
-		--top-page 0xbf --output third_party/cpm3/cpm3-network-rom.sys
+cpm3-system-check: $(ZXCC)
+	$(PYTHON) tools/regenerate_cpm3.py --check
+	$(PYTHON) tools/regenerate_cpm3.py --check \
+		--adapter-address 0xc000 --top-page 0xbf \
+		--metadata-policy gencpm \
+		--output third_party/cpm3/cpm3-network-rom.sys
+
+regenerate-cpm3: $(ZXCC)
+	$(PYTHON) tools/regenerate_cpm3.py
+
+regenerate-cpm3-rom: $(ZXCC)
+	$(PYTHON) tools/regenerate_cpm3.py --adapter-address 0xc000 \
+		--top-page 0xbf --metadata-policy gencpm \
+		--output third_party/cpm3/cpm3-network-rom.sys
