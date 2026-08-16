@@ -18,7 +18,7 @@ ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
 VOLUME := $(OUT)/cpm-plus-juku.img
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
-	network-rom-cosim-check regenerate-cpm3 regenerate-cpm3-rom
+	network-rom-cosim-check bench-candidate regenerate-cpm3 regenerate-cpm3-rom
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME)
 
 tools: $(ZMAC) $(LD80) $(ZX0)
@@ -38,6 +38,10 @@ check: verify-prebuilt rom-budget-check
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
+
+bench-candidate: check
+	$(PYTHON) ../8080-cosim/spinoffs/jukuravi/network-rom/build_network_rom.py --check
+	$(PYTHON) tools/package_bench_candidate.py
 
 clean:
 	rm -r $(BUILD) $(OUT)

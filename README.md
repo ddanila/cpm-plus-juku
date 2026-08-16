@@ -64,8 +64,9 @@ ROM-ABI consumer image now validates the resident manifest, delegates the CP/M
 resident keyboard, and renders through the resident 80x24 console/font plus a
 119-byte low-RAM pixel helper. It reaches `A>`, accepts `DIR` and `DIAG CPU`,
 and completes both with no USART overrun. Its final 9,600-byte framebuffer is
-byte-identical to the RAM baseline. This remains a desk image, not a D15/D16
-programming release. Resident NetDisk-v3 owns bounded read-ahead and
+byte-identical to the RAM baseline. These exact bytes are now named CS00015
+bench candidate C1; general physical qualification is still pending. Resident
+NetDisk-v3 owns bounded read-ahead and
 synchronous write-through, including three-attempt recovery and cache
 invalidation. The dedicated CP/M system is regenerated and relinked as follows:
 
@@ -158,8 +159,8 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   /dev/ttyUSB0 out/cpm-plus-juku-system.bin out/cpm-plus-juku.img
 ```
 
-The corresponding automatic-ROM command and its explicit do-not-program gate
-are recorded in
+The corresponding automatic-ROM command and named CS00015 C1 bench gate are
+recorded in
 [`docs/network-first-rom-auto-boot.md`](docs/network-first-rom-auto-boot.md).
 
 ## Roadmap
@@ -183,6 +184,9 @@ covers stale bootstrap bytes, truncated/delayed/duplicated/corrupt disk
 traffic, modeled 8251 overrun, and stateless server restart. The exact results
 are in
 [`docs/network-first-rom-recovery.md`](docs/network-first-rom-recovery.md).
+The deterministic `network-first-abi1-cs00015-c1` programming/runtime package,
+hashes, socket order, and remaining physical matrix are in
+[`docs/network-first-rom-bench-candidate.md`](docs/network-first-rom-bench-candidate.md).
 The memory constraints, staged migration, and acceptance contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).
 The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing
@@ -191,6 +195,6 @@ call graph, and achieved 38.25 KiB transient span are in
 the allocation and measures the first resident serial implementation.
 
 ABI 1.0 is now fixed at `FF00h`, with a copied low-RAM gate and framebuffer
-helper. The deterministic `8080-cosim` skeleton proves overlay, stack,
-register, interrupt, and live-serial contracts; its generated D15/D16 halves
-are explicitly simulator-only and are not physical programming candidates.
+helper. The deterministic `8080-cosim` implementation proves overlay, stack,
+register, interrupt, live-serial, and recovery contracts; its generated D15/D16
+halves are the controlled C1 bench candidate, not a promoted release.

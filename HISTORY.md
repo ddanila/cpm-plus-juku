@@ -41,3 +41,9 @@ reset with stale bootstrap bytes, shortened/delayed/duplicated/corrupt disk
 replies, modeled 8251 overruns, and replacement by a fresh stateless disk
 server. Clean and faulted runs all reach the real prompt and complete directory,
 diagnostic, and write-through operations without a manual target reset.
+
+After those gates passed, `8080-cosim` commit `ac347cdb` named the unchanged
+ROM bytes `network-first-abi1-cs00015-c1` and released them only for controlled
+CS00015 qualification. `make bench-candidate` now assembles the exact D15/D16,
+CP/M system, fastboot, and disk inputs into one hashed package; promotion still
+depends on the documented physical matrix.

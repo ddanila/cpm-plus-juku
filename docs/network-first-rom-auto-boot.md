@@ -108,15 +108,16 @@ directory, transient loader, and diagnostic program. The checkpoint also pins
 the PPI modes, PC7-preserving mode transition, PIC vectors/mask, and every
 stock raster/refresh timer write used during the network load.
 
-Current deterministic desk artifact hashes are recorded by
+Current deterministic candidate hashes are recorded by
 `8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.json`. The JSON
-status remains `automatic-boot desk image; not for physical programming` and
-is the authoritative release prohibition.
+names `network-first-abi1-cs00015-c1` and records `physical qualification
+pending`; it is the authoritative controlled-bench release gate. The complete
+package and burn mapping are in
+[`network-first-rom-bench-candidate.md`](network-first-rom-bench-candidate.md).
 
-## Host command reserved for the physical candidate
+## Host command for C1 qualification
 
-After the later D15/D16 release gate is explicitly changed, the matching
-identity-free command will be:
+For the named C1 D15/D16 pair, the matching identity-free command is:
 
 ```sh
 cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
@@ -126,7 +127,7 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   --disk-baud 19200 --disk-protocol 3 --writable --timeout 86400
 ```
 
-Do not burn the present split artifacts. Automatic boot, resident read-ahead
-and write-through, CP/M SYS regeneration, the measured TPA gain, and simulated
-recovery qualification are complete. The next milestone is packaging a named
-candidate and qualifying it physically on CS00015.
+C1 is ready for a controlled CS00015 burn but is not promoted. Automatic boot,
+resident read-ahead and write-through, CP/M SYS regeneration, the measured TPA
+gain, and simulated recovery qualification are complete. The next milestone
+is the physical matrix documented in the candidate record.
