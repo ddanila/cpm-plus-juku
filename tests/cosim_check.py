@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import os
 from pathlib import Path
 import pty
@@ -143,7 +144,7 @@ def read_console_until(fd: int, marker: bytes, timeout: float) -> bytes:
 def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot: Path = FASTBOOT, system: Path = SYSTEM,
         expect_disk_failure: str | None = None,
-        network_rom: bool = False) -> None:
+        network_rom: bool = False, disk_fault: str | None = None) -> None:
     require(not network_rom or direct_core,
             "network ROM requires direct-core fastboot")
     if network_rom:
@@ -183,6 +184,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         boot_label = "stock Ekta4401 TN"
     if expect_disk_failure:
         case_name += f"-{expect_disk_failure}"
+    if disk_fault:
+        case_name += f"-{disk_fault}"
     case = work / case_name
     case.mkdir()
     master, slave = pty.openpty()
@@ -216,6 +219,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         environment["JUKU_KEYS"] = "N" if direct_core else "TN0201"
     volume = bytearray(VOLUME.read_bytes())
     stats: dict[str, int] = {}
+    fault_evidence: dict[str, int] = {}
     errors: list[BaseException] = []
     with (case / "stdout.txt").open("w") as stdout, \
             (case / "stderr.txt").open("w") as stderr:
@@ -235,22 +239,58 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             )
 
             def disk_worker() -> None:
+                class RestartDiskServer(Exception):
+                    pass
+
                 try:
-                    serve_disk(
-                        master, volume, timeout=180, idle_timeout=None,
-                        writable=True, verbose=False, stats=stats,
-                        protocol_version=3,
-                        read_ahead_records=int(os.environ.get(
-                            "CPM_PLUS_JUKU_READ_AHEAD_RECORDS", "3",
-                        )),
-                        tx_byte_delay=float(os.environ.get(
-                            "CPM_PLUS_JUKU_TX_BYTE_DELAY", "0",
-                        )),
-                        v3_wire_drain=(
-                            expect_disk_failure != "legacy-host-guard"
-                        ),
-                        resume=True,
-                    )
+                    def filter_reply(attempt: int, reply: bytes) -> bytes:
+                        if disk_fault != "compound-recovery":
+                            return reply
+                        if attempt == 1:
+                            return reply[:max(1, len(reply) // 2)]
+                        if attempt == 3:
+                            return reply + reply
+                        if attempt == 5:
+                            fault_evidence["corrupt_replies"] = 1
+                            return reply[:-1] + bytes((reply[-1] ^ 1,))
+                        return reply
+
+                    def serve(
+                        stats_target: dict[str, int],
+                        reply_filter: Callable[[int, bytes], bytes] | None,
+                    ) -> None:
+                        serve_disk(
+                            master, volume, timeout=180, idle_timeout=None,
+                            writable=True, verbose=False, stats=stats_target,
+                            protocol_version=3,
+                            reply_guard=(
+                                0.05 if disk_fault == "compound-recovery"
+                                else 0.002
+                            ),
+                            reply_filter=reply_filter,
+                            read_ahead_records=int(os.environ.get(
+                                "CPM_PLUS_JUKU_READ_AHEAD_RECORDS", "3",
+                            )),
+                            tx_byte_delay=float(os.environ.get(
+                                "CPM_PLUS_JUKU_TX_BYTE_DELAY", "0",
+                            )),
+                            v3_wire_drain=(
+                                expect_disk_failure != "legacy-host-guard"
+                            ),
+                            resume=True,
+                        )
+
+                    if disk_fault == "server-restart":
+                        def stop_server(_attempt: int, _reply: bytes) -> bytes:
+                            raise RestartDiskServer
+
+                        try:
+                            serve({}, stop_server)
+                        except RestartDiskServer:
+                            fault_evidence["server_restarts"] = 1
+                        serve(stats, None)
+                    else:
+                        serve(stats, filter_reply)
                 except BaseException as error:
                     errors.append(error)
 
@@ -325,8 +365,21 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 f"CP/M Plus issued no NetDisk reads: {stats}")
         require(stats.get("writes", 0) >= 1,
                 f"CP/M Plus issued no NetDisk writes: {stats}")
-        require(stats.get("retries") == 0,
-                f"fixed NetDisk path required retries: {stats}")
+        if disk_fault == "compound-recovery":
+            require(
+                stats.get("short_replies") == 1
+                and stats.get("extra_reply_bytes", 0) > 0
+                and stats.get("retries", 0) >= 1,
+                f"NetDisk recovery faults were not exercised: {stats}",
+            )
+            require(fault_evidence.get("corrupt_replies") == 1,
+                    "NetDisk CRC corruption was not exercised")
+        elif disk_fault == "server-restart":
+            require(fault_evidence.get("server_restarts") == 1,
+                    "NetDisk server restart was not exercised")
+        else:
+            require(stats.get("retries") == 0,
+                    f"fixed NetDisk path required retries: {stats}")
     require(all(isinstance(error, OSError) for error in errors),
             f"CP/M Plus disk server failed: {errors!r}")
     state = dict(
@@ -392,15 +445,20 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             f"overruns={overruns})"
         )
         return
-    require(resident_overruns == 0,
-            f"fixed NetDisk path still overran the resident 8251: {state}")
+    if disk_fault == "compound-recovery":
+        require(overruns > 0,
+                f"compound recovery did not exercise an 8251 overrun: {state}")
+    else:
+        require(resident_overruns == 0,
+                f"fixed NetDisk path still overran the resident 8251: {state}")
     print(
         "JUKU CP/M PLUS 3.1: PASS "
         f"({boot_label} "
-        f"boot, A>, DIR, DIAG CPU, reads={stats['reads']}, "
+        f"boot, A>, DIR, DIAG CPU, ERA README.TXT, reads={stats['reads']}, "
         f"writes={stats['writes']}, retries={stats['retries']}, "
         f"resident-overruns={resident_overruns}, "
-        f"bootstrap-overruns={overruns - resident_overruns})"
+        f"bootstrap-overruns={overruns - resident_overruns}"
+        f"{', recovered-faults=' + disk_fault if disk_fault else ''})"
     )
 
 
@@ -424,6 +482,10 @@ def main() -> None:
         build_trace(trace)
         if selected == "network":
             run(trace, work, direct_core=True, network_rom=True)
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="compound-recovery")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="server-restart")
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -445,6 +507,10 @@ def main() -> None:
             run(trace, work, direct_core=direct_core)
         if include_network:
             run(trace, work, direct_core=True, network_rom=True)
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="compound-recovery")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="server-restart")
         return
     with tempfile.TemporaryDirectory(prefix="cpm-plus-juku-cosim.") as name:
         work = Path(name)
@@ -452,6 +518,10 @@ def main() -> None:
         build_trace(trace)
         if selected == "network":
             run(trace, work, direct_core=True, network_rom=True)
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="compound-recovery")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="server-restart")
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -473,6 +543,10 @@ def main() -> None:
             run(trace, work, direct_core=direct_core)
         if include_network:
             run(trace, work, direct_core=True, network_rom=True)
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="compound-recovery")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="server-restart")
 
 
 if __name__ == "__main__":

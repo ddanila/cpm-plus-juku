@@ -48,8 +48,11 @@ prefix traffic during reset and POST. C4 is not a permanent dependency: a
 server started after that byte was lost, or restarted during an incomplete
 header search, falls back after three seconds to the V15 parser's overlapping
 `A5 3A` synchronization probes. Missing the announcement therefore does not
-require a Juku RESET. Restart during an extension or compressed-payload body is
-still part of the later recovery matrix and is not claimed by this checkpoint.
+require a Juku RESET. Reset during an extension body is now covered by the
+complete recovery matrix: the restarted target discards stale bytes already
+present on the same serial link and accepts a later complete retransmission.
+Resident disk-server restart and malformed-reply coverage are recorded in
+[`network-first-rom-recovery.md`](network-first-rom-recovery.md).
 
 No client/server station arguments are needed. The direct path retains neutral
 station values only for report-schema compatibility; they are not placed on
@@ -123,6 +126,7 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   --disk-baud 19200 --disk-protocol 3 --writable --timeout 86400
 ```
 
-Do not burn the present split artifacts. The next milestone is the recovery
-matrix. Read-ahead and write-through now complete their full transactions in
-resident ROM; the CP/M SYS regeneration and measured TPA gain are complete.
+Do not burn the present split artifacts. Automatic boot, resident read-ahead
+and write-through, CP/M SYS regeneration, the measured TPA gain, and simulated
+recovery qualification are complete. The next milestone is packaging a named
+candidate and qualifying it physically on CS00015.

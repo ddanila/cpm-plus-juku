@@ -34,3 +34,10 @@ write-through path, while cache invalidation, CRC, retry bounds, and the frozen
 RAM artifacts remain proven. Removing the unreachable RAM transaction and
 packing the remote console reduced initialized ROM-consumer adapter RAM from
 1,360 to 912 bytes without changing the measured TPA.
+
+The recovery checkpoint, supported by `8080-cosim` commit `385ff167`, then
+extended the deterministic matrix through target
+reset with stale bootstrap bytes, shortened/delayed/duplicated/corrupt disk
+replies, modeled 8251 overruns, and replacement by a fresh stateless disk
+server. Clean and faulted runs all reach the real prompt and complete directory,
+diagnostic, and write-through operations without a manual target reset.

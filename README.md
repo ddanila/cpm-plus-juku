@@ -178,9 +178,12 @@ The network-first 16 KiB ROM now has bounded quick POST, automatic
 The CP/M consumer validates that ABI and uses its serial, keyboard, and compact
 console/font and NetDisk-v3 read/write services. CP/M Plus has been regenerated
 and relinked upward, yielding an exact 8 KiB TPA gain while retaining thin
-bindings and mutable state in RAM. The next milestone is the recovery matrix.
-The exact memory constraints, staged migration,
-recovery cases, and acceptance contract are in
+bindings and mutable state in RAM. The complete simulated recovery matrix now
+covers stale bootstrap bytes, truncated/delayed/duplicated/corrupt disk
+traffic, modeled 8251 overrun, and stateless server restart. The exact results
+are in
+[`docs/network-first-rom-recovery.md`](docs/network-first-rom-recovery.md).
+The memory constraints, staged migration, and acceptance contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).
 The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing
 call graph, and achieved 38.25 KiB transient span are in
