@@ -180,6 +180,10 @@ def main() -> int:
         default="qualified",
         help="qualified A000h baseline normalization or untouched GENCPM metadata",
     )
+    parser.add_argument(
+        "--native-services", action="store_true",
+        help="bind CP/M 3 native service entries to adapter extensions",
+    )
     args = parser.parse_args()
     if args.adapter_address & 0xFF or \
             args.top_page != (args.adapter_address >> 8) - 1:
@@ -198,10 +202,15 @@ def main() -> int:
             for filename in ("RMAC.COM", "LINK.COM", "GENCPM.COM"):
                 shutil.copy2(tool(args.tools, filename), work / filename)
         adapter_source = "adapter         equ     0a000h"
+        replacements = {
+            adapter_source: f"adapter         equ     0{args.adapter_address:04x}h",
+        }
+        if args.native_services:
+            replacements["native$services equ     0"] = \
+                "native$services equ     1"
         dos_text(
             ROOT / "src" / "cpm3-bios.asm", work / "jbios.asm",
-            {adapter_source:
-             f"adapter         equ     0{args.adapter_address:04x}h"},
+            replacements,
         )
         dos_text(INPUTS / "scb.asm", work / "scb.asm")
         run([str(zxcc), "RMAC.COM", "jbios"], work)

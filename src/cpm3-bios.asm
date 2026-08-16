@@ -16,6 +16,7 @@ bdos            equ     0005h
 ccp             equ     0100h
 default$fcb     equ     005ch
 adapter         equ     0a000h
+native$services equ     0
 
 ; CP/M 2-compatible adapter vectors.
 a$boot          equ     adapter+0
@@ -35,6 +36,18 @@ a$read          equ     adapter+39
 a$write         equ     adapter+42
 a$listst        equ     adapter+45
 a$sectrn        equ     adapter+48
+if native$services
+a$conost        equ     adapter+51
+a$auxist        equ     adapter+54
+a$auxost        equ     adapter+57
+a$devtbl        equ     adapter+60
+a$devini        equ     adapter+63
+a$multio        equ     adapter+66
+a$flush         equ     adapter+69
+a$move          equ     adapter+72
+a$time          equ     adapter+75
+a$userf         equ     adapter+78
+endif
 
         cseg
         extrn   @mxtpa
@@ -57,6 +70,18 @@ warm$entry:     jmp     wboot
                 jmp     a$write
                 jmp     a$listst
                 jmp     a$sectrn
+if native$services
+                jmp     a$conost
+                jmp     a$auxist
+                jmp     a$auxost
+                jmp     a$devtbl
+                jmp     a$devini
+                jmp     drvtbl
+                jmp     a$multio
+                jmp     a$flush
+                jmp     a$move
+                jmp     a$time
+else
                 jmp     ready
                 jmp     ready
                 jmp     ready
@@ -67,10 +92,15 @@ warm$entry:     jmp     wboot
                 jmp     success
                 jmp     move
                 jmp     return
+endif
                 jmp     return
                 jmp     return
                 jmp     return
+if native$services
+                jmp     a$userf
+else
                 jmp     wboot
+endif
                 jmp     wboot
 
 boot:

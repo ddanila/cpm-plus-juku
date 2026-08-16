@@ -49,6 +49,18 @@ BBASE:
         extrn   NCIN
         extrn   NCOUT
 .endif
+.ifdef NATIVE_SERVICES
+        extrn   NSCONOST
+        extrn   NSAUXIST
+        extrn   NSAUXOST
+        extrn   NSDEVTBL
+        extrn   NSDEVINI
+        extrn   NSMULTIO
+        extrn   NSFLUSH
+        extrn   NSMOVE
+        extrn   NSTIME
+        extrn   NSUSERF
+.endif
 
 ; Public CP/M 2.2 BIOS jump table.
         jmp     BOOT
@@ -68,6 +80,18 @@ BBASE:
         jmp     WRITE
         jmp     EMPTY
         jmp     SECTRAN
+.ifdef NATIVE_SERVICES
+        jmp     NSCONOST
+        jmp     NSAUXIST
+        jmp     NSAUXOST
+        jmp     NSDEVTBL
+        jmp     NSDEVINI
+        jmp     NSMULTIO
+        jmp     NSFLUSH
+        jmp     NSMOVE
+        jmp     NSTIME
+        jmp     NSUSERF
+.endif
 
 ; RomBios and monitor ABI.
 RWFLOPPY       equ     0ff59h

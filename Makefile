@@ -19,6 +19,10 @@ SYSTEM := $(OUT)/cpm-plus-juku-system.bin
 FASTBOOT := $(OUT)/cpm-plus-juku-fastboot-v15.bin
 ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-system.bin
 ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
+NATIVE_ROM_SYS := $(BUILD)/cpm3-network-rom-native.sys
+NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-native-system.bin
+NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-native-fastboot-v15.bin
+NATIVE_TEST_VOLUME := $(OUT)/cpm-plus-juku-native-test.img
 VOLUME := $(OUT)/cpm-plus-juku.img
 RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-recovery.img
 FULL_VOLUME := $(OUT)/cpm-plus-juku-full.img
@@ -33,7 +37,7 @@ DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
 	network-rom-cosim-check network-rom-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check \
-	cpm3-toolchain cpm3-system-check \
+	cpm3-toolchain cpm3-system-check native-services-check \
 	regenerate-cpm3 regenerate-cpm3-rom
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) distribution
 
@@ -54,7 +58,7 @@ rom-budget-check: tools $(BUILD)/fastboot-core.cim $(BUILD)/fastboot-extension.c
 	$(PYTHON) tools/rom_budget.py --check
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
-	distribution-check cpm3-system-check
+	distribution-check cpm3-system-check native-services-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
 distribution-input-check:
@@ -156,6 +160,14 @@ $(BUILD)/platform-adapter-romabi.rel: src/platform-adapter.asm \
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI \
 		-I$(COMMON)/platform -o $@ $<
 
+$(BUILD)/platform-adapter-romabi-native.rel: src/platform-adapter.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI -DNATIVE_SERVICES \
+		-I$(COMMON)/platform -o $@ $<
+
+$(BUILD)/cpm3-native-services.rel: src/cpm3-native-services.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
+
 $(BUILD)/ram-keyboard.rel: $(COMMON)/platform/ram-keyboard.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
 
@@ -191,6 +203,19 @@ $(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
 	tail -c+49153 $< >$@
 	test $$(stat -c %s $@) -le 4096
 
+$(BUILD)/adapter-romabi-native.all: \
+		$(BUILD)/platform-adapter-romabi-native.rel \
+		$(BUILD)/netconsole-romabi.rel $(BUILD)/cpm3-native-services.rel \
+		$(LD80)
+	$(LD80) -m -O bin -o $@ -s /dev/null \
+		-P0xc000 $(BUILD)/platform-adapter-romabi-native.rel \
+		-P0xc250 $(BUILD)/netconsole-romabi.rel \
+		-P0xc400 $(BUILD)/cpm3-native-services.rel
+
+$(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
+	tail -c+49153 $< >$@
+	test $$(stat -c %s $@) -le 1536
+
 $(SYSTEM): $(BUILD)/adapter.bin third_party/cpm3/cpm3.sys \
 		tools/mksystem3.py | $(OUT)
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter.bin \
@@ -203,6 +228,20 @@ $(ROM_SYSTEM): $(BUILD)/adapter-romabi.bin \
 		third_party/cpm3/cpm3-network-rom.sys $@ \
 		--load-address 0x9000 --adapter-address 0xc000 \
 		--entry-address 0xbc00 --end-address 0xd600
+
+$(NATIVE_ROM_SYS): src/cpm3-bios.asm tools/regenerate_cpm3.py \
+		third_party/cpm3/bdos3.spr third_party/cpm3/gencpm.dat \
+		third_party/cpm3/scb.asm $(ZXCC) | $(BUILD)
+	$(PYTHON) tools/regenerate_cpm3.py --native-services \
+		--adapter-address 0xc000 --top-page 0xbf \
+		--metadata-policy gencpm --output $@
+
+$(NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-native.bin \
+		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
+	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-native.bin \
+		$(NATIVE_ROM_SYS) $@ --load-address 0x9000 \
+		--adapter-address 0xc000 --entry-address 0xbc00 \
+		--end-address 0xd600
 
 FASTBOOT_CORE_DEFS := FASTBOOT_8N1 FASTBOOT_ZX0 FASTBOOT_STREAM \
 	FASTBOOT_V15 FASTBOOT_EXACT FASTBOOT_EXT_ACK FASTBOOT_PROBE_SYNC
@@ -236,11 +275,27 @@ $(ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
 	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension-rom.cim $(ROM_SYSTEM) $(ZX0) $@
 
+$(NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
+		$(BUILD)/fastboot-extension-rom.cim $(NATIVE_ROM_SYSTEM) $(ZX0) \
+		tools/build_fastboot.py | $(OUT)
+	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
+		$(BUILD)/fastboot-extension-rom.cim $(NATIVE_ROM_SYSTEM) $(ZX0) $@
+
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<
 
 $(BUILD)/wboot.cim: src/wboot.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/nativecheck.cim: src/nativecheck.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(NATIVE_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
+		$(BUILD)/wboot.cim $(BUILD)/nativecheck.cim volume/README.txt \
+		volume/profiles/recovery.json volume/profiles/native-test.json \
+		tools/build_volume.py diskdefs | $(OUT)
+	$(PYTHON) tools/build_volume.py --profile volume/profiles/native-test.json \
+		--output $@
 
 $(BUILD)/cpm3-utilities/manifest.json: \
 		third_party/cpm3/releases/provenance.json \
@@ -286,6 +341,16 @@ cpm3-system-check: $(ZXCC)
 		--adapter-address 0xc000 --top-page 0xbf \
 		--metadata-policy gencpm \
 		--output third_party/cpm3/cpm3-network-rom.sys
+
+native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
+		$(NATIVE_TEST_VOLUME)
+	$(PYTHON) tests/native_services_test.py
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
+	CPM_PLUS_JUKU_EXTRA_COMMAND=NATIVE \
+	CPM_PLUS_JUKU_EXTRA_MARKER='NATIVE: PASS' \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 
 regenerate-cpm3: $(ZXCC)
 	$(PYTHON) tools/regenerate_cpm3.py

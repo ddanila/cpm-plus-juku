@@ -25,8 +25,14 @@ ROM_NETWORK = (
 )
 SYSTEM = ROOT / "out" / "cpm-plus-juku-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-fastboot-v15.bin"
-ROM_SYSTEM = ROOT / "out" / "cpm-plus-juku-network-rom-system.bin"
-ROM_FASTBOOT = ROOT / "out" / "cpm-plus-juku-network-rom-fastboot-v15.bin"
+ROM_SYSTEM = Path(os.environ.get(
+    "CPM_PLUS_JUKU_ROM_SYSTEM",
+    ROOT / "out" / "cpm-plus-juku-network-rom-system.bin",
+))
+ROM_FASTBOOT = Path(os.environ.get(
+    "CPM_PLUS_JUKU_ROM_FASTBOOT",
+    ROOT / "out" / "cpm-plus-juku-network-rom-fastboot-v15.bin",
+))
 VOLUME = Path(os.environ.get(
     "CPM_PLUS_JUKU_VOLUME", ROOT / "out" / "cpm-plus-juku.img"
 ))
@@ -341,6 +347,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         os.close(slave)
         os.close(console_slave)
         try:
+            print(f"COSIM {case.name}: bootstrap", flush=True)
             boot = serve_fast(
                 master, fastboot.read_bytes(), container,
                 stock_timeout=120, reply_timeout=8, verbose=False,
@@ -436,6 +443,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     if remote_console else read_console_until(
                         console_master, b"A>", prompt_timeout,
                     )
+                print(f"COSIM {case.name}: prompt", flush=True)
                 if network_rom and remote_console:
                     # Let the emulated target enter its idle CONIN path before
                     # the first N4 key arrives.  Without this bench-faithful
@@ -468,14 +476,30 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     restart_armed.set()
                 send_console(b"DIR\r")
                 second = read_until(b"A>", command_timeout)
+                print(f"COSIM {case.name}: DIR", flush=True)
                 send_console(b"TYPE README.TXT\r")
                 third = remote.read_paged(300 if network_rom else 120) \
                     if remote_console else \
                     read_console_paged(console_master, 120)
+                print(f"COSIM {case.name}: TYPE", flush=True)
                 send_console(b"DIAG CPU\r")
                 fourth = read_until(b"A>", command_timeout)
+                print(f"COSIM {case.name}: DIAG", flush=True)
+                extra_command = os.environ.get("CPM_PLUS_JUKU_EXTRA_COMMAND")
+                if extra_command:
+                    send_console(extra_command.encode("ascii") + b"\r")
+                    extra = read_until(b"A>", command_timeout)
+                    marker = os.environ.get(
+                        "CPM_PLUS_JUKU_EXTRA_MARKER", extra_command,
+                    ).encode("ascii")
+                    require(marker in extra,
+                            f"extra command lacks {marker!r}: {extra!r}")
+                    print(
+                        f"COSIM {case.name}: {extra_command}", flush=True,
+                    )
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)
+                print(f"COSIM {case.name}: WBOOT", flush=True)
                 soak_cycles = int(os.environ.get(
                     "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
                 )) if disk_fault == "mid-session-restart" else 0
@@ -489,6 +513,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 fault_evidence["soak_cycles"] = soak_cycles
                 send_console(b"ERA README.TXT\r")
                 sixth = read_until(b"A>", command_timeout)
+                print(f"COSIM {case.name}: ERA", flush=True)
                 if drive_b is not None:
                     send_console(b"B:\r")
                     selected_b = read_until(b"B>", command_timeout)
@@ -737,7 +762,8 @@ def main() -> None:
         require(DRIVE_B.is_file(), f"native B: image is missing: {DRIVE_B}")
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
     require(selected in (
-        "both", "direct", "stock", "network", "network-remote", "video",
+        "both", "direct", "stock", "network", "network-smoke",
+        "network-compound", "network-remote", "video",
         "remote", "distribution", "all",
     ),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
@@ -759,6 +785,11 @@ def main() -> None:
                 disk_fault="server-restart")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="mid-session-restart")
+            return
+        if selected in ("network-smoke", "network-compound"):
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault=("compound-recovery"
+                            if selected == "network-compound" else None))
             return
         if selected == "video":
             for video_mode in video_modes:
@@ -816,6 +847,11 @@ def main() -> None:
                 disk_fault="server-restart")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="mid-session-restart")
+            return
+        if selected in ("network-smoke", "network-compound"):
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault=("compound-recovery"
+                            if selected == "network-compound" else None))
             return
         if selected == "video":
             for video_mode in video_modes:
