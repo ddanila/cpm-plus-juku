@@ -1,19 +1,21 @@
 # Reproducible CP/M Plus distribution profiles
 
 The distribution build keeps hardware qualification separate from user-facing
-software. `make distribution` creates four named artifacts and a JSON report
+software. `make distribution` creates five named artifacts and a JSON report
 beside each one:
 
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 254 KiB | `8c8cb72dd7764f1f81d484780338901ab6bb7810053eede3a43220ca2b77d27c` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 252 KiB | `c0a5b3cfca385a023c44285351887bfb55995a5a3c6be0a0600a9afb0e81c4e9` |
+| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS | 374 KiB | `9611ecee6c92b0c058cba67a55ea3de8a006db25f3a8e1390ca417c79b6149b1` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `91d6e5aae2e7fbc19c7af5116c3dde6984a28d2e0af9f16baa9b7be21a0dfdb1` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `cced8e3067cb9fa737b06cf6a37c14afd560634d063ed14b2cd040211910f9d7` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and DIAG | 776 KiB | `8e84cb1ab3f2d0be86d516d515389ef4588a0a15665132949de2e5e4c6e7273c` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
 must match `prebuilt/cpm-plus-juku.img` byte for byte. Full and demo profiles
-cannot silently alter that C4 baseline.
+cannot silently alter that C4 baseline. The native recovery profile is the
+explicit post-baseline successor; it adds `STATUS.COM` without changing C4.
 
 ## Build contract
 

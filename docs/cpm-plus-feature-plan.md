@@ -130,6 +130,14 @@ and no dependency from boot or disk. See
 Local screen and keyboard remain authoritative when remote console service is
 absent, interrupted, or rejected.
 
+Status slice completed on 2026-08-17: native USERF selector 1 now samples S21
+and publishes raw S21, decoded video mode, native feature flags, and last clock
+status through idempotent NetDisk-v3 operation 24h. `STATUS.COM` prints the
+same configuration plus resident map and build/protocol identities. The C4
+recovery image remains immutable; a separately named native recovery profile
+adds the utility. Locale banks, key remapping, and final ROM bit-0 policy
+remain open.
+
 ## Priority 4: diagnostics and observability
 
 Grow the shared `DIAG` and status facilities from the same `juku-common`
@@ -148,6 +156,12 @@ sources used by ROM diagnostics:
 
 The ROM should retain a small fixed RAM boot-status record so failures can be
 explained after recovery or on a machine without a monitor.
+
+Initial observability slice completed on 2026-08-17: `STATUS.COM` reports the
+resident map, system/ROM/protocol identities, S21/video configuration, MULTIO,
+and clock counters, and mirrors its compact configuration tuple to host logs.
+POST/bootstrap/reconnect records and the expanded shared hardware diagnostic
+matrix remain open.
 
 ## Priority 5: NetDisk performance and media safety
 

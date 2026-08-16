@@ -15,6 +15,7 @@
         public  NSTIME
         public  NSUSERF
         extrn   NCTIME
+        extrn   NCPUBLISH
 
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
@@ -136,12 +137,27 @@ NSTIMERET:
 
 ; Reserved CP/M 3 BIOS entry 30 is the versioned Juku USERF extension.
 ; C=0: return HL -> read-only status block after refreshing S21.
+; C=1: refresh and publish the same status tuple to the N4 host, then return
+;      the status block. Publication is best effort and never blocks status.
 ; Other selectors return A=FFh, HL=0000h.
 NSUSERF:
         mov     a,c
         ora     a
+        jz      NSUSERFSAMPLE
+        dcr     a
         jnz     NSUSERFBAD
         call    NSSAMPLES21
+        mvi     d,00fh                  ; NSINFO feature flags
+        lda     NSCLOCKSTATUS
+        mov     e,a
+        lda     NSVIDEOMODE
+        mov     b,a
+        lda     NSRAWS21
+        call    NCPUBLISH
+        jmp     NSUSERFRET
+NSUSERFSAMPLE:
+        call    NSSAMPLES21
+NSUSERFRET:
         lxi     h,NSINFO
         xra     a
         ret

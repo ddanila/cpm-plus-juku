@@ -23,12 +23,14 @@ NATIVE_ROM_SYS := $(BUILD)/cpm3-network-rom-native.sys
 NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-native-system.bin
 NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-native-fastboot-v15.bin
 NATIVE_TEST_VOLUME := $(OUT)/cpm-plus-juku-native-test.img
+NATIVE_RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-native-recovery.img
 VOLUME := $(OUT)/cpm-plus-juku.img
 RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-recovery.img
 FULL_VOLUME := $(OUT)/cpm-plus-juku-full.img
 APPS_VOLUME := $(OUT)/cpm-plus-juku-apps.juk
 DEMO_VOLUME := $(OUT)/cpm-plus-juku-museum-demo.img
 RECOVERY_REPORT := $(OUT)/cpm-plus-juku-recovery.report.json
+NATIVE_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-native-recovery.report.json
 FULL_REPORT := $(OUT)/cpm-plus-juku-full.report.json
 APPS_REPORT := $(OUT)/cpm-plus-juku-apps.report.json
 DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
@@ -42,6 +44,7 @@ DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) distribution
 
 distribution: $(RECOVERY_VOLUME) $(RECOVERY_REPORT) \
+	$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
 	$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
 	$(DEMO_VOLUME) $(DEMO_REPORT)
 
@@ -290,9 +293,13 @@ $(BUILD)/wboot.cim: src/wboot.asm $(ZMAC) | $(BUILD)
 $(BUILD)/nativecheck.cim: src/nativecheck.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/status.cim: src/status.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
 $(NATIVE_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
-		$(BUILD)/wboot.cim $(BUILD)/nativecheck.cim volume/README.txt \
-		volume/profiles/recovery.json volume/profiles/native-test.json \
+		$(BUILD)/wboot.cim $(BUILD)/status.cim $(BUILD)/nativecheck.cim \
+		volume/README.txt volume/profiles/recovery.json \
+		volume/profiles/native-recovery.json volume/profiles/native-test.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/native-test.json \
 		--output $@
@@ -313,8 +320,18 @@ $(RECOVERY_VOLUME) $(RECOVERY_REPORT) &: third_party/cpm3/ccp.com \
 $(VOLUME): $(RECOVERY_VOLUME) | $(OUT)
 	cp $(RECOVERY_VOLUME) $@
 
+$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) &: \
+		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot.cim \
+		$(BUILD)/status.cim volume/README.txt \
+		volume/profiles/recovery.json volume/profiles/native-recovery.json \
+		tools/build_volume.py diskdefs | $(OUT)
+	$(PYTHON) tools/build_volume.py \
+		--profile volume/profiles/native-recovery.json \
+		--output $(NATIVE_RECOVERY_VOLUME) \
+		--report $(NATIVE_RECOVERY_REPORT)
+
 $(FULL_VOLUME) $(FULL_REPORT) &: third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt \
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim volume/README.txt \
 		$(BUILD)/cpm3-utilities/manifest.json volume/profiles/full.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/full.json \
@@ -326,7 +343,7 @@ $(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
 		--output $(APPS_VOLUME) --report $(APPS_REPORT)
 
 $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt \
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim volume/README.txt \
 		volume/PROFILE.sub $(BUILD)/cpm3-utilities/manifest.json \
 		volume/profiles/full.json volume/profiles/demo.json \
 		tools/build_volume.py diskdefs | $(OUT)
@@ -350,6 +367,13 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=NATIVE \
 	CPM_PLUS_JUKU_EXTRA_MARKER='NATIVE: PASS' \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
+	CPM_PLUS_JUKU_EXTRA_COMMAND=STATUS \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Status 1.0' \
+	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 
 regenerate-cpm3: $(ZXCC)

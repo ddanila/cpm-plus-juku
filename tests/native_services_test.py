@@ -29,6 +29,7 @@ def main() -> int:
         "NSMOVEBACK1:",
         "NSMOVEFORWARD:",
         "call    NCTIME",
+        "call    NCPUBLISH",
         "db      'J','N','S','1'",
         "mvi     a,0ffh                  ; authoritative local output is ready",
         "xra     a                       ; no separately assigned AUX source",
@@ -56,7 +57,7 @@ def main() -> int:
         raise AssertionError("native V15 bootstrap header is missing")
     print(
         "CPM3-NATIVE-SERVICES: PASS "
-        "(device, MULTIO, FLUSH, MOVE, TIME, USERF)"
+        "(device, MULTIO, FLUSH, MOVE, TIME, USERF, status publish)"
     )
     return 0
 

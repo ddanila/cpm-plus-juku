@@ -5,6 +5,7 @@ are built as separately named network-ROM artifacts:
 
 - `out/cpm-plus-juku-network-rom-native-system.bin`;
 - `out/cpm-plus-juku-network-rom-native-fastboot-v15.bin`;
+- `out/cpm-plus-juku-native-recovery.img` for post-C4 recovery use;
 - `out/cpm-plus-juku-native-test.img` for the target-side regression only.
 
 They retain the same non-banked memory map: BDOS begins at 9D00h, BIOS at
@@ -13,8 +14,9 @@ memory is claimed. GENCPM relocates the SCB to BB9Ch (clock BBF4h); FE00h
 symbols in the DRI source are relocatable canonical addresses,
 not runtime addresses for an absolute adapter module. `make
 native-services-check` regenerates the native SYS,
-builds the adapter in C000h..C4FFh, boots it through the production network
-ROM, and runs both the normal CP/M command matrix and `NATIVE.COM`.
+builds the adapter in C000h..C5E4h (within the reserved C000h..C5EBh window),
+boots it through the production network ROM, and runs both the normal CP/M
+command matrix, `NATIVE.COM`, and `STATUS.COM`.
 
 ## Implemented slice
 
@@ -36,7 +38,8 @@ ROM, and runs both the normal CP/M command matrix and `NATIVE.COM`.
   original count and BC zero, matching the reference LDIR implementation.
 - reserved BIOS entry 30 is a versioned Juku USERF query. Selector C=0 returns
   a `JNS1` status block with features, raw S21, decoded video mode, and the
-  last MULTIO count. Unknown selectors fail with A=FFh and HL=0000h.
+  last MULTIO count. Selector C=1 refreshes the block and publishes the same
+  bounded tuple to the host. Unknown selectors fail with A=FFh and HL=0000h.
 - TIME gets CP/M day plus BCD hour/minute/second through optional NetDisk-v3
   operation 22h. SET uses operation 23h to establish a host session offset
   without changing the host OS clock. An absent, invalid, or torn reply leaves
@@ -46,6 +49,13 @@ ROM, and runs both the normal CP/M command matrix and `NATIVE.COM`.
 S21 is sampled with the same drawing-derived scan order and active-low PB5
 polarity as `juku-common`'s `RKCONFIG`. Video mode is `(raw_s21 >> 1) & 3`, so
 ROM, CP/M console setup, and status reporting share one encoding.
+
+`STATUS.COM` prints the system/protocol/ROM identities, resident memory map,
+raw and decoded S21/video selection, native feature flags, last MULTIO count,
+and clock result counters. Its USERF selector also emits NetDisk-v3 operation
+24h, so the host records the same S21, video, feature, and clock-status tuple.
+The operation is idempotent, bounded, and optional: an absent N4 host cannot
+starve the local status display or disk service.
 
 `NATIVE.COM` calls the actual high-memory BIOS vectors on the emulated 8080.
 It verifies the device table, FLUSH, A-register MULTIO convention, USERF

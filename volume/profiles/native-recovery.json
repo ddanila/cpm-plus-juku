@@ -1,0 +1,17 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "recovery.json",
+  "name": "native-recovery-a",
+  "description": "Post-C4 recovery A: with native Juku configuration and resident-system status",
+  "files": [
+    {
+      "source": "build/status.cim",
+      "destination": "0:STATUS.COM",
+      "provenance": {
+        "source": "src/status.asm",
+        "version": "Juku Status 1.0",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}

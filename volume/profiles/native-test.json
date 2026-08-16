@@ -1,6 +1,6 @@
 {
   "schema": "cpm-plus-juku-volume-profile-v1",
-  "extends": "recovery.json",
+  "extends": "native-recovery.json",
   "name": "native-services-test-a",
   "description": "Recovery A: plus target-side native BIOS service regression",
   "files": [

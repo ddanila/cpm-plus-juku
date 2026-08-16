@@ -333,6 +333,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     drive_b_volume = juku_image_to_volume(drive_b.read_bytes()) \
         if drive_b is not None else None
     stats: dict[str, int] = {}
+    status_reports: list[dict[str, int]] = []
     fault_evidence: dict[str, int] = {}
     restart_armed = threading.Event()
     errors: list[BaseException] = []
@@ -404,6 +405,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             console_protocol=remote_console,
                             console_input=remote.input,
                             console_output=remote.output,
+                            status_report_hook=status_reports.append,
                         )
 
                     if disk_fault in ("server-restart", "mid-session-restart"):
@@ -604,6 +606,23 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 and stats.get("console_input_bytes", 0) > 0
                 and stats.get("console_output_bytes", 0) > 0,
                 f"N4 console did not carry bidirectional traffic: {stats}",
+            )
+        expected_status_reports = int(os.environ.get(
+            "CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS", "0",
+        ))
+        require(
+            stats.get("status_reports", 0) == expected_status_reports,
+            "target status report count differs: "
+            f"expected={expected_status_reports} stats={stats}",
+        )
+        if expected_status_reports:
+            require(
+                len(status_reports) == expected_status_reports
+                and status_reports[-1]["s21"] == video_mode << 1
+                and status_reports[-1]["video_mode"] == video_mode
+                and status_reports[-1]["features"] == 0x0F
+                and status_reports[-1]["clock_status"] == 0,
+                f"target status tuple differs: {status_reports}",
             )
         if disk_fault == "compound-recovery":
             require(
