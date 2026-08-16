@@ -157,10 +157,10 @@ the exact C3 package, records repeated boot timing and host logs, keeps writes
 in a fresh per-boot image, and audits the manual display/keyboard/recovery
 matrix. The complete commands are in the bench-candidate document below.
 
-## Future physical test
+## Physical direct-ROM test
 
-After Ekta4402 is explicitly selected for bench testing, start the server and
-press `N` alone in the monitor:
+With Ekta4402 fitted for bench testing, start the server and press `N` alone in
+the monitor. This path is physically qualified on CS00015:
 
 ```sh
 cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
