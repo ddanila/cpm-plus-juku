@@ -59,6 +59,12 @@ unreviewed binaries:
 No third-party tool enters a distributed image without a recorded source,
 license, version, and checksum.
 
+Preparation completed on 2026-08-17: the maintained 2026-06-07 CP/M 3.1
+source/binary release is pinned locally, and the eight initially selected files
+are checked against source-member mappings, sizes, and SHA-256 before
+extraction. They are not yet present on the immutable C4 volume. See
+[`cpm3-utility-provenance.md`](cpm3-utility-provenance.md).
+
 ## Priority 2: native CP/M 3 BIOS services
 
 The existing 32-entry CP/M 3 BIOS is genuine, but deliberately delegates the

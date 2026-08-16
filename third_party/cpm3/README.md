@@ -72,3 +72,10 @@ consumes the reviewed SYS files above.
 
 The Juku BIOS source is BSD-2-Clause project code. CP/M and its derivatives
 are distributed under the current DRDOS grant reproduced in `LICENSE.md`.
+
+The `releases/` directory separately pins the complete 2026-06-07 CP/M 3.1
+source and matching binary archives used to prepare the post-baseline utility
+distribution. Those utilities do not enter the C4 qualification image. Their
+per-file source mappings, versions, sizes, and hashes are documented in
+[`releases/provenance.json`](releases/provenance.json) and
+[`../../docs/cpm3-utility-provenance.md`](../../docs/cpm3-utility-provenance.md).

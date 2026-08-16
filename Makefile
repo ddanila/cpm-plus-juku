@@ -19,7 +19,7 @@ VOLUME := $(OUT)/cpm-plus-juku.img
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
 	network-rom-cosim-check network-rom-soak-check bench-candidate \
-	regenerate-cpm3 regenerate-cpm3-rom
+	distribution-input-check regenerate-cpm3 regenerate-cpm3-rom
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME)
 
 tools: $(ZMAC) $(LD80) $(ZX0)
@@ -34,8 +34,14 @@ verify-prebuilt: all
 rom-budget-check: tools $(BUILD)/fastboot-core.cim $(BUILD)/fastboot-extension.cim
 	$(PYTHON) tools/rom_budget.py --check
 
-check: verify-prebuilt rom-budget-check
+check: verify-prebuilt rom-budget-check distribution-input-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
+
+distribution-input-check:
+	$(PYTHON) tools/extract_cpm3_utilities.py --verify
+	$(PYTHON) tools/extract_cpm3_utilities.py
+	$(PYTHON) tools/extract_cpm3_utilities.py --check
+	$(PYTHON) tests/cpm3_utility_inputs_test.py
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
