@@ -73,6 +73,12 @@ def main() -> int:
         if incomplete.returncode != 1 or \
                 "only 0 complete cold-boot timings" not in incomplete.stdout:
             raise AssertionError("incomplete evidence was not rejected")
+        # The wrapper must own Ctrl+C and forward exactly one SIGINT. Keeping
+        # the server out of the terminal process group prevents a second
+        # interrupt from landing during its atomic writable-volume save.
+        source = TOOL.read_text()
+        if "start_new_session=True" not in source:
+            raise AssertionError("physical server is not signal-isolated")
         for index, elapsed in enumerate((4.25, 4.31, 4.28), 1):
             run_directory = session / f"boot-{index:02d}"
             run_directory.mkdir()

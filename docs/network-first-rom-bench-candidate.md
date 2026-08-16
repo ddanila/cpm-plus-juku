@@ -101,7 +101,10 @@ The runner streams the normal server output to the console and a hash-locked
 per-run `host.log`, while `boot.json` records the first valid disk-request
 timing and exact system/fastboot identities. Stop it with Ctrl+C after the
 local observation; power-cycle and repeat until at least three independent
-cold boots have been captured.
+cold boots have been captured. The runner owns the terminal signal and forwards
+one SIGINT to an isolated server process; the server atomically replaces the
+private A: copy, so an interrupted shutdown cannot truncate its last complete
+state.
 
 For the server-loss test, stop the live host without resetting Juku. After the
 target has entered its bounded retry path, attach a fresh server directly to

@@ -248,7 +248,7 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
         log.flush()
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=1,
+            text=True, bufsize=1, start_new_session=True,
         )
         assert process.stdout is not None
         try:

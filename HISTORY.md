@@ -77,3 +77,11 @@ observation. A new
 production `--resume-disk` server mode (`8080-cosim` `8a3300e2`) permits the
 required host-loss/later reattachment test without resetting or retransmitting
 a system image.
+
+The first stock-ROM setup attempt usefully exposed a shutdown boundary before
+qualification began: terminal Ctrl+C reached both the recorder and its child,
+and a second signal interrupted the child's non-atomic disk rewrite. The
+reference package was never at risk because every run uses a private A:. The
+recorder now starts the server in an isolated process group and forwards one
+SIGINT, while `8080-cosim` commit `75c7a0fd` atomically replaces writable
+volumes.
