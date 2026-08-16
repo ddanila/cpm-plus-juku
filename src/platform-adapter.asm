@@ -251,6 +251,15 @@ BOOT:
         sta     ROMABISTATUS
         ora     a
         jnz     ROMABIFAIL
+.ifdef NETWORKCONSOLE
+        ; The ROM-ABI path does not consume NRN4: the network-first ROM enters
+        ; NetDisk directly and the host intentionally emits no capability
+        ; marker after V15. Arm the optional client here. A disk-only host
+        ; rejects its first console request, after which NCFAIL leaves the
+        ; authoritative local screen/keyboard path running and reprobes only
+        ; after bounded backoff.
+        call    NCENA
+.endif
 .else
         mvi     a,015h
         out     PIT3CTL
@@ -458,6 +467,13 @@ CONINWAIT:
         jnz     CONINREMOTE
 .endif
 .ifdef ROMABI
+        ; The resident CONIN service is deliberately blocking.  Do not enter
+        ; it until CONSTAT says that a local key is ready: while the keyboard
+        ; is idle we must keep looping through NCSTAT so an N4 byte can wake
+        ; the otherwise blind network console.
+        call    JCGCONSTATADDR
+        ora     a
+        jz      CONINWAIT
         call    JCGCONINADDR
 .else
         call    RKSTAT

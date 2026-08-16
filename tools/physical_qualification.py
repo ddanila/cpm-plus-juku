@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture and audit the C3 physical CS00015 qualification."""
+"""Capture and audit the C4 physical CS00015 qualification."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_COSIM = ROOT.parent / "8080-cosim"
-CANDIDATE = "network-first-abi1-cs00015-c3"
+CANDIDATE = "network-first-abi1-cs00015-c4"
 SCHEMA = "juku-network-first-physical-qualification-v1"
 EXPECTED_D15 = "3e8b9eb2f3752002821e6ec18dd59805108389c9d93aba40316bd2e18eb7684f"
 EXPECTED_D16 = "f15b1b029edd845e0aa7622d61e9b84740957dce1f38a75867cedccef54494ac"
@@ -77,7 +77,7 @@ def verify_candidate(candidate: Path) -> dict[str, Any]:
     if manifest.get("schema") != "juku-network-first-bench-candidate-v1" or \
             manifest.get("candidate") != CANDIDATE or \
             manifest.get("status") != "physical qualification pending":
-        raise ValueError("candidate identity/status is not the pending C3 gate")
+        raise ValueError("candidate identity/status is not the pending C4 gate")
     files = manifest.get("files")
     if not isinstance(files, dict):
         raise TypeError("candidate file manifest is missing")
@@ -93,7 +93,7 @@ def verify_candidate(candidate: Path) -> dict[str, Any]:
     combined = candidate / "combined-rom.bin"
     if sha256(d15) != EXPECTED_D15 or sha256(d16) != EXPECTED_D16 or \
             d15.read_bytes() + d16.read_bytes() != combined.read_bytes():
-        raise ValueError("C3 programmer halves or concatenation differ")
+        raise ValueError("C4 programmer halves or concatenation differ")
     return manifest
 
 
@@ -118,7 +118,7 @@ def load_session(directory: Path) -> tuple[Path, dict[str, Any]]:
 
 def checklist(session: Path) -> str:
     tests = "\n".join(f"- [ ] `{name}`" for name in MANUAL_TESTS)
-    return f"""# C3 physical qualification checklist
+    return f"""# C4 physical qualification checklist
 
 Session: `{session}`
 
@@ -176,7 +176,7 @@ def init(args: argparse.Namespace) -> int:
     (output / "CHECKLIST.md").write_text(checklist(output) + "\n")
     print(f"PHYSICAL-QUALIFICATION: initialized {output}")
     print(f"  board: {args.board}")
-    print(f"  C3 manifest: {session['candidate_manifest_sha256']}")
+    print(f"  C4 manifest: {session['candidate_manifest_sha256']}")
     print("  writable A: a fresh private copy will be made for every cold boot")
     return 0
 
@@ -307,11 +307,11 @@ def record(args: argparse.Namespace) -> int:
     verification = session["programmer_verification"]
     if args.d15_sha256:
         if args.d15_sha256.lower() != EXPECTED_D15:
-            raise ValueError("D15 programmer verification hash differs from C3")
+            raise ValueError("D15 programmer verification hash differs from C4")
         verification["D15"] = args.d15_sha256.lower()
     if args.d16_sha256:
         if args.d16_sha256.lower() != EXPECTED_D16:
-            raise ValueError("D16 programmer verification hash differs from C3")
+            raise ValueError("D16 programmer verification hash differs from C4")
         verification["D16"] = args.d16_sha256.lower()
     if args.note:
         session["notes"].extend(args.note)

@@ -126,17 +126,16 @@ bytes (30.25 KiB). It also has 5,114 bytes above its CP/M 3 BIOS:
 - 4,080 initialized adapter bytes at `A000h..AFEFh`;
 - 1,034 bytes of mutable state/buffers through `B409h`.
 
-Removing the legacy RAM disk transaction leaves a 539-byte ROM-ABI platform
-binding. Together with five alignment bytes and the packed 368-byte remote
-console it produces a 912-byte initialized adapter, versus 4,080 bytes for the
-baseline. The system has been regenerated and relinked with loader
+Removing the legacy RAM disk transaction and packing the ROM-ABI platform
+binding with the remote console produces a 928-byte initialized adapter,
+versus 4,080 bytes for the baseline. The system has been regenerated and relinked with loader
 `9A00h`, BDOS `9D00h`, BIOS `BC00h`, and adapter `C000h`. Its exact transient
 span is `0100h..99FFh`, or 39,168 bytes (38.25 KiB): an exact 8,192-byte gain.
 The live test verifies page zero -> loader `9A06h` -> BDOS `9D06h`, rather than
 inferring the gain from link addresses alone.
 
 The dedicated initialized container occupies `9000h..D5FFh`; the adapter code
-is `C000h..C38Fh`. Sparse mutable state is kept at `C5ECh..C909h`, below the
+is `C000h..C39Fh`. Sparse mutable state is kept at `C5ECh..C909h`, below the
 fixed ROM gate/workspace beginning at `D600h`. The resident console is 1,191
 bytes, its mode-3 helper 119, and the resident read/write NetDisk service 676.
 Full cosim reaches `A>`, completes `DIR`, paginated `TYPE README.TXT`,

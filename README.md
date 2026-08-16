@@ -64,10 +64,14 @@ ROM-ABI consumer image now validates the resident manifest, delegates the CP/M
 resident keyboard, and renders through the resident 80x24 console/font plus a
 119-byte low-RAM pixel helper. It reaches `A>`, accepts `DIR` and `DIAG CPU`,
 and completes both with no USART overrun. Its final 9,600-byte framebuffer is
-byte-identical to the RAM baseline. The Creep font and faster cursor are now
-named CS00015 bench candidate C3; automatic-ROM physical qualification is
-still pending. C1 was superseded before burning after a stock-ROM/manual-resume
-run exposed its deterministic glyph corruption, and C2 remains immutable.
+byte-identical to the RAM baseline. The Creep font and faster cursor entered
+CS00015 as candidate C3. Its first blind automatic-ROM run proved reset, V15,
+resident output, and NetDisk, then exposed a blocking local-`CONIN` race in the
+matching CP/M N4 input path. Candidate C4 keeps both C3 EPROM halves unchanged
+and freezes the corrected runtime; remote `DIR`, `DIAG CPU`, `WBOOT`, and a
+second `DIR` now pass physically. The remaining physical matrix is pending.
+C1 was superseded before burning after a stock-ROM/manual-resume run exposed
+its deterministic glyph corruption, and C2/C3 remain immutable.
 Resident
 NetDisk-v3 owns bounded read-ahead and
 synchronous write-through, including three-attempt recovery and cache
@@ -78,7 +82,7 @@ invalidation. The dedicated CP/M system is regenerated and relinked as follows:
 9A00h..9CFFh  CP/M Plus loader
 9D00h..BBFFh  CP/M Plus BDOS
 BC00h..BFFFh  Juku CP/M 3 BIOS
-C000h..C38Fh  912-byte ROM-ABI binding and remote console
+C000h..C39Fh  928-byte ROM-ABI binding and remote console
 C5ECh..C909h  sparse mutable adapter state, directory buffer, and cache
 D600h..D7FFh  fixed ROM call gate/state and framebuffer helper
 D800h..FFFFh  resident runtime ROM
@@ -153,7 +157,7 @@ make bench-candidate          # full C-model matrix, structural HDL, package
 ```
 
 For the controlled CS00015 burn, `tools/physical_qualification.py` verifies
-the exact C3 package, records repeated boot timing and host logs, keeps writes
+the exact C4 package, records repeated boot timing and host logs, keeps writes
 in a fresh per-boot image, and audits the manual display/keyboard/recovery
 matrix. The complete commands are in the bench-candidate document below.
 
@@ -169,7 +173,7 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   /dev/ttyUSB0 out/cpm-plus-juku-system.bin out/cpm-plus-juku.img
 ```
 
-The corresponding automatic-ROM command and named CS00015 C3 bench gate are
+The corresponding automatic-ROM command and named CS00015 C4 bench gate are
 recorded in
 [`docs/network-first-rom-auto-boot.md`](docs/network-first-rom-auto-boot.md).
 
@@ -196,10 +200,10 @@ server replacement, explicit warm boot, and a 16-cycle/271-read soak. The exact 
 are in
 [`docs/network-first-rom-recovery.md`](docs/network-first-rom-recovery.md).
 The focused structural gate, rerun for C3 in `8080-cosim` commit `b04aa388`,
-boots the exact C3 image through `juku_top`/`vm80a` and proves its resident
+boots the byte-identical C4 image through `juku_top`/`vm80a` and proves its resident
 framebuffer, keyboard, serial, and one NetDisk-v3 DMA transaction. Full-system
 behavior remains guarded by the C-model matrix and the pending physical test.
-The deterministic `network-first-abi1-cs00015-c3` programming/runtime package,
+The deterministic `network-first-abi1-cs00015-c4` programming/runtime package,
 hashes, socket order, and remaining physical matrix are in
 [`docs/network-first-rom-bench-candidate.md`](docs/network-first-rom-bench-candidate.md).
 The memory constraints, staged migration, and acceptance contract are in
@@ -212,4 +216,5 @@ the allocation and measures the first resident serial implementation.
 ABI 1.0 is now fixed at `FF00h`, with a copied low-RAM gate and framebuffer
 helper. The deterministic `8080-cosim` implementation proves overlay, stack,
 register, interrupt, live-serial, and recovery contracts; its generated D15/D16
-halves are the controlled C3 bench candidate, not a promoted release.
+halves are the controlled C4 bench candidate, not a promoted release. They are
+byte-identical to the C3 chips already installed in CS00015.

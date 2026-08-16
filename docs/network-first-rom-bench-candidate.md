@@ -1,18 +1,29 @@
-# Network-first ROM CS00015 bench candidate C3
+# Network-first ROM CS00015 bench candidate C4
 
-Status: **READY TO BURN FOR CONTROLLED CS00015 QUALIFICATION; NOT YET PROMOTED**
+Status: **READY FOR CONTROLLED CS00015 QUALIFICATION; NOT YET PROMOTED**
 
-Candidate: `network-first-abi1-cs00015-c3`
+Candidate: `network-first-abi1-cs00015-c4`
 
-Date: **2026-08-16**
+Date: **2026-08-17**
 
-This is the third named physical candidate. C1 was never burned: a
+This is the fourth named physical candidate. C1 was never burned: a
 stock-ROM/manual-resume run exposed its malformed font first. C2 corrected the
-source extraction and remains immutable. C3 uses `juku-common` `893a9a9` to
-replace that wide table with the MIT-licensed Creep adaptation, halves the
-cursor phase to 512 polls, and uses `8080-cosim` `b04aa388` for the matching
-resident ROM and host handoff behavior. D15 changes; D16 remains byte-identical
-to C1 and C2.
+source extraction. C3 adopted the MIT-licensed Creep adaptation and 512-poll
+cursor, and its ROM pair was burned into CS00015. That first blind run proved
+automatic reset, V15 loading, resident output, and NetDisk, but its matching
+CP/M binding could enter the resident ROM's blocking local `CONIN` before a
+later N4 byte arrived. C4 freezes the corrected binding: it checks resident
+`CONSTAT` and continues polling N4 while the local keyboard is idle.
+
+C4 changes no EPROM bytes. Its D15 and D16 hashes are identical to C3, so the
+already-installed chips require no rewrite. Only the downloaded CP/M system
+and V15 bundle change. The corrected runtime physically completed remote
+`DIR`, `DIAG CPU`, explicit `WBOOT`, and a second `DIR` on CS00015 with zero
+bootstrap/disk retry; the remaining display, local-keyboard, write, repeated
+cold-boot, and live reconnect matrix is still pending.
+The exact failure evidence, timing, commands, and simulator reproduction are
+preserved in
+[`cs00015-c4-blind-qualification-20260817.md`](cs00015-c4-blind-qualification-20260817.md).
 
 ## Reproducible package
 
@@ -28,7 +39,7 @@ the ROM builder, runs the focused structural-HDL gate, and writes this
 self-describing directory:
 
 ```text
-out/network-first-abi1-cs00015-c3/
+out/network-first-abi1-cs00015-c4/
   combined-rom.bin
   D15-low-8K.bin
   D16-high-8K.bin
@@ -41,11 +52,11 @@ out/network-first-abi1-cs00015-c3/
 
 The manifest records sizes, SHA-256 hashes, 19,200-baud protocol settings,
 programmer order, memory map, and pending physical status. It rejects a ROM
-whose metadata is not exactly C3 and verifies that D15 followed by D16 equals
+whose metadata is not exactly C4 and verifies that D15 followed by D16 equals
 the combined 16 KiB ROM.
 
 The structural portion was introduced by `8080-cosim` commit `fefe01cb` and
-rerun for C3 in `b04aa388`. It boots the exact production C3 bytes through
+rerun for C3 in `b04aa388`. C4 keeps those exact production bytes and boots them through
 `juku_top`/`vm80a` to the `C4h` marker,
 then uses test-only dispatch around the unchanged resident bytes to prove the
 framebuffer helper, shifted matrix input, serial ABI, and one CRC-checked
@@ -60,8 +71,8 @@ neither model replaces the physical matrix below.
 | combined ROM | 16,384 | `931218a654412e2f9b0776a81bd5369f0c22c1da45cada220a2b96bbe70854c0` |
 | D15 low half | 8,192 | `3e8b9eb2f3752002821e6ec18dd59805108389c9d93aba40316bd2e18eb7684f` |
 | D16 high half | 8,192 | `f15b1b029edd845e0aa7622d61e9b84740957dce1f38a75867cedccef54494ac` |
-| CP/M Plus ROM system | 18,432 | `74f2089bc85ef18fe90bb5868570e177037f55311f88484f27181425a7920ab1` |
-| V15 fastboot payload | 7,699 | `0411ff682e7356d33073309b284bde33d627ea6c7769fdb1538d99c2c589bf4a` |
+| CP/M Plus ROM system | 18,432 | `a0a98915ba570b6816eadb096f9d885514dca9987c2070c123552397b1adc80e` |
+| V15 fastboot payload | 7,704 | `991eabf57360528c1a28fedab2013e94542348870aebd0de7ea8b60452765d3f` |
 | network disk A | 409,600 | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
 
 Program only `D15-low-8K.bin` into D15 and `D16-high-8K.bin` into D16. The
@@ -73,9 +84,9 @@ After programming both halves and before switching CS00015 on:
 
 ```sh
 cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
-  /dev/ttyUSB0 out/network-first-abi1-cs00015-c3/cpm-plus-system.bin \
-  out/network-first-abi1-cs00015-c3/network-disk.img \
-  --fast-stage1 out/network-first-abi1-cs00015-c3/fastboot-v15.bin \
+  /dev/ttyUSB0 out/network-first-abi1-cs00015-c4/cpm-plus-system.bin \
+  out/network-first-abi1-cs00015-c4/network-disk.img \
+  --fast-stage1 out/network-first-abi1-cs00015-c4/fastboot-v15.bin \
   --network-rom --disk-baud 19200 --disk-protocol 3 --writable \
   --timeout 86400
 ```
@@ -86,7 +97,7 @@ Initialize a record before programming or powering the board:
 
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py init \
-  --output out/physical-CS00015-C3
+  --output out/physical-CS00015-C4
 ```
 
 This verifies every packaged hash and D15+D16 concatenation, captures both
@@ -97,7 +108,7 @@ disk. Start each cold-boot attempt with:
 
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py run \
-  out/physical-CS00015-C3 /dev/ttyUSB0
+  out/physical-CS00015-C4 /dev/ttyUSB0
 ```
 
 The runner streams the normal server output to the console and a hash-locked
@@ -115,7 +126,7 @@ the running NetDisk session:
 
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py resume \
-  out/physical-CS00015-C3 /dev/ttyUSB0
+  out/physical-CS00015-C4 /dev/ttyUSB0
 ```
 
 The underlying production CLI's `--resume-disk` mode reuses the most recent
@@ -127,7 +138,7 @@ readback hashes, then run:
 
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py audit \
-  out/physical-CS00015-C3
+  out/physical-CS00015-C4
 ```
 
 The audit refuses promotion unless both EPROM hashes match, at least three
@@ -143,5 +154,5 @@ Promotion requires the physical matrix in
 warm boots, prompt and timing, `DIR`, sequential read, `DIAG`, erase/write,
 keyboard, compact display and blinking cursor, host-loss recovery, and a later
 server reconnection without manual reset. Record board identity and programmer
-verification hashes. A failure keeps C3 unpromoted and must be reproduced in
+verification hashes. A failure keeps C4 unpromoted and must be reproduced in
 simulation before another named candidate is made.

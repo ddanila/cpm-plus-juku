@@ -69,7 +69,7 @@ make check
 ```
 
 The remaining boundary is physical qualification. The exact bytes are now
-packaged and hashed as `network-first-abi1-cs00015-c3`, but remain unpromoted
+packaged and hashed as `network-first-abi1-cs00015-c4`, but remain unpromoted
 until the complete CS00015 cold/warm boot, disk, keyboard, display, cursor,
 recovery, and repeated-timing matrix passes.
 
@@ -78,5 +78,5 @@ The shared resident recovery layer has separate physical evidence: on
 CS00015 recovered after the original disk/N4 server was absent for about 23.19
 seconds and a fresh stateless `--resume-disk` process took over. Remote `DIR`
 and `DIAG CPU` then completed without target reset. This reduces the remaining
-physical boundary to the automatic C3 ROM's own cold-start and handoff path;
+physical boundary to the automatic C4 ROM's own cold-start and handoff path;
 it does not promote that still-unburned ROM image.

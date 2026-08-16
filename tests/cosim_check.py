@@ -233,10 +233,9 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     require(video_mode in range(4), "video mode must be 0..3")
     require(
         not remote_console or (
-            direct_core and not network_rom and not expect_disk_failure
-            and disk_fault is None
+            direct_core and not expect_disk_failure and disk_fault is None
         ),
-        "N4 console regression requires the normal direct Ekta4402 path",
+        "N4 console regression requires a clean direct-core path",
     )
     if network_rom:
         fastboot = ROM_FASTBOOT
@@ -424,23 +423,36 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     if remote_console else read_console_until(
                         console_master, b"A>", prompt_timeout,
                     )
+                if network_rom and remote_console:
+                    # Let the emulated target enter its idle CONIN path before
+                    # the first N4 key arrives.  Without this bench-faithful
+                    # pause, the server thread can enqueue DIR in the few host
+                    # microseconds between printing A> and calling CONIN; that
+                    # race hid the resident ROM's deliberately blocking local
+                    # CONIN service on physical CS00015.
+                    time.sleep(float(os.environ.get(
+                        "CPM_PLUS_JUKU_REMOTE_IDLE_DELAY", "0.25",
+                    )))
                 send_console = remote.send if remote_console else \
                     lambda data: os.write(console_master, data)
                 read_until = remote.read_until if remote_console else \
                     lambda marker, timeout: read_console_until(
                         console_master, marker, timeout,
                     )
+                command_timeout = 600 if network_rom and remote_console \
+                    else 120
                 if disk_fault == "mid-session-restart":
                     restart_armed.set()
                 send_console(b"DIR\r")
-                second = read_until(b"A>", 120)
+                second = read_until(b"A>", command_timeout)
                 send_console(b"TYPE README.TXT\r")
-                third = remote.read_paged(120) if remote_console else \
+                third = remote.read_paged(300 if network_rom else 120) \
+                    if remote_console else \
                     read_console_paged(console_master, 120)
                 send_console(b"DIAG CPU\r")
-                fourth = read_until(b"A>", 120)
+                fourth = read_until(b"A>", command_timeout)
                 send_console(b"WBOOT\r")
-                fifth = read_until(b"A>", 120)
+                fifth = read_until(b"A>", command_timeout)
                 soak_cycles = int(os.environ.get(
                     "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
                 )) if disk_fault == "mid-session-restart" else 0
@@ -453,7 +465,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             "NetDisk soak diagnostic failed")
                 fault_evidence["soak_cycles"] = soak_cycles
                 send_console(b"ERA README.TXT\r")
-                sixth = read_until(b"A>", 120)
+                sixth = read_until(b"A>", command_timeout)
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
@@ -606,9 +618,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         signature = gate.rfind(b"JUKUABI\0")
         require(signature > 0 and gate[signature - 1] == 1,
                 "CP/M Plus did not initialize the fixed ROM call gate")
+        expected_local_key = 0 if remote_console else 0x0D
         require(
             ram[0xC5F1] == 0 and ram[0xD785] == 1
-            and ram[0xD788] == 0x0D,
+            and ram[0xD788] == expected_local_key,
             "CP/M Plus did not retain ROM serial/keyboard binding state",
         )
         if ram_console_reference is not None:
@@ -676,7 +689,8 @@ def main() -> None:
         require(path.is_file(), f"build input is missing: {path}")
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
     require(selected in (
-        "both", "direct", "stock", "network", "video", "remote", "all",
+        "both", "direct", "stock", "network", "network-remote", "video",
+        "remote", "all",
     ),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
     paths = (True, False) if selected in ("both", "all") else \
@@ -704,6 +718,10 @@ def main() -> None:
             return
         if selected == "remote":
             run(trace, work, direct_core=True, remote_console=True)
+            return
+        if selected == "network-remote":
+            run(trace, work, direct_core=True, network_rom=True,
+                remote_console=True)
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -754,6 +772,10 @@ def main() -> None:
             return
         if selected == "remote":
             run(trace, work, direct_core=True, remote_console=True)
+            return
+        if selected == "network-remote":
+            run(trace, work, direct_core=True, network_rom=True,
+                remote_console=True)
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",

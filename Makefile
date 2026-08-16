@@ -119,6 +119,9 @@ $(BUILD)/netdisk-v3.rel: $(COMMON)/platform/netdisk-v3.asm $(ZMAC) | $(BUILD)
 $(BUILD)/netconsole.rel: $(COMMON)/platform/netconsole.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
 
+$(BUILD)/netconsole-romabi.rel: $(COMMON)/platform/netconsole.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DNETCONSOLE_EAGER_POLL -o $@ $<
+
 $(BUILD)/adapter.all: $(BUILD)/platform-adapter.rel \
 		$(BUILD)/ram-keyboard.rel $(BUILD)/netdisk-v3.rel \
 		$(BUILD)/netconsole.rel $(LD80)
@@ -133,10 +136,10 @@ $(BUILD)/adapter.bin: $(BUILD)/adapter.all
 	test $$(stat -c %s $@) -le 4096
 
 $(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
-		$(BUILD)/netconsole.rel $(LD80)
+		$(BUILD)/netconsole-romabi.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi.rel \
-		-P0xc220 $(BUILD)/netconsole.rel
+		-P0xc22c $(BUILD)/netconsole-romabi.rel
 
 $(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
 	tail -c+49153 $< >$@

@@ -266,4 +266,4 @@ and returned to `A>`. NetDisk requests after the reconnect all completed with
 status zero. This physically proves the resident timeout/backoff/reprobe path,
 stateless server replacement, continued NetDisk access, and bidirectional N4
 recovery without a Juku reset or ROM change. It does not by itself qualify the
-future automatic network-first C3 ROM startup path.
+automatic network-first C4 ROM startup path.

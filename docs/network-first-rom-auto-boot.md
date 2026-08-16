@@ -94,8 +94,8 @@ CP/M check asserts that the copied gate reports ready at `D620h`, status at
 `DIAG CPU`, `WBOOT`, and erase sequence is consumed by resident code while
 mode 1 remains selected. Its complete
 framebuffer matches the RAM-console run byte for byte. The normal system remains
-byte-identical. Packing the binding and remote console shrinks initialized
-adapter RAM from 4,080 to 912 bytes. The test additionally checks the live
+layout-compatible. Packing the binding and remote console shrinks initialized
+adapter RAM from 4,080 to 928 bytes. The test additionally checks the live
 page-zero chain through loader `9A06h` to BDOS `9D06h`, proving an exact
 8,192-byte TPA gain over the frozen `7A06h`/`7D06h` chain.
 
@@ -111,14 +111,15 @@ stock raster/refresh timer write used during the network load.
 
 Current deterministic candidate hashes are recorded by
 `8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.json`. The JSON
-names `network-first-abi1-cs00015-c3` and records `physical qualification
+names `network-first-abi1-cs00015-c4` and records `physical qualification
 pending`; it is the authoritative controlled-bench release gate. The complete
 package and burn mapping are in
 [`network-first-rom-bench-candidate.md`](network-first-rom-bench-candidate.md).
 
-## Host command for C3 qualification
+## Host command for C4 qualification
 
-For the named C3 D15/D16 pair, the matching identity-free command is:
+For the named C4 runtime and byte-identical C3/C4 D15/D16 pair, the matching
+identity-free command is:
 
 ```sh
 cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
@@ -128,7 +129,9 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   --disk-baud 19200 --disk-protocol 3 --writable --timeout 86400
 ```
 
-C3 is ready for a controlled CS00015 burn but is not promoted. Automatic boot,
-resident read-ahead and write-through, CP/M SYS regeneration, the measured TPA
-gain, and simulated recovery qualification are complete. The next milestone
-is the physical matrix documented in the candidate record.
+C4 is ready for controlled CS00015 qualification but is not promoted. No new
+burn is needed over C3. A blind physical run has proved automatic boot, N4
+input/output, `DIR`, `DIAG CPU`, explicit `WBOOT`, and post-warm-boot `DIR`
+with zero bootstrap/disk retry. The remaining display, local-keyboard, write,
+repeated-cold-boot, and live-reconnect matrix is documented in the candidate
+record.
