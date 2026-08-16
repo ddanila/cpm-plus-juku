@@ -10,7 +10,7 @@ from pathlib import Path
 import shutil
 
 
-CANDIDATE = "network-first-abi1-cs00015-c1"
+CANDIDATE = "network-first-abi1-cs00015-c2"
 
 
 def sha256(path: Path) -> str:
@@ -31,7 +31,7 @@ def main() -> int:
     if rom_metadata.get("candidate") != CANDIDATE or \
             rom_metadata.get("status") != \
             "CS00015 bench candidate; physical qualification pending":
-        raise SystemExit("ROM metadata is not the matching C1 bench release")
+        raise SystemExit("ROM metadata is not the matching C2 bench release")
 
     inputs = {
         "combined-rom.bin": rom_dir / "juku-network-rom-abi1.bin",

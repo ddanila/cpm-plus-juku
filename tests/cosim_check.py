@@ -32,9 +32,15 @@ ZMAC = ROOT / "build" / "bin" / "zmac"
 LD80 = ROOT / "build" / "bin" / "ld80"
 ZX0 = ROOT / "build" / "bin" / "zx0"
 sys.path.insert(0, str(COSIM / "tools"))
+sys.path.insert(0, str(ROOT / "third_party" / "juku-common" / "tools"))
 
 from janet_disk_server import serve_disk  # noqa: E402
 from janet_fastboot import serve_fast  # noqa: E402
+from ram_console_oracle import (  # noqa: E402
+    load_assembly as load_console_assembly_font,
+    load_reference as load_console_reference_font,
+    render_transcript as render_console_transcript,
+)
 
 ram_console_reference: bytes | None = None
 
@@ -472,6 +478,22 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         )
     screen = ram[0xD800:0xD800 + 9600]
     if not expect_disk_failure and direct_core and not network_rom:
+        transcript = first + second + third + fourth + fifth + sixth
+        expected_screen = render_console_transcript(transcript)
+        (case / "console.bin").write_bytes(transcript)
+        (case / "expected-screen.bin").write_bytes(expected_screen)
+        if screen != expected_screen:
+            first_difference = next(
+                index for index, pair in enumerate(zip(screen, expected_screen))
+                if pair[0] != pair[1]
+            )
+            require(
+                False,
+                "RAM console differs from independent source-font oracle at "
+                f"framebuffer byte {first_difference}: "
+                f"{screen[first_difference]:02X} != "
+                f"{expected_screen[first_difference]:02X}",
+            )
         ram_console_reference = screen
     if network_rom:
         gate = ram[0xD620:0xD700]
@@ -531,6 +553,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
 
 
 def main() -> None:
+    require(
+        load_console_assembly_font() == load_console_reference_font(),
+        "generated RAM console font differs from its source reference",
+    )
     for path in (
         ROM_DIRECT, ROM_STOCK, ROM_NETWORK, SYSTEM, FASTBOOT,
         ROM_SYSTEM, ROM_FASTBOOT, VOLUME,

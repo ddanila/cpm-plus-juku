@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove the C1 physical recorder rejects gaps and accepts complete evidence."""
+"""Prove the C2 physical recorder rejects gaps and accepts complete evidence."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "tools/physical_qualification.py"
-CANDIDATE = ROOT / "out/network-first-abi1-cs00015-c1"
-D15 = "1eaf3410849aa967b38f5b74c3db48c1f0ab5684f888998ee6575fd98c1a8534"
+CANDIDATE = ROOT / "out/network-first-abi1-cs00015-c2"
+D15 = "8093a8fb84c0f51a55245fe0cbbd29236d199a63e1760234ab5cb2b3e1277864"
 D16 = "f15b1b029edd845e0aa7622d61e9b84740957dce1f38a75867cedccef54494ac"
 TESTS = (
     "automatic_no_keypress", "post_no_failure_indication", "prompt",
@@ -63,7 +63,7 @@ def main() -> int:
     if not CANDIDATE.is_dir():
         raise AssertionError("bench package must be generated before recorder test")
     manifest = json.loads((CANDIDATE / "manifest.json").read_text())
-    with tempfile.TemporaryDirectory(prefix="c1-physical-recorder.") as name:
+    with tempfile.TemporaryDirectory(prefix="c2-physical-recorder.") as name:
         session = Path(name) / "session"
         invoke(
             "init", "--candidate", str(CANDIDATE),

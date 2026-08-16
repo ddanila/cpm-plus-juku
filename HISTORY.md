@@ -85,3 +85,23 @@ reference package was never at risk because every run uses a private A:. The
 recorder now starts the server in an isolated process group and forwards one
 SIGINT, while `8080-cosim` commit `75c7a0fd` atomically replaces writable
 volumes.
+
+The ensuing 2026-08-16 stock-ROM CS00015 baseline deliberately exercised the
+new all-RAM CP/M before burning the network ROM. Stock `TN` again loaded and
+started the system but missed the final V15 completion and fell back to 9,600,
+leaving repeated A: I/O errors. Attaching the production server directly at
+19,200 without resetting recovered `A>`. `DIR` generated clean disk traffic,
+`DIAG` passed twice, and `WBOOT` returned to the prompt; request sequences
+advanced through `64h` without retries. The captured private evidence hashes
+are recorded in `docs/cs00015-netdisk-v3-timing.md`.
+
+That run also exposed stable malformed compact glyphs. The previous
+framebuffer checks compared consumers that shared the same generated font, and
+the older transcript oracle parsed that generated table, so neither could
+detect a source-extraction error. `juku-common` commit `ec662a2` corrected the
+font sheet's vertical pitch from 8 to 9 pixels and added a human-readable
+source-glyph oracle. The old table now fails first at U+0032 row zero. The
+corrected CP/M BIOS framebuffer matches an independently rendered 875-byte
+transcript in all 9,600 bytes. C1 was never burned; `8080-cosim` commit
+`c2581698` names the corrected exact ROM C2 and reruns the C model and all
+three structural-HDL gates.

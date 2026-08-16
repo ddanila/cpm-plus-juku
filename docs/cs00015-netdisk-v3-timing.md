@@ -115,3 +115,35 @@ longer sequential read remains desirable final qualification but no longer
 blocks the disk-turnaround diagnosis itself.
 
 Run the complete paced desktop matrix with `make check` from this repository.
+
+## 2026-08-16 stock-ROM/manual-resume follow-up
+
+Before burning the network-first ROM, CS00015 was retested with its existing
+Ekta4401 monitor and the current all-RAM CP/M Plus payload. Two `TN` attempts
+confirmed the same split boundary:
+
+- stock Janet accepted station `01 -> 08`, loaded the 128-byte core, retried
+  the extension once, and started CP/M;
+- the host did not accept the final V15 stream completion, resumed 9,600-baud
+  discovery, and the live CP/M displayed repeated A: I/O errors;
+- without RESET, a production `--resume-disk` server attached at 19,200/8O1;
+- `A>` returned, `DIR` produced normal disk requests, `DIAG` passed twice, and
+  `WBOOT` returned to the prompt;
+- request sequence numbers advanced through `64h` with no observed duplicate
+  or retry in the resumed session.
+
+The private evidence directory is
+`out/stock-CS00015-baseline-20260816` (intentionally ignored rather than
+published as mutable media). Its final files are fixed here by hash:
+
+| file | bytes | SHA-256 |
+| --- | ---: | --- |
+| `host.log` | 2,348 | `3f32e14b30723129d6fc3738eb85dac823b685587a7f43dc6824cd0cee9730d6` |
+| `resume.log` | 6,935 | `3d805a91ccdb1d1a60b86fe46385c47bdd1c09370c6b27d1af639238326a9c19` |
+| private A: image | 409,600 | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
+
+This follow-up strengthens the resident NetDisk and warm-boot result but does
+not qualify the stock one-command V15 handoff. It also exposed deterministic
+malformed compact glyphs. That independent display issue was traced to the
+font generator's 8-vs-9-pixel source-sheet pitch, corrected, and promoted to
+the C2 bench candidate before any network ROM was burned.

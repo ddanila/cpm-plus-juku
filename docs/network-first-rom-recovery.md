@@ -69,6 +69,6 @@ make check
 ```
 
 The remaining boundary is physical qualification. The exact bytes are now
-packaged and hashed as `network-first-abi1-cs00015-c1`, but remain unpromoted
+packaged and hashed as `network-first-abi1-cs00015-c2`, but remain unpromoted
 until the complete CS00015 cold/warm boot, disk, keyboard, display, cursor,
 recovery, and repeated-timing matrix passes.

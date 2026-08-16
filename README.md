@@ -64,8 +64,10 @@ ROM-ABI consumer image now validates the resident manifest, delegates the CP/M
 resident keyboard, and renders through the resident 80x24 console/font plus a
 119-byte low-RAM pixel helper. It reaches `A>`, accepts `DIR` and `DIAG CPU`,
 and completes both with no USART overrun. Its final 9,600-byte framebuffer is
-byte-identical to the RAM baseline. These exact bytes are now named CS00015
-bench candidate C1; general physical qualification is still pending. Resident
+byte-identical to the RAM baseline. The corrected source-font bytes are now
+named CS00015 bench candidate C2; general physical qualification is still
+pending. C1 was superseded before burning after a stock-ROM/manual-resume run
+exposed its deterministic glyph corruption. Resident
 NetDisk-v3 owns bounded read-ahead and
 synchronous write-through, including three-attempt recovery and cache
 invalidation. The dedicated CP/M system is regenerated and relinked as follows:
@@ -121,8 +123,8 @@ out/cpm-plus-juku.img              host-backed A: volume
 `prebuilt/` contains byte-for-byte reference copies. `make check` first proves
 that a fresh build matches them. Current SHA-256 values are:
 
-- system: `170e3c2e91790ff08bcb846af65e0726cf8cfdbec53d813fde68f7762e6a96cd`;
-- fastboot: `5ae6c667d0fc0a23f93d184924b771adaca08fecc3319bae1d2e280664d7faec`;
+- system: `19b1aab5da38aa20725939caf2abef9eb1486b826251f320397c7c71b5700e93`;
+- fastboot: `d965ceabe9bfebe090475601624538e3f0e3ca90936426b104f9ea822ea55633`;
 - network-ROM system: `74f2089bc85ef18fe90bb5868570e177037f55311f88484f27181425a7920ab1`;
 - network-ROM fastboot: `0411ff682e7356d33073309b284bde33d627ea6c7769fdb1538d99c2c589bf4a`;
 - A: volume: `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1`.
@@ -149,7 +151,7 @@ make bench-candidate          # full C-model matrix, structural HDL, package
 ```
 
 For the controlled CS00015 burn, `tools/physical_qualification.py` verifies
-the exact C1 package, records repeated boot timing and host logs, keeps writes
+the exact C2 package, records repeated boot timing and host logs, keeps writes
 in a fresh per-boot image, and audits the manual display/keyboard/recovery
 matrix. The complete commands are in the bench-candidate document below.
 
@@ -165,7 +167,7 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   /dev/ttyUSB0 out/cpm-plus-juku-system.bin out/cpm-plus-juku.img
 ```
 
-The corresponding automatic-ROM command and named CS00015 C1 bench gate are
+The corresponding automatic-ROM command and named CS00015 C2 bench gate are
 recorded in
 [`docs/network-first-rom-auto-boot.md`](docs/network-first-rom-auto-boot.md).
 
@@ -191,11 +193,11 @@ traffic, modeled 8251 overrun, bootstrap-time and live post-prompt stateless
 server replacement, explicit warm boot, and a 16-cycle/271-read soak. The exact results
 are in
 [`docs/network-first-rom-recovery.md`](docs/network-first-rom-recovery.md).
-The focused structural gate in `8080-cosim` commit `fefe01cb` additionally
-boots the exact C1 image through `juku_top`/`vm80a` and proves its resident
+The focused structural gate, rerun for C2 in `8080-cosim` commit `c2581698`,
+boots the exact C2 image through `juku_top`/`vm80a` and proves its resident
 framebuffer, keyboard, serial, and one NetDisk-v3 DMA transaction. Full-system
 behavior remains guarded by the C-model matrix and the pending physical test.
-The deterministic `network-first-abi1-cs00015-c1` programming/runtime package,
+The deterministic `network-first-abi1-cs00015-c2` programming/runtime package,
 hashes, socket order, and remaining physical matrix are in
 [`docs/network-first-rom-bench-candidate.md`](docs/network-first-rom-bench-candidate.md).
 The memory constraints, staged migration, and acceptance contract are in
@@ -208,4 +210,4 @@ the allocation and measures the first resident serial implementation.
 ABI 1.0 is now fixed at `FF00h`, with a copied low-RAM gate and framebuffer
 helper. The deterministic `8080-cosim` implementation proves overlay, stack,
 register, interrupt, live-serial, and recovery contracts; its generated D15/D16
-halves are the controlled C1 bench candidate, not a promoted release.
+halves are the controlled C2 bench candidate, not a promoted release.

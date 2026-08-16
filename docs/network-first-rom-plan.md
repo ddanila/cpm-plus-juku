@@ -209,13 +209,13 @@ path. The gain is therefore not inferred merely from source placement.
 | step | status | evidence / remaining work |
 | --- | --- | --- |
 | 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
-| 2. Native RAM console | Complete in simulation | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`. Independent 9,600-byte oracles prove visible, hidden after exactly 1,024 console-status polls, and visible again after 2,048 polls without changing C1 production bytes. See [`modx-console-reference.md`](modx-console-reference.md). Only the physical display/phase check remains in step 8. |
+| 2. Native RAM console | Complete in simulation | Authentic MODX geometry/timing extracted; CC0 5x7 font, packed 80x24 renderer, and blinking underline are shared through `juku-common`. The source-font oracle caught and corrected C1's 8-vs-9-pixel sprite-sheet pitch error; a complete 875-byte CP/M transcript now matches the BIOS framebuffer byte-exactly. Independent 9,600-byte cursor oracles prove visible, hidden after exactly 1,024 console-status polls, and visible again after 2,048 polls. See [`modx-console-reference.md`](modx-console-reference.md). Only the physical C2 display/phase check remains in step 8. |
 | 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, and records the mode-crossing call graph. The conservative target was exceeded by the measured 38.25 KiB transient span. See [`rom-budget.md`](rom-budget.md). |
 | 4. ROM ABI | Complete | `juku-common` defines ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`; the retained ABI self-test image proves manifest rejection/acceptance, registers, stack guards, DI/PIC ownership, mode 0/1/3 crossings, overlay-write rejection, helper access, and concurrent 19,200 serial traffic. |
 | 5. Automatic network boot | Complete in simulation | Reset establishes PPI/PIC and stock raster/refresh state; POST has distinct C1..C5 failures and reaches C4 target readiness in 725,602 cycles. Identity-free V15 rejects a corrupt extension, recovers, and boots the real CP/M Plus image without keys; `A>`, `DIR`, and `DIAG CPU` pass with zero retries/overruns. The host also recovers when its one-shot C4 observation was missed. See [`network-first-rom-auto-boot.md`](network-first-rom-auto-boot.md). |
 | 6. Move services / relink | Complete in simulation | Resident serial, keyboard, console/font, and the 676-byte NetDisk-v3 read-ahead/write-through service pass. The regenerated system moves loader/BDOS/BIOS to `9A00h`/`9D00h`/`BC00h`; the packed 912-byte adapter at `C000h` yields a measured 39,168-byte transient span, exactly 8 KiB over baseline. The real system completes `DIR`, paginated `TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`, and `ERA README.TXT` with 53 reads, one write, zero retries/overruns, and byte-exact screen parity. |
 | 7. Recovery matrix | Complete in simulation | Absent-host and missed-ready recovery, corrupt bootstrap rejection, target reset amid stale extension bytes, truncated/delayed/duplicate/bad-CRC disk replies, deliberate modeled 8251 overrun, idempotent request replay, and stateless server restart both during bootstrap and after `A>` pass. Every path completes `DIR`, paginated `TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`, and `ERA README.TXT`. A 16-cycle post-reconnect soak completes 271 reads and one write without retry or overrun. See [`network-first-rom-recovery.md`](network-first-rom-recovery.md). |
-| 8. Physical qualification | Candidate and recorder complete; bench pending | `network-first-abi1-cs00015-c1` fixes the exact D15/D16, CP/M, fastboot, and disk hashes and is produced by `make bench-candidate`. The same gate boots the exact production ROM and exercises the resident ABI plus one NetDisk-v3 read in structural HDL (`8080-cosim` `fefe01cb`). The physical runner verifies the package, preserves per-run logs/timing, uses a fresh private writable A: per cold boot, supports live server reattachment, and rejects an incomplete evidence matrix. See [`network-first-rom-bench-candidate.md`](network-first-rom-bench-candidate.md). Burn C1 and run the complete CS00015 matrix including display, cursor, write, recovery, and repeated timing. |
+| 8. Physical qualification | C2 candidate and recorder complete; bench pending | C1 was superseded before burning after the stock-ROM baseline exposed its malformed source-font extraction. `network-first-abi1-cs00015-c2` fixes exact D15/D16, CP/M, fastboot, and disk hashes and is produced by `make bench-candidate`. The same gate boots the exact production ROM and exercises the resident ABI plus one NetDisk-v3 read in structural HDL (`8080-cosim` `c2581698`). The physical runner verifies the package, preserves per-run logs/timing, uses a fresh private writable A: per cold boot, supports live server reattachment, and rejects an incomplete evidence matrix. See [`network-first-rom-bench-candidate.md`](network-first-rom-bench-candidate.md). Burn C2 and run the complete CS00015 matrix including display, cursor, write, recovery, and repeated timing. |
 | 9. Acceptance audit | Pending | Publish final maps, artifacts, logs, hashes, timings, and parity decision. |
 
 ## Later improvements, outside the first ROM baseline
@@ -242,6 +242,37 @@ path. The gain is therefore not inferred merely from source placement.
   the proven mode-2/count-4 setting remains the production default;
 - consider a concealed recovery/service entry or local fallback only after the
   automatic network-only machine is a stable baseline.
+
+### Keyboard S21 configuration for a later monitorless ROM
+
+The new identity-free network protocol no longer needs S21's stock station
+number fields, so a later ROM may repurpose the existing eight keyboard DIP
+bits as a machine configuration byte shared by ROM and the loaded operating
+system. This is recorded as a post-C2 design, not part of the candidate
+awaiting qualification:
+
+| logical configuration bits | proposed meaning |
+| --- | --- |
+| bit 0 | ROM-only policy: `1` boots from the network automatically and immediately; `0` does not take the instant path (the exact local/recovery behavior remains to be decided) |
+| bits 2:1 = `00` | standard stock display timing/resolution |
+| bits 2:1 = `01` | first historical intermediate display mode; exact EKDOS timing/geometry must be extracted and tested |
+| bits 2:1 = `10` | second historical intermediate display mode; exact EKDOS timing/geometry must be extracted and tested |
+| bits 2:1 = `11` | MODX-compatible 400x192, 80x24 compact console |
+| bits 7:3 | reserved for later settings; ignored by the first implementation |
+
+The physical keyboard drawing serializes S21 during scan positions 8..15 on
+`CONTRDAT`; stock EktaSoft interprets configuration bits 7..0 as interface,
+maximum station, and station number. Before implementing the new meaning,
+confirm switch-number-to-bit order and active polarity in both the drawing and
+real keyboard readback. ROM samples S21 once at reset, stores the raw byte in
+its fixed status/workspace, and exposes it through a versioned resident-ABI
+query. Boot bit 0 is consumed only by ROM. The video field is shared policy:
+ROM selects its initial console timing from it and CP/M reads the same latched
+value through the ABI when initializing its console, rather than resampling or
+inventing a separate setting. The host, `DIAG`, and version command should
+report both the raw byte and decoded settings. Resolution selection must be
+table-driven and covered by PIT-write, geometry, framebuffer, ROM-to-CP/M
+handoff, and physical display regressions for all four combinations.
 
 ### CP/M Plus usability
 
@@ -290,7 +321,7 @@ path. The gain is therefore not inferred merely from source placement.
 - run long NetDisk read/write/reconnect soak tests in addition to the bounded
   boot and command regressions;
 - extend the completed focused structural-HDL gate only when a new boundary
-  benefits from it: the exact C1 ROM already proves automatic reset/POST,
+  benefits from it: the exact C2 ROM already proves automatic reset/POST,
   framebuffer helper, keyboard, serial ABI, and one CRC-checked NetDisk-v3
   DMA record; full V15/CP/M, recovery, exact cursor pixels, and soak remain in
   the practical C-model oracle;

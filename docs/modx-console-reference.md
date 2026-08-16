@@ -1,6 +1,6 @@
 # MODX compact-console reference
 
-Status: **RAM implementation and framebuffer oracle pass in simulation**
+Status: **CORRECTED SOURCE-FONT ORACLE AND BIOS FRAMEBUFFER PASS IN SIMULATION**
 
 Evidence date: **2026-08-15**
 
@@ -72,6 +72,18 @@ geometry. Font source and license:
 
 ## Regression contract
 
+The original generator used the correct 7-pixel horizontal pitch but an
+incorrect 8-pixel vertical pitch. The source sheet actually starts its six
+glyph rows at y=1,10,19,28,37,46. That one-pixel-per-row drift left the first
+18 characters valid and deterministically corrupted later glyphs. A
+stock-ROM/manual-resume CS00015 run exposed the defect before the network ROM
+was burned.
+
+`ram-console-font-reference.txt` now records every source glyph as readable
+five-pixel rows. `ram_console_oracle.py` parses that reference independently of
+the generator and assembly table. It rejects the old table first at U+0032 row
+zero (`00h` instead of `70h`).
+
 The C machine model remains in the stock 320x241 view until it observes the
 complete ordered MODX signature, then reports a 50-byte/192-line view. The
 CP/Mish console test independently renders the captured transcript into packed
@@ -80,13 +92,24 @@ MODX state, all-RAM ownership, keyboard-driven `DIR`, and the underline at the
 current prompt.
 
 The ROM ABI regression now adds two test-only resident variants around the
-unchanged C1 production image. One calls the public console-status vector
+unchanged production image. One calls the public console-status vector
 exactly 1,024 times and proves the underline bytes are erased; the other calls
 it 2,048 times and proves the original underline is restored. Both finish in
 mode 1 with the same glyph framebuffer and passing ABI state. This closes the
 explicit visible/hidden phase requirement in simulation.
 
-This oracle already found a real first-draft defect: the packed cell-address
+The CP/M Plus regression now also captures its complete 875-byte boot/command
+transcript, renders it pixel-by-pixel from the source-glyph reference, and
+compares all 9,600 bytes with the actual BIOS framebuffer. The corrected run
+matches exactly (SHA-256
+`c5810fe73fe76199ae9e33241fcc3ef87aa3c49ddac63d3242d5034d7ecbe73d`).
+
+The earlier transcript oracle parsed `ram-console-font.asm`; it therefore
+proved packing and control-character policy but could not detect a bad font
+generator. ROM-vs-RAM framebuffer parity had the same blind spot. The new
+source-font comparison closes both gaps.
+
+The oracle also found a real first-draft renderer defect: the packed cell-address
 calculation reused `DE`, causing glyph selection from a column offset instead
 of the character. The corrected shared routine passes the byte-exact 51K
 RAM-BIOS test. The same oracle now covers the ROM ABI implementation and both
