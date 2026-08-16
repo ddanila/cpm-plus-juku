@@ -120,20 +120,39 @@ one SIGINT to an isolated server process; the server atomically replaces the
 private A: copy, so an interrupted shutdown cannot truncate its last complete
 state.
 
+For a monitor-independent, auditable command suite, add `--console-smoke`:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py run \
+  out/physical-CS00015-C4 /dev/ttyUSB0 --console-smoke
+```
+
+After printing the host-ready line, the runner waits for a physical reset or
+power-on. It verifies the C4 banner and `A>`, deliberately delays the first
+input so the target has entered its idle `CONIN` path, and runs `DIR`, paginated
+`TYPE README.TXT`, `DIAG CPU`, `WBOOT`, `ERA README.TXT`, and a directory that
+must no longer contain README. The server then stops cleanly. Raw N4 bytes,
+their hash, decoded checks, host log, boot timing, artifact identities, and the
+private writable volume are retained in that boot directory. Successful checks
+update only the observations they directly prove; display, local keyboard, and
+cursor remain pending.
+
 For the server-loss test, stop the live host without resetting Juku. After the
 target has entered its bounded retry path, attach a fresh server directly to
 the running NetDisk session:
 
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py resume \
-  out/physical-CS00015-C4 /dev/ttyUSB0
+  out/physical-CS00015-C4 /dev/ttyUSB0 --console-smoke
 ```
 
 The underlying production CLI's `--resume-disk` mode reuses the most recent
 cold boot's private A: but sends no bootstrap marker or system image. It waits
 for the target's retried request at 19,200/8O1; prove
-recovery by completing a later `DIR` without RESET. Record only observations
-actually made on CS00015 with `record --test name=pass`, add the two programmer
+recovery by completing a later `DIR` without RESET. In console-smoke mode the
+command is queued before the target reprobes, captured byte for byte, and the
+replacement host stops cleanly after the returned prompt. Record only
+observations actually made on CS00015 with `record --test name=pass`, add the two programmer
 readback hashes, then run:
 
 ```sh

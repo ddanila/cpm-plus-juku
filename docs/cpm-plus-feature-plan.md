@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **PLANNED; START AFTER THE NETWORK-FIRST PHYSICAL BASELINE IS FROZEN**
+Status: **IN PROGRESS; FREEZING THE C4 PHYSICAL BASELINE**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -25,6 +25,15 @@ Before adding user-facing or protocol features:
 - reproduce every physical failure through real firmware branches and device
   timing in simulation;
 - publish one immutable candidate package and its acceptance record.
+
+Current state (2026-08-17): C4 is immutable and keeps the C3 EPROM halves
+byte-identical. Its corrected downloaded runtime physically passes automatic
+boot, N4 input/output, `DIR`, `DIAG CPU`, warm boot, and post-warm-boot `DIR`.
+The qualification recorder now offers `run --console-smoke` and
+`resume --console-smoke` to capture cold boot, sequential read, diagnostics,
+write/erase, warm boot, host loss, and live reattachment without a monitor.
+Repeated runs plus local display, keyboard, and cursor observations remain
+before Priority 0 can be declared frozen.
 
 The compatibility adapter remains the reference until a replacement matches
 this matrix. Higher baud rates, write-back caching, and additional recovery

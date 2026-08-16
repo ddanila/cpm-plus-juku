@@ -6,11 +6,17 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import pty
+import select
 import shlex
 import shutil
 import signal
 import subprocess
 import sys
+import threading
+import time
+import tty
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -37,6 +43,118 @@ MANUAL_TESTS = (
     "server_reconnect_without_reset",
 )
 VALID_RESULTS = ("pending", "pass", "fail")
+
+
+class N4Console:
+    """Small binary-safe client for a janet_disk_server --console-pty."""
+
+    def __init__(self, fd: int) -> None:
+        self.fd = fd
+        self.transcript = bytearray()
+
+    def send(self, data: bytes) -> None:
+        os.write(self.fd, data)
+
+    def read_until(self, marker: bytes, timeout: float) -> bytes:
+        start = len(self.transcript)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            ready, _, _ = select.select([self.fd], [], [], 0.1)
+            if not ready:
+                continue
+            incoming = os.read(self.fd, 4096)
+            if not incoming:
+                continue
+            self.transcript.extend(incoming)
+            current = bytes(self.transcript[start:])
+            if marker in current:
+                return current
+        raise TimeoutError(
+            f"N4 console did not emit {marker!r}; "
+            f"transcript={bytes(self.transcript[start:])!r}"
+        )
+
+    def read_paged(self, timeout: float) -> bytes:
+        start = len(self.transcript)
+        handled = 0
+        prompt = b"Press RETURN to Continue"
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            ready, _, _ = select.select([self.fd], [], [], 0.1)
+            if ready:
+                incoming = os.read(self.fd, 4096)
+                if incoming:
+                    self.transcript.extend(incoming)
+            current = bytes(self.transcript[start:])
+            if b"A>" in current:
+                return current
+            if prompt in current[handled:]:
+                self.send(b"\r")
+                handled = len(current)
+        raise TimeoutError(
+            "paged N4 console did not return to CCP; "
+            f"transcript={bytes(self.transcript[start:])!r}"
+        )
+
+
+def n4_console_smoke(fd: int, *, resume: bool, timeout: float) -> dict[str, Any]:
+    """Exercise the physical CP/M console; raise on any missing evidence."""
+    console = N4Console(fd)
+    results: dict[str, str] = {}
+    if resume:
+        # Queue input immediately. The replacement server keeps it until the
+        # target's bounded N4 reprobe succeeds, so no local key is required.
+        console.send(b"DIR\r")
+        directory = console.read_until(b"A>", timeout)
+        if b"CCP" not in directory or b"DIAG" not in directory:
+            raise ValueError("post-reconnect DIR lacks recovery-volume files")
+        results["reconnect_dir"] = "pass"
+    else:
+        banner = console.read_until(b"A>", timeout)
+        if b"CP/M Plus 3.1 Juku" not in banner or \
+                b"NetDisk v3, 19200" not in banner:
+            raise ValueError("automatic boot banner or NetDisk identity differs")
+        # Match a human operator: allow CP/M to enter its idle input path before
+        # the first command. This is the exact boundary that exposed C3.
+        time.sleep(0.25)
+        console.send(b"DIR\r")
+        directory = console.read_until(b"A>", timeout)
+        if b"CCP" not in directory or b"README" not in directory:
+            raise ValueError("DIR lacks qualification-volume files")
+        results["dir"] = "pass"
+
+        console.send(b"TYPE README.TXT\r")
+        sequential = console.read_paged(timeout)
+        if b"CP/M Plus 3.1" not in sequential:
+            raise ValueError("sequential README read lacks expected contents")
+        results["sequential_read"] = "pass"
+
+        console.send(b"DIAG CPU\r")
+        diagnostic = console.read_until(b"A>", timeout)
+        if b"CPU: PASS" not in diagnostic:
+            raise ValueError("DIAG CPU did not pass")
+        results["diag"] = "pass"
+
+        console.send(b"WBOOT\r")
+        console.read_until(b"A>", timeout)
+        results["warm_boot"] = "pass"
+
+        console.send(b"ERA README.TXT\r")
+        console.read_until(b"A>", timeout)
+        console.send(b"DIR\r")
+        after_erase = console.read_until(b"A>", timeout)
+        if b"README" in after_erase:
+            raise ValueError("README.TXT remains after ERA")
+        results["erase_write"] = "pass"
+    return {
+        "schema": "juku-network-first-n4-smoke-v1",
+        "kind": "resume" if resume else "cold boot",
+        "result": "pass",
+        "checks": results,
+        "transcript_bytes": len(console.transcript),
+        "transcript_sha256": hashlib.sha256(console.transcript).hexdigest(),
+        "transcript": bytes(console.transcript),
+    }
 
 
 def utc_now() -> str:
@@ -116,6 +234,27 @@ def load_session(directory: Path) -> tuple[Path, dict[str, Any]]:
     return directory, session
 
 
+def valid_n4_capture(directory: Path, run: dict[str, Any], kind: str) -> bool:
+    """Validate optional automated physical-console evidence byte for byte."""
+    smoke = run.get("n4_smoke")
+    if smoke is None:
+        return True
+    transcript = directory / "console.bin"
+    record = directory / "console.json"
+    return (
+        isinstance(smoke, dict)
+        and smoke.get("schema") == "juku-network-first-n4-smoke-v1"
+        and smoke.get("kind") == kind
+        and smoke.get("result") == "pass"
+        and transcript.is_file()
+        and record.is_file()
+        and load_json(record) == smoke
+        and transcript.stat().st_size == smoke.get("transcript_bytes")
+        and sha256(transcript) == smoke.get("transcript_sha256")
+        and run.get("console_transcript_sha256") == sha256(transcript)
+    )
+
+
 def checklist(session: Path) -> str:
     tests = "\n".join(f"- [ ] `{name}`" for name in MANUAL_TESTS)
     return f"""# C4 physical qualification checklist
@@ -125,9 +264,12 @@ Session: `{session}`
 1. Verify programmer readback hashes for both EPROMs and record them.
 2. Run at least three independent cold boots. Each must reach `A>` without a
    keypress; keep the generated `boot.json` and `host.log` from every run.
-3. Complete the observations below on the local display and keyboard.
-4. While CP/M remains running, stop the host, observe bounded retry behavior,
-   start `resume`, and prove a later `DIR` succeeds without RESET.
+   `run --console-smoke` also captures and validates `DIR`, sequential read,
+   diagnostics, warm boot, erase/write, and a post-erase directory over N4.
+3. Complete the genuinely local observations below on the display and keyboard.
+4. After a console-smoke run stops its host, leave CP/M running and start
+   `resume --console-smoke`. It queues `DIR` until the bounded N4 reprobe and
+   proves live server reattachment without RESET.
 5. Run `audit`; promotion is forbidden until it reports PASS.
 
 Required observations:
@@ -189,7 +331,8 @@ def next_run(directory: Path, prefix: str) -> Path:
 
 
 def server_command(directory: Path, session: dict[str, Any], args: argparse.Namespace,
-                   *, resume: bool, result: Path) -> list[str]:
+                   *, resume: bool, result: Path,
+                   console_pty: str | None = None) -> list[str]:
     candidate = Path(str(session["candidate_directory"]))
     cosim = args.cosim.resolve()
     if cosim != Path(str(session["cosim_directory"])):
@@ -223,13 +366,28 @@ def server_command(directory: Path, session: dict[str, Any], args: argparse.Name
         "--timeout", str(args.timeout),
         "--disk-timeout", str(args.disk_timeout),
     ))
+    if console_pty is not None:
+        command.extend(("--console-pty", console_pty))
     return command
 
 
 def run_server(args: argparse.Namespace, *, resume: bool) -> int:
     directory, session = load_session(args.session)
     result = next_run(directory, "resume" if resume else "boot")
-    command = server_command(directory, session, args, resume=resume, result=result)
+    console_master: int | None = None
+    console_slave: int | None = None
+    console_pty: str | None = None
+    if args.console_smoke and not args.dry_run:
+        console_master, console_slave = pty.openpty()
+        tty.setraw(console_master)
+        tty.setraw(console_slave)
+        console_pty = os.ttyname(console_slave)
+    elif args.console_smoke:
+        console_pty = "N4-CONSOLE-PTY"
+    command = server_command(
+        directory, session, args, resume=resume, result=result,
+        console_pty=console_pty,
+    )
     if args.dry_run:
         print(shlex.join(command))
         return 0
@@ -243,6 +401,8 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
     started = utc_now()
     log_path = result / "host.log"
     returncode = 1
+    smoke_result: dict[str, Any] | None = None
+    smoke_errors: list[BaseException] = []
     with log_path.open("w") as log:
         log.write("COMMAND " + shlex.join(command) + "\n")
         log.flush()
@@ -250,6 +410,30 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, bufsize=1, start_new_session=True,
         )
+        if console_slave is not None:
+            os.close(console_slave)
+            console_slave = None
+
+        def exercise_console() -> None:
+            nonlocal smoke_result
+            assert console_master is not None
+            try:
+                smoke_result = n4_console_smoke(
+                    console_master, resume=resume,
+                    timeout=args.console_timeout,
+                )
+            except BaseException as error:
+                smoke_errors.append(error)
+            finally:
+                if process.poll() is None:
+                    process.send_signal(signal.SIGINT)
+
+        console_worker = None
+        if console_master is not None:
+            console_worker = threading.Thread(
+                target=exercise_console, daemon=True,
+            )
+            console_worker.start()
         assert process.stdout is not None
         try:
             for line in process.stdout:
@@ -261,6 +445,17 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
             if process.poll() is None:
                 process.send_signal(signal.SIGINT)
             returncode = process.wait(timeout=10)
+        if console_worker is not None:
+            console_worker.join(timeout=5)
+            if console_worker.is_alive():
+                assert console_master is not None
+                os.close(console_master)
+                console_master = None
+                console_worker.join(timeout=1)
+                smoke_errors.append(TimeoutError("N4 console worker did not stop"))
+        if console_master is not None:
+            os.close(console_master)
+            console_master = None
     boot_path = result / "boot.json"
     record = {
         "schema": "juku-network-first-physical-host-run-v1",
@@ -275,8 +470,41 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
         "volume_sha256_after": sha256(volume),
         "boot_result": load_json(boot_path) if boot_path.is_file() else None,
     }
+    if smoke_result is not None:
+        transcript = smoke_result.pop("transcript")
+        assert isinstance(transcript, bytes)
+        transcript_path = result / "console.bin"
+        transcript_path.write_bytes(transcript)
+        write_json(result / "console.json", smoke_result)
+        record["n4_smoke"] = smoke_result
+        record["console_transcript_sha256"] = sha256(transcript_path)
     write_json(result / "run.json", record)
+    if smoke_result is not None:
+        passed = (
+            ("server_reconnect_without_reset",)
+            if resume else (
+                "automatic_no_keypress", "post_no_failure_indication",
+                "prompt", "warm_boot", "dir", "sequential_read", "diag",
+                "erase_write",
+            )
+        )
+        evidence = (
+            "automated physical N4 cold-boot transcript"
+            if not resume else
+            "automated physical N4 live-server reattach transcript; "
+            "disk-request loss remains a separate observation"
+        )
+        for name in passed:
+            session["manual_tests"][name] = {
+                "result": "pass", "notes": evidence,
+            }
+        session["updated_at_utc"] = utc_now()
+        write_json(directory / "session.json", session)
     print(f"PHYSICAL-QUALIFICATION: captured {result}")
+    if smoke_errors:
+        raise ValueError("N4 console smoke failed: " + "; ".join(
+            str(error) for error in smoke_errors
+        ))
     return 0 if returncode in (0, 130) else returncode
 
 
@@ -355,6 +583,7 @@ def audit(args: argparse.Namespace) -> int:
             session["reference_volume_sha256"]
             and isinstance(run.get("volume_sha256_after"), str)
             and len(run["volume_sha256_after"]) == 64
+            and valid_n4_capture(path.parent, run, "cold boot")
         )
         if valid_capture and isinstance(boot, dict):
             boots.append(boot)
@@ -395,7 +624,8 @@ def audit(args: argparse.Namespace) -> int:
                 and run.get("volume_sha256_before") == \
                 volume_chain.get(str(volume_path.resolve())) \
                 and isinstance(run.get("volume_sha256_after"), str) \
-                and len(run["volume_sha256_after"]) == 64:
+                and len(run["volume_sha256_after"]) == 64 \
+                and valid_n4_capture(path.parent, run, "resume"):
             resumes.append(run)
             volume_chain[str(volume_path.resolve())] = run["volume_sha256_after"]
         else:
@@ -453,6 +683,14 @@ def parser() -> argparse.ArgumentParser:
                                 default=DEFAULT_COSIM)
         run_parser.add_argument("--timeout", type=float, default=86400)
         run_parser.add_argument("--disk-timeout", type=float, default=86400)
+        run_parser.add_argument(
+            "--console-smoke", action="store_true",
+            help="run the auditable N4 command suite and stop the host cleanly",
+        )
+        run_parser.add_argument(
+            "--console-timeout", type=float, default=900,
+            help="seconds allowed for each N4 command or reconnect",
+        )
         run_parser.add_argument("--dry-run", action="store_true")
         run_parser.set_defaults(
             action=lambda args, resume=resume: run_server(args, resume=resume),
@@ -481,6 +719,7 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except (OSError, subprocess.SubprocessError, TypeError, ValueError) as error:
+    except (OSError, subprocess.SubprocessError, TimeoutError,
+            TypeError, ValueError) as error:
         print(f"physical-qualification: {error}", file=sys.stderr)
         raise SystemExit(1)

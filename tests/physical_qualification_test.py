@@ -5,10 +5,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import pty
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import tty
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +26,8 @@ TESTS = (
     "keyboard", "compact_display", "cursor_blink", "host_loss_recovery",
     "server_reconnect_without_reset",
 )
+sys.path.insert(0, str(ROOT / "tools"))
+import physical_qualification as qualification  # noqa: E402
 
 
 def invoke(*arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -59,7 +65,99 @@ def captured_run(path: Path, *, kind: str, boot: dict[str, object] | None,
     )
 
 
+def attach_n4_capture(path: Path, *, kind: str) -> None:
+    transcript = b"CP/M Plus 3.1 Juku\r\nA>DIR\r\nA>"
+    smoke = {
+        "schema": "juku-network-first-n4-smoke-v1",
+        "kind": kind,
+        "result": "pass",
+        "checks": {"dir": "pass"},
+        "transcript_bytes": len(transcript),
+        "transcript_sha256": hashlib.sha256(transcript).hexdigest(),
+    }
+    (path / "console.bin").write_bytes(transcript)
+    write_json(path / "console.json", smoke)
+    run = json.loads((path / "run.json").read_text())
+    run["n4_smoke"] = smoke
+    run["console_transcript_sha256"] = smoke["transcript_sha256"]
+    write_json(path / "run.json", run)
+
+
+def read_command(fd: int) -> bytes:
+    result = bytearray()
+    while not result.endswith(b"\r"):
+        result.extend(os.read(fd, 64))
+    return bytes(result)
+
+
+def n4_smoke_test() -> None:
+    master, slave = pty.openpty()
+    tty.setraw(master)
+    tty.setraw(slave)
+    failures: list[BaseException] = []
+
+    def cold_target() -> None:
+        try:
+            os.write(slave, b"\r\nCP/M Plus 3.1 Juku\r\nNetDisk v3, 19200\r\nA>")
+            assert read_command(slave) == b"DIR\r"
+            os.write(slave, b"DIR\r\nCCP COM DIAG COM README TXT\r\nA>")
+            assert read_command(slave) == b"TYPE README.TXT\r"
+            os.write(slave, b"CP/M Plus 3.1 docs\r\nPress RETURN to Continue")
+            assert read_command(slave) == b"\r"
+            os.write(slave, b"\r\ncontinued\r\nA>")
+            assert read_command(slave) == b"DIAG CPU\r"
+            os.write(slave, b"CPU: PASS\r\nA>")
+            assert read_command(slave) == b"WBOOT\r"
+            os.write(slave, b"\r\nA>")
+            assert read_command(slave) == b"ERA README.TXT\r"
+            os.write(slave, b"\r\nA>")
+            assert read_command(slave) == b"DIR\r"
+            os.write(slave, b"CCP COM DIAG COM\r\nA>")
+        except BaseException as error:
+            failures.append(error)
+
+    worker = threading.Thread(target=cold_target)
+    worker.start()
+    result = qualification.n4_console_smoke(
+        master, resume=False, timeout=2,
+    )
+    worker.join(timeout=2)
+    os.close(master)
+    os.close(slave)
+    if worker.is_alive() or failures or result["result"] != "pass" or \
+            set(result["checks"]) != {
+                "dir", "sequential_read", "diag", "warm_boot", "erase_write",
+            }:
+        raise AssertionError(f"cold N4 smoke differs: {result}, {failures}")
+
+    master, slave = pty.openpty()
+    tty.setraw(master)
+    tty.setraw(slave)
+    failures = []
+
+    def resume_target() -> None:
+        try:
+            assert read_command(slave) == b"DIR\r"
+            os.write(slave, b"DIR\r\nCCP COM DIAG COM\r\nA>")
+        except BaseException as error:
+            failures.append(error)
+
+    worker = threading.Thread(target=resume_target)
+    worker.start()
+    result = qualification.n4_console_smoke(
+        master, resume=True, timeout=2,
+    )
+    worker.join(timeout=2)
+    os.close(master)
+    os.close(slave)
+    if worker.is_alive() or failures or result["checks"] != {
+            "reconnect_dir": "pass",
+    }:
+        raise AssertionError(f"resume N4 smoke differs: {result}, {failures}")
+
+
 def main() -> int:
+    n4_smoke_test()
     if not CANDIDATE.is_dir():
         raise AssertionError("bench package must be generated before recorder test")
     manifest = json.loads((CANDIDATE / "manifest.json").read_text())
@@ -69,6 +167,11 @@ def main() -> int:
             "init", "--candidate", str(CANDIDATE),
             "--output", str(session),
         )
+        dry_run = invoke(
+            "run", str(session), "/dev/null", "--console-smoke", "--dry-run",
+        )
+        if "--console-pty N4-CONSOLE-PTY" not in dry_run.stdout:
+            raise AssertionError("console-smoke host wiring is absent")
         incomplete = invoke("audit", str(session), check=False)
         if incomplete.returncode != 1 or \
                 "only 0 complete cold-boot timings" not in incomplete.stdout:
@@ -98,6 +201,8 @@ def main() -> int:
             captured_run(
                 run_directory, kind="cold boot", boot=boot, volume=volume,
             )
+            if index == 1:
+                attach_n4_capture(run_directory, kind="cold boot")
         captured_run(
             session / "resume-01", kind="resume", boot=None, volume=volume,
         )
@@ -116,6 +221,19 @@ def main() -> int:
                 "physical qualification passed; acceptance audit pending" or \
                 result.get("cold_boot_timings_seconds") != [4.25, 4.31, 4.28]:
             raise AssertionError("qualification summary differs")
+        console_path = session / "boot-01" / "console.bin"
+        original_console = console_path.read_bytes()
+        with console_path.open("ab") as console:
+            console.write(b"tampered")
+        tampered_console = invoke("audit", str(session), check=False)
+        if tampered_console.returncode != 1 or \
+                "invalid or incomplete cold-boot capture" not in \
+                tampered_console.stdout:
+            raise AssertionError("changed N4 evidence was not rejected")
+        console_path.write_bytes(original_console)
+        repaired = invoke("audit", str(session))
+        if "PHYSICAL-QUALIFICATION-AUDIT: PASS" not in repaired.stdout:
+            raise AssertionError("restored N4 evidence did not pass")
         with (session / "boot-01" / "host.log").open("a") as log:
             log.write("tampered\n")
         tampered = invoke("audit", str(session), check=False)
