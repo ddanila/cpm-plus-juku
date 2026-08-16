@@ -50,7 +50,7 @@ the combined 16 KiB ROM.
 | D16 high half | 8,192 | `f15b1b029edd845e0aa7622d61e9b84740957dce1f38a75867cedccef54494ac` |
 | CP/M Plus ROM system | 18,432 | `74f2089bc85ef18fe90bb5868570e177037f55311f88484f27181425a7920ab1` |
 | V15 fastboot payload | 7,699 | `0411ff682e7356d33073309b284bde33d627ea6c7769fdb1538d99c2c589bf4a` |
-| network disk A | 409,600 | `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100` |
+| network disk A | 409,600 | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
 
 Program only `D15-low-8K.bin` into D15 and `D16-high-8K.bin` into D16. The
 remaining files are matching host/runtime inputs, not EPROM images.

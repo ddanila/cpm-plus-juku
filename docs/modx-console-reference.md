@@ -79,11 +79,18 @@ pixels and compares all 9,600 framebuffer bytes. It also asserts the modeled
 MODX state, all-RAM ownership, keyboard-driven `DIR`, and the underline at the
 current prompt.
 
+The ROM ABI regression now adds two test-only resident variants around the
+unchanged C1 production image. One calls the public console-status vector
+exactly 1,024 times and proves the underline bytes are erased; the other calls
+it 2,048 times and proves the original underline is restored. Both finish in
+mode 1 with the same glyph framebuffer and passing ABI state. This closes the
+explicit visible/hidden phase requirement in simulation.
+
 This oracle already found a real first-draft defect: the packed cell-address
 calculation reused `DE`, causing glyph selection from a column offset instead
 of the character. The corrected shared routine passes the byte-exact 51K
-RAM-BIOS test. Before promotion into ROM, the same oracle must cover the ROM
-ABI implementation and an explicit visible/hidden cursor-phase test.
+RAM-BIOS test. The same oracle now covers the ROM ABI implementation and both
+cursor phases. Physical phase timing remains part of CS00015 qualification.
 
 ## Follow-on improvements
 

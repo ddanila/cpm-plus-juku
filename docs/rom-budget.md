@@ -139,8 +139,9 @@ The dedicated initialized container occupies `9000h..D5FFh`; the adapter code
 is `C000h..C38Fh`. Sparse mutable state is kept at `C5ECh..C909h`, below the
 fixed ROM gate/workspace beginning at `D600h`. The resident console is 1,191
 bytes, its mode-3 helper 119, and the resident read/write NetDisk service 676.
-Full cosim reaches `A>`, completes `DIR`, `DIAG CPU`, and `ERA README.TXT`,
-performs 38 reads and at least one resident write with no retry or resident
+Full cosim reaches `A>`, completes `DIR`, paginated `TYPE README.TXT`,
+`DIAG CPU`, explicit `WBOOT`, and `ERA README.TXT`, performs 53 reads and at
+least one resident write with no retry or resident
 overrun, and proves the final 9,600-byte framebuffer equal to the frozen RAM
 oracle.
 

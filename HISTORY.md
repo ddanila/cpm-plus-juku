@@ -47,3 +47,10 @@ ROM bytes `network-first-abi1-cs00015-c1` and released them only for controlled
 CS00015 qualification. `make bench-candidate` now assembles the exact D15/D16,
 CP/M system, fastboot, and disk inputs into one hashed package; promotion still
 depends on the documented physical matrix.
+
+`8080-cosim` commit `68da3972` subsequently closed the full cursor-cycle
+oracle without changing the C1 ROM hash. The CP/M regression gained a
+three-byte `WBOOT.COM`, paginated sequential file reads, replacement of the
+disk server after the prompt, and a 16-cycle post-reconnect soak. That run
+completed 271 reads and one synchronous write with no target retry or overrun;
+the updated A: image hash is fixed by the C1 package record.

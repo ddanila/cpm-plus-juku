@@ -18,7 +18,8 @@ ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
 VOLUME := $(OUT)/cpm-plus-juku.img
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
-	network-rom-cosim-check bench-candidate regenerate-cpm3 regenerate-cpm3-rom
+	network-rom-cosim-check network-rom-soak-check bench-candidate \
+	regenerate-cpm3 regenerate-cpm3-rom
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME)
 
 tools: $(ZMAC) $(LD80) $(ZX0)
@@ -38,6 +39,11 @@ check: verify-prebuilt rom-budget-check
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
+
+network-rom-soak-check: all
+	CPM_PLUS_JUKU_BOOT_PATH=network \
+	CPM_PLUS_JUKU_SOAK_CYCLES=16 CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	$(PYTHON) tests/cosim_check.py
 
 bench-candidate: check
 	$(PYTHON) ../8080-cosim/spinoffs/jukuravi/network-rom/build_network_rom.py --check
@@ -181,10 +187,14 @@ $(ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<
 
-$(VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim volume/README.txt \
+$(BUILD)/wboot.cim: src/wboot.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot.cim \
+		volume/README.txt \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py $@ third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim volume/README.txt
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt
 
 regenerate-cpm3:
 	test -n "$(ZXCC)" -a -n "$(CPM3_TOOLS)"

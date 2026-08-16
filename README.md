@@ -83,8 +83,8 @@ D800h..FFFFh  resident runtime ROM
 
 The exact transient span is 8,192 bytes larger than the frozen baseline. The
 cosimulator validates the live page-zero loader/BDOS chain as well as `A>`,
-`DIR`, `DIAG CPU`, `ERA README.TXT`, console parity, and zero resident USART
-overruns.
+`DIR`, paginated `TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`,
+`ERA README.TXT`, console parity, and zero resident USART overruns.
 
 Physical CS00015 testing reproduced the timing/ownership failures. With the
 corrected server manually retained at 19,200, the same running machine then
@@ -125,7 +125,7 @@ that a fresh build matches them. Current SHA-256 values are:
 - fastboot: `5ae6c667d0fc0a23f93d184924b771adaca08fecc3319bae1d2e280664d7faec`;
 - network-ROM system: `74f2089bc85ef18fe90bb5868570e177037f55311f88484f27181425a7920ab1`;
 - network-ROM fastboot: `0411ff682e7356d33073309b284bde33d627ea6c7769fdb1538d99c2c589bf4a`;
-- A: volume: `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100`.
+- A: volume: `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1`.
 
 The checked-in baseline `third_party/cpm3/cpm3.sys` and relinked
 `cpm3-network-rom.sys` make a normal build independent of the CP/M-hosted
@@ -181,7 +181,8 @@ console/font and NetDisk-v3 read/write services. CP/M Plus has been regenerated
 and relinked upward, yielding an exact 8 KiB TPA gain while retaining thin
 bindings and mutable state in RAM. The complete simulated recovery matrix now
 covers stale bootstrap bytes, truncated/delayed/duplicated/corrupt disk
-traffic, modeled 8251 overrun, and stateless server restart. The exact results
+traffic, modeled 8251 overrun, bootstrap-time and live post-prompt stateless
+server replacement, explicit warm boot, and a 16-cycle/271-read soak. The exact results
 are in
 [`docs/network-first-rom-recovery.md`](docs/network-first-rom-recovery.md).
 The deterministic `network-first-abi1-cs00015-c1` programming/runtime package,

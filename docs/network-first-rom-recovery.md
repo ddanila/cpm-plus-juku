@@ -22,12 +22,15 @@ a valid host is available.
 | Duplicate full reply | One valid frame is immediately repeated | Modeled 8251 overruns occur; parser resynchronizes |
 | Bad NetDisk CRC | The final CRC byte of a later reply is inverted | Reply is rejected and the request is retried |
 | Disk server restart | The first server exits after receiving a request but before replying; a fresh stateless server takes over | The unchanged target retries and completes |
+| Live disk reconnect | After `A>` appears, the active server exits on the first `DIR` request and a fresh stateless server takes over | `DIR` and all later commands complete without target reset |
 | Duplicate target request | Host sees the same sequence and request again | Cached reply is replayed; resident writes remain idempotent |
 
 Every clean and injected-fault CP/M run must reach `A>`, execute `DIR`, run
 `DIAG CPU`, and erase `README.TXT`. The compound run currently records three
 host-observed retries and three modeled resident-phase 8251 overruns. The clean
-run records zero retries and zero overruns.
+run records zero retries and zero overruns. The extended post-reconnect soak
+runs 16 further `DIR` plus `DIAG CPU`/warm-boot pairs and finishes with 271
+reads, one synchronous write, no target retry, and no overrun.
 
 ## Recovery rules fixed by this milestone
 
@@ -61,6 +64,7 @@ From this repository:
 
 ```sh
 make network-rom-cosim-check
+make network-rom-soak-check
 make check
 ```
 

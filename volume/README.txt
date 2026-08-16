@@ -5,6 +5,7 @@ This is the host-backed NetDisk-v3 A: volume from cpm-plus-juku.
 Files:
   CCP.COM     Digital Research CP/M Plus command processor
   DIAG.COM    Shared non-destructive Juku diagnostics
+  WBOOT.COM   Explicit CP/M warm-boot test
   README.TXT  This file
 
 Useful commands:
@@ -12,6 +13,7 @@ Useful commands:
   DIAG CPU
   DIAG RAM
   DIAG ALL
+  WBOOT
 
 Project: https://github.com/ddanila/cpm-plus-juku
 Copyright (c) 2026 Danila Sukharev

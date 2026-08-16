@@ -81,8 +81,8 @@ NETWORK-FIRST-ROM-BOOT-TEST: PASS ...
   POST C1/C2/C3/C4/C5; ready=725602 cycles;
   absent host; corrupt recovery; keyless 19200 handoff
 JUKU CP/M PLUS 3.1: PASS
-  automatic network ROM boot, A>, DIR, DIAG CPU, ERA README.TXT,
-  reads=38, writes=1, retries=0, resident-overruns=0,
+  automatic network ROM boot, A>, DIR, TYPE README.TXT, DIAG CPU,
+  warm boot, ERA README.TXT, reads=53, writes=1, retries=0, resident-overruns=0,
   bootstrap-overruns=0
 ```
 
@@ -90,8 +90,9 @@ The ABI check injects a shifted physical `T` through D26 ports 4/5, then proves
 an exact 9,600-byte `Z` plus underline frame through the 119-byte helper. The
 CP/M check asserts that the copied gate reports ready at `D620h`, status at
 `C5F1h` is zero,
-`D785h` records 8O1, and all 13 matrix characters for `DIR` plus `DIAG CPU`
-were consumed by resident code while mode 1 remained selected. Its complete
+`D785h` records 8O1, and the complete `DIR`, paginated `TYPE README.TXT`,
+`DIAG CPU`, `WBOOT`, and erase sequence is consumed by resident code while
+mode 1 remains selected. Its complete
 framebuffer matches the RAM-console run byte for byte. The normal system remains
 byte-identical. Packing the binding and remote console shrinks initialized
 adapter RAM from 4,080 to 912 bytes. The test additionally checks the live

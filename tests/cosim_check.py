@@ -141,6 +141,30 @@ def read_console_until(fd: int, marker: bytes, timeout: float) -> bytes:
     )
 
 
+def read_console_paged(fd: int, timeout: float) -> bytes:
+    """Read through CP/M TYPE pagination until the next CCP prompt."""
+    result = bytearray()
+    handled = 0
+    page_prompt = b"Press RETURN to Continue"
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        ready, _, _ = select.select([fd], [], [], 0.1)
+        if not ready:
+            continue
+        try:
+            result.extend(os.read(fd, 4096))
+        except OSError:
+            continue
+        if b"A>" in result:
+            return bytes(result)
+        if page_prompt in result[handled:]:
+            os.write(fd, b"\r")
+            handled = len(result)
+    raise TimeoutError(
+        f"paged console output did not return to CCP: {bytes(result)!r}"
+    )
+
+
 def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot: Path = FASTBOOT, system: Path = SYSTEM,
         expect_disk_failure: str | None = None,
@@ -205,7 +229,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             "CPM_PLUS_JUKU_CPU_HZ", "1700000",
         ),
         JUKU_REALTIME_HZ=os.environ.get(
-            "CPM_PLUS_JUKU_CPU_HZ", "1700000",
+            "CPM_PLUS_JUKU_REALTIME_HZ",
+            os.environ.get("CPM_PLUS_JUKU_CPU_HZ", "1700000"),
         ),
         JUKU_TRACE_BANK="1",
         JUKU_DISABLE_SETTLE="1",
@@ -220,6 +245,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     volume = bytearray(VOLUME.read_bytes())
     stats: dict[str, int] = {}
     fault_evidence: dict[str, int] = {}
+    restart_armed = threading.Event()
     errors: list[BaseException] = []
     with (case / "stdout.txt").open("w") as stdout, \
             (case / "stderr.txt").open("w") as stderr:
@@ -280,12 +306,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             resume=True,
                         )
 
-                    if disk_fault == "server-restart":
+                    if disk_fault in ("server-restart", "mid-session-restart"):
                         def stop_server(_attempt: int, _reply: bytes) -> bytes:
+                            if disk_fault == "mid-session-restart" and \
+                                    not restart_armed.is_set():
+                                return _reply
                             raise RestartDiskServer
 
                         try:
-                            serve({}, stop_server)
+                            serve(stats, stop_server)
                         except RestartDiskServer:
                             fault_evidence["server_restarts"] = 1
                         serve(stats, None)
@@ -311,12 +340,31 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         "CPM_PLUS_JUKU_PROMPT_TIMEOUT", "120",
                     )),
                 )
+                if disk_fault == "mid-session-restart":
+                    restart_armed.set()
                 os.write(console_master, b"DIR\r")
                 second = read_console_until(console_master, b"A>", 120)
+                os.write(console_master, b"TYPE README.TXT\r")
+                third = read_console_paged(console_master, 120)
                 os.write(console_master, b"DIAG CPU\r")
-                third = read_console_until(console_master, b"A>", 120)
-                os.write(console_master, b"ERA README.TXT\r")
                 fourth = read_console_until(console_master, b"A>", 120)
+                os.write(console_master, b"WBOOT\r")
+                fifth = read_console_until(console_master, b"A>", 120)
+                soak_cycles = int(os.environ.get(
+                    "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
+                )) if disk_fault == "mid-session-restart" else 0
+                for _ in range(soak_cycles):
+                    os.write(console_master, b"DIR\r")
+                    read_console_until(console_master, b"A>", 120)
+                    os.write(console_master, b"DIAG CPU\r")
+                    soak_diag = read_console_until(
+                        console_master, b"A>", 120,
+                    )
+                    require(b"CPU: PASS" in soak_diag,
+                            "NetDisk soak diagnostic failed")
+                fault_evidence["soak_cycles"] = soak_cycles
+                os.write(console_master, b"ERA README.TXT\r")
+                sixth = read_console_until(console_master, b"A>", 120)
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
@@ -357,10 +405,17 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     else:
         require(b"DIR" in second and b"CCP" in second,
                 f"CP/M Plus network DIR failed: {second!r}")
-        require(b"DIAG CPU" in third and b"CPU: PASS" in third,
-                f"CP/M Plus transient diagnostic failed: {third!r}")
-        require(b"ERA README.TXT" in fourth and b"A>" in fourth,
-                f"CP/M Plus erase did not return to CCP: {fourth!r}")
+        require(
+            b"TYPE README.TXT" in third
+            and b"host-backed NetDisk-v3" in third and b"A>" in third,
+            f"CP/M Plus sequential file read failed: {third!r}",
+        )
+        require(b"DIAG CPU" in fourth and b"CPU: PASS" in fourth,
+                f"CP/M Plus transient diagnostic failed: {fourth!r}")
+        require(b"WBOOT" in fifth and b"A>" in fifth,
+                f"CP/M Plus warm boot did not return to CCP: {fifth!r}")
+        require(b"ERA README.TXT" in sixth and b"A>" in sixth,
+                f"CP/M Plus erase did not return to CCP: {sixth!r}")
         require(stats.get("reads", 0) >= 1,
                 f"CP/M Plus issued no NetDisk reads: {stats}")
         require(stats.get("writes", 0) >= 1,
@@ -374,9 +429,14 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             )
             require(fault_evidence.get("corrupt_replies") == 1,
                     "NetDisk CRC corruption was not exercised")
-        elif disk_fault == "server-restart":
+        elif disk_fault in ("server-restart", "mid-session-restart"):
             require(fault_evidence.get("server_restarts") == 1,
                     "NetDisk server restart was not exercised")
+            expected_soak = int(os.environ.get(
+                "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
+            )) if disk_fault == "mid-session-restart" else 0
+            require(fault_evidence.get("soak_cycles", 0) == expected_soak,
+                    "NetDisk soak cycle count differs")
         else:
             require(stats.get("retries") == 0,
                     f"fixed NetDisk path required retries: {stats}")
@@ -421,7 +481,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             require(
                 screen == ram_console_reference,
                 "resident and RAM console framebuffers differ after the "
-                "same A>/DIR/DIAG CPU transcript",
+                "same A>/DIR/TYPE/DIAG/warm-boot transcript",
             )
     if expect_disk_failure == "legacy-unmasked-pic":
         require(
@@ -454,10 +514,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     print(
         "JUKU CP/M PLUS 3.1: PASS "
         f"({boot_label} "
-        f"boot, A>, DIR, DIAG CPU, ERA README.TXT, reads={stats['reads']}, "
+        f"boot, A>, DIR, TYPE README.TXT, DIAG CPU, warm boot, "
+        f"ERA README.TXT, reads={stats['reads']}, "
         f"writes={stats['writes']}, retries={stats['retries']}, "
         f"resident-overruns={resident_overruns}, "
         f"bootstrap-overruns={overruns - resident_overruns}"
+        f"{', soak-cycles=' + str(fault_evidence.get('soak_cycles', 0)) if fault_evidence.get('soak_cycles', 0) else ''}"
         f"{', recovered-faults=' + disk_fault if disk_fault else ''})"
     )
 
@@ -486,6 +548,8 @@ def main() -> None:
                 disk_fault="compound-recovery")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -511,6 +575,8 @@ def main() -> None:
                 disk_fault="compound-recovery")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
         return
     with tempfile.TemporaryDirectory(prefix="cpm-plus-juku-cosim.") as name:
         work = Path(name)
@@ -522,6 +588,8 @@ def main() -> None:
                 disk_fault="compound-recovery")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -547,6 +615,8 @@ def main() -> None:
                 disk_fault="compound-recovery")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
 
 
 if __name__ == "__main__":

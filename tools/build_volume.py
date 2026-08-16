@@ -14,11 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         raise SystemExit(
-            f"usage: {sys.argv[0]} OUTPUT CCP.COM DIAG.COM README"
+            f"usage: {sys.argv[0]} OUTPUT CCP.COM DIAG.COM WBOOT.COM README"
         )
-    output, ccp, diag, readme = map(Path, sys.argv[1:])
+    output, ccp, diag, wboot, readme = map(Path, sys.argv[1:])
     output.parent.mkdir(parents=True, exist_ok=True)
     environment = {**os.environ, "DISKDEFS": str(ROOT / "diskdefs")}
     with tempfile.TemporaryDirectory(prefix="cpm-plus-juku-volume.") as name:
@@ -38,6 +38,7 @@ def main() -> int:
         for source, destination in (
             (ccp, "0:CCP.COM"),
             (diag, "0:DIAG.COM"),
+            (wboot, "0:WBOOT.COM"),
             (converted, "0:README.TXT"),
         ):
             subprocess.run(
