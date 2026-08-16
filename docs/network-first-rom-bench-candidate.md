@@ -77,6 +77,61 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   --timeout 86400
 ```
 
+## Auditable physical session
+
+Initialize a record before programming or powering the board:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py init \
+  --output out/physical-CS00015-C1
+```
+
+This verifies every packaged hash and D15+D16 concatenation, captures both
+repository commits, and writes a machine-readable session plus `CHECKLIST.md`.
+Every `run` creates its own private writable copy of A:, so `ERA` and other
+write tests cannot contaminate a later cold boot or the packaged reference
+disk. Start each cold-boot attempt with:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py run \
+  out/physical-CS00015-C1 /dev/ttyUSB0
+```
+
+The runner streams the normal server output to the console and a hash-locked
+per-run `host.log`, while `boot.json` records the first valid disk-request
+timing and exact system/fastboot identities. Stop it with Ctrl+C after the
+local observation; power-cycle and repeat until at least three independent
+cold boots have been captured.
+
+For the server-loss test, stop the live host without resetting Juku. After the
+target has entered its bounded retry path, attach a fresh server directly to
+the running NetDisk session:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py resume \
+  out/physical-CS00015-C1 /dev/ttyUSB0
+```
+
+The underlying production CLI's `--resume-disk` mode reuses the most recent
+cold boot's private A: but sends no bootstrap marker or system image. It waits
+for the target's retried request at 19,200/8O1; prove
+recovery by completing a later `DIR` without RESET. Record only observations
+actually made on CS00015 with `record --test name=pass`, add the two programmer
+readback hashes, then run:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py audit \
+  out/physical-CS00015-C1
+```
+
+The audit refuses promotion unless both EPROM hashes match, at least three
+identity-checked cold-boot timings exist, a resume run was captured, and every
+required display, keyboard, command, write, warm-boot, and recovery observation
+is explicitly marked as passed. It also locks the recorder and production host
+source hashes at session initialization, so changing either implementation
+mid-qualification invalidates the record. Live reattachment is implemented by
+`8080-cosim` commit `8a3300e2`.
+
 Promotion requires the physical matrix in
 [`network-first-rom-plan.md`](network-first-rom-plan.md): repeated cold and
 warm boots, prompt and timing, `DIR`, sequential read, `DIAG`, erase/write,

@@ -148,6 +148,11 @@ make network-rom-cosim-check  # focused keyless reset-ROM path
 make bench-candidate          # full C-model matrix, structural HDL, package
 ```
 
+For the controlled CS00015 burn, `tools/physical_qualification.py` verifies
+the exact C1 package, records repeated boot timing and host logs, keeps writes
+in a fresh per-boot image, and audits the manual display/keyboard/recovery
+matrix. The complete commands are in the bench-candidate document below.
+
 ## Future physical test
 
 After Ekta4402 is explicitly selected for bench testing, start the server and

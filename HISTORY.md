@@ -67,3 +67,13 @@ negative fixture can corrupt the memory-mode latch after proving its intended
 live-interrupt failure. Its oracle now exempts only that corrupted branch from
 the healthy-mode invariant; every corrected and transport-only path retains
 the exact required mode.
+
+The physical boundary is now executable rather than a prose-only checklist.
+`tools/physical_qualification.py` verifies C1, records repository and EPROM
+identity, preserves per-boot host logs and timing, works on a private writable
+disk copy for each attempt, and refuses acceptance without three cold boots
+plus every manual display, keyboard, command, write, warm-boot, and recovery
+observation. A new
+production `--resume-disk` server mode (`8080-cosim` `8a3300e2`) permits the
+required host-loss/later reattachment test without resetting or retransmitting
+a system image.
