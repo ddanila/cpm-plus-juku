@@ -9,7 +9,10 @@ are built as separately named network-ROM artifacts:
 
 They retain the same non-banked memory map: BDOS begins at 9D00h, BIOS at
 BC00h, the adapter at C000h, and the 39,168-byte TPA ends at 9CFFh. No banked
-memory is claimed. `make native-services-check` regenerates the native SYS,
+memory is claimed. GENCPM relocates the SCB to BB9Ch (clock BBF4h); FE00h
+symbols in the DRI source are relocatable canonical addresses,
+not runtime addresses for an absolute adapter module. `make
+native-services-check` regenerates the native SYS,
 builds the adapter in C000h..C4FFh, boots it through the production network
 ROM, and runs both the normal CP/M command matrix and `NATIVE.COM`.
 
@@ -21,9 +24,11 @@ ROM, and runs both the normal CP/M command matrix and `NATIVE.COM`.
 - DEVINI accepts device zero and rejects other device numbers diagnostically.
 - console and auxiliary output status are ready; separate auxiliary input is
   not ready.
-- MULTIO records the count supplied in A in both the SCB and the native status
-  block. The disk driver intentionally remains synchronous/single-record until
-  bounded coalescing is measured.
+- MULTIO records the count supplied in A in private native-driver status, like
+  DRI `bioskrnl.asm`'s private `@cnt`. It deliberately does not overwrite the
+  BDOS-owned SCB `@MLTIO`; doing so was reproduced as a warm-boot/CCP reload
+  failure. The disk driver remains synchronous/single-record until bounded
+  coalescing is measured.
 - FLUSH returns success because every current write is synchronous
   write-through and there is no target write cache.
 - MOVE has 8080 memmove semantics for both overlap directions, zero lengths,
@@ -32,8 +37,11 @@ ROM, and runs both the normal CP/M command matrix and `NATIVE.COM`.
 - reserved BIOS entry 30 is a versioned Juku USERF query. Selector C=0 returns
   a `JNS1` status block with features, raw S21, decoded video mode, and the
   last MULTIO count. Unknown selectors fail with A=FFh and HL=0000h.
-- TIME currently preserves the qualified no-clock behavior; host time is the
-  next separately tested slice.
+- TIME gets CP/M day plus BCD hour/minute/second through optional NetDisk-v3
+  operation 22h. SET uses operation 23h to establish a host session offset
+  without changing the host OS clock. An absent, invalid, or torn reply leaves
+  the SCB unchanged and updates status counters; boot and disk never depend on
+  this service.
 
 S21 is sampled with the same drawing-derived scan order and active-low PB5
 polarity as `juku-common`'s `RKCONFIG`. Video mode is `(raw_s21 >> 1) & 3`, so

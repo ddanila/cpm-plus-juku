@@ -380,7 +380,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         serve_disk(
                             master, volume, drive_b=drive_b_volume,
                             timeout=180, idle_timeout=None,
-                            writable=True, verbose=False,
+                            writable=True,
+                            verbose=os.environ.get(
+                                "CPM_PLUS_JUKU_SERVER_VERBOSE", "0",
+                            ) == "1",
                             stats=stats_target,
                             protocol_version=3,
                             reply_guard=(

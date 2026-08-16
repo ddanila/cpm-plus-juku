@@ -25,9 +25,10 @@ def main() -> int:
     source = SOURCE.read_text()
     required = (
         "db      'JUKU  ',3,0",
-        "sta     SCBMLTIO",
+        "sta     NSLASTMULTIO",
         "NSMOVEBACK1:",
         "NSMOVEFORWARD:",
+        "call    NCTIME",
         "db      'J','N','S','1'",
         "mvi     a,0ffh                  ; authoritative local output is ready",
         "xra     a                       ; no separately assigned AUX source",
@@ -53,7 +54,10 @@ def main() -> int:
         raise AssertionError("native system container changed size")
     if FASTBOOT.read_bytes()[4:7] != b"F15":
         raise AssertionError("native V15 bootstrap header is missing")
-    print("CPM3-NATIVE-SERVICES: PASS (device, MULTIO, FLUSH, MOVE, USERF)")
+    print(
+        "CPM3-NATIVE-SERVICES: PASS "
+        "(device, MULTIO, FLUSH, MOVE, TIME, USERF)"
+    )
     return 0
 
 

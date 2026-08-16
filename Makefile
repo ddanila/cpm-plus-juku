@@ -210,7 +210,7 @@ $(BUILD)/adapter-romabi-native.all: \
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi-native.rel \
 		-P0xc250 $(BUILD)/netconsole-romabi.rel \
-		-P0xc400 $(BUILD)/cpm3-native-services.rel
+		-P0xc500 $(BUILD)/cpm3-native-services.rel
 
 $(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
 	tail -c+49153 $< >$@

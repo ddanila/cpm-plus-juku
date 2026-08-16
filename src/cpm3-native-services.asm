@@ -14,8 +14,8 @@
         public  NSMOVE
         public  NSTIME
         public  NSUSERF
+        extrn   NCTIME
 
-SCBMLTIO       equ     0fe4ah
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
 
@@ -44,10 +44,9 @@ NSAUXIST:
         ret
 
 ; CP/M 3 announces the next bounded sequential transfer in A. The current
-; synchronous driver remains single-record, but publishing the count in the
-; documented SCB byte makes the behavior observable and prepares coalescing.
+; synchronous driver remains single-record. Like DRI bioskrnl.asm's private
+; @cnt, keep this in BIOS-owned status rather than overwriting BDOS's @MLTIO.
 NSMULTIO:
-        sta     SCBMLTIO
         sta     NSLASTMULTIO
         ret
 
@@ -113,10 +112,26 @@ NSMOVESAME:
         lxi     b,0
         ret
 
-; Host clock transport is added by the next independently tested slice. Until
-; then TIME deliberately leaves the SCB unchanged and preserves HL/DE as the
-; CP/M 3 System Guide requires.
+; Optional host clock. NCTIME commits a GET only after a complete valid reply
+; and keeps SET session-local on the host. Boot and disk never call this path.
+; Preserve HL/DE exactly as required by the CP/M 3 System Guide.
 NSTIME:
+        push    h
+        push    d
+        call    NCTIME
+        sta     NSCLOCKSTATUS
+        ora     a
+        lxi     h,NSCLOCKOK
+        jz      NSTIMECOUNT
+        lxi     h,NSCLOCKFAIL
+NSTIMECOUNT:
+        inr     m
+        jnz     NSTIMERET
+        inx     h
+        inr     m
+NSTIMERET:
+        pop     d
+        pop     h
         ret
 
 ; Reserved CP/M 3 BIOS entry 30 is the versioned Juku USERF extension.
@@ -177,20 +192,23 @@ NSCHRTBL:
         db      0
 
 ; Stable status block v1. Flags: bit0 character table, bit1 overlap MOVE,
-; bit2 host time (set by the clock slice), bit3 raw/decoded S21.
+; bit2 host time, bit3 raw/decoded S21.
 NSINFO:
         db      'J','N','S','1'
         db      1,0
         db      NSINFOEND-NSINFO
-        db      00bh
+        db      00fh
 NSRAWS21:
         db      0
 NSVIDEOMODE:
         db      0
 NSLASTMULTIO:
         db      0
+NSCLOCKSTATUS:
         db      0                       ; last clock status
+NSCLOCKOK:
         dw      0                       ; successful clock replies
+NSCLOCKFAIL:
         dw      0                       ; failed clock replies
 NSINFOEND:
 

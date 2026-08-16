@@ -4,6 +4,7 @@
 
 BDOS            equ     0005h
 PRINT           equ     9
+SCBDATE         equ     0bbf4h
 
         org     0100h
 
@@ -131,6 +132,88 @@ checkforward:
         jnz     failed
         mov     a,e
         cmp     c
+        jnz     failed
+
+        mvi     a,070h                 ; SET then GET optional host clock
+        sta     stage
+        lxi     h,04561h               ; 2026-08-17 in CP/M day format
+        shld    SCBDATE
+        mvi     a,012h
+        sta     SCBDATE+2
+        mvi     a,034h
+        sta     SCBDATE+3
+        xra     a
+        sta     SCBDATE+4
+        mvi     a,26
+        call    setvector
+        lxi     h,01357h
+        lxi     d,02468h
+        mvi     c,0ffh
+        call    bioscall
+        mvi     a,071h
+        sta     stage
+        mov     a,h
+        cpi     013h
+        jnz     failed
+        mov     a,l
+        cpi     057h
+        jnz     failed
+        mov     a,d
+        cpi     024h
+        jnz     failed
+        mov     a,e
+        cpi     068h
+        jnz     failed
+        xra     a
+        sta     SCBDATE
+        sta     SCBDATE+1
+        sta     SCBDATE+2
+        sta     SCBDATE+3
+        sta     SCBDATE+4
+        mvi     a,072h
+        sta     stage
+        mvi     c,0
+        call    bioscall
+        mvi     a,073h
+        sta     stage
+        lhld    SCBDATE
+        mov     a,h
+        cpi     045h
+        jnz     failed
+        mov     a,l
+        cpi     061h
+        jnz     failed
+        lda     SCBDATE+2
+        cpi     012h
+        jnz     failed
+        lda     SCBDATE+3
+        cpi     034h
+        jnz     failed
+        lda     SCBDATE+4
+        ora     a
+        jnz     failed
+        mvi     a,074h
+        sta     stage
+        mvi     a,30
+        call    setvector
+        mvi     c,0
+        call    bioscall
+        lxi     d,11
+        dad     d
+        mov     a,m                     ; last clock status
+        ora     a
+        jnz     failed
+        inx     h
+        mov     a,m                     ; successful clock calls, low byte
+        cpi     2
+        jnz     failed
+        inx     h
+        mov     a,m
+        ora     a
+        jnz     failed
+        inx     h
+        mov     a,m                     ; failed clock calls, low byte
+        ora     a
         jnz     failed
 
         lxi     d,passed

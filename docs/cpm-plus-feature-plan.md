@@ -107,7 +107,9 @@ semantics, A-register `MULTIO` recording, explicit synchronous `FLUSH`, an
 overlap-safe strict-8080 `MOVE`, raw/decoded S21 through versioned USERF, and a
 target-side executable regression. The normal command/framebuffer matrix and
 compound NetDisk recovery pass without changing C4 or its 39,168-byte TPA.
-Host TIME remains the next native slice; see
+The follow-up TIME slice now provides optional host GET and session-offset SET
+with atomic SCB commit, exact HL/DE preservation, target-side SET/GET checks,
+and no dependency from boot or disk. See
 [`cpm3-native-services.md`](cpm3-native-services.md).
 
 ## Priority 3: configuration, console, and localization
