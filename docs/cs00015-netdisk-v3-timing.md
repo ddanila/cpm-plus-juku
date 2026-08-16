@@ -249,3 +249,21 @@ operation after warm boot. The local screen and keyboard remained enabled by
 design. Together with the paced end-to-end N4 regression, this closes the
 remote-terminal defect as a loadable CP/M/host correction and confirms that
 the installed Ekta4402 ROM was not the faulty layer.
+
+## 2026-08-16 live N4 host-loss/reconnect qualification
+
+The same CS00015/Ekta4402 session then qualified recovery from total host
+process loss. The first server booted CP/M through `N`, confirmed N4 from the
+target's first output request, and completed a remote `DIR`. It was terminated
+at `2026-08-16T21:09:07.020955484+03:00`; CS00015 remained powered and was not
+reset. A new process with no inherited protocol state started at
+`2026-08-16T21:09:30.212935263+03:00` using `--resume-disk`, for an observed
+host outage of approximately 23.19 seconds.
+
+Without any target-side input after the restart, the recovered N4 terminal
+completed another remote `DIR` and then `DIAG CPU`, which reported `CPU: PASS`
+and returned to `A>`. NetDisk requests after the reconnect all completed with
+status zero. This physically proves the resident timeout/backoff/reprobe path,
+stateless server replacement, continued NetDisk access, and bidirectional N4
+recovery without a Juku reset or ROM change. It does not by itself qualify the
+future automatic network-first C3 ROM startup path.
