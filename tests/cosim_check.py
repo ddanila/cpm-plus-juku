@@ -716,6 +716,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             and ram[0xD788] == expected_local_key,
             "CP/M Plus did not retain ROM serial/keyboard binding state",
         )
+        if os.environ.get("CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD") == "1":
+            require(
+                ram[0xC5E8] == 1 and ram[0xC5E9] == 0,
+                "native cold/warm or reset-POST record differs: "
+                f"boot={ram[0xC5E8]:02X} post={ram[0xC5E9]:02X}",
+            )
         if ram_console_reference is not None:
             require(
                 screen == ram_console_reference,

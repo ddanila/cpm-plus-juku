@@ -107,6 +107,43 @@ start:
         mov     d,m
         xchg
         call    printword
+        lxi     d,bootmsg
+        call    puts
+        lhld    infobase
+        lxi     d,16
+        dad     d
+        mov     a,m
+        call    printhex
+        lxi     d,postmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,abimsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,diskmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,triesmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,consolemsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,reconnectmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
         lxi     d,newline
         jmp     puts
 
@@ -190,6 +227,20 @@ clockokmsg:
         db      '  good: $'
 clockfailmsg:
         db      '  failed: $'
+bootmsg:
+        db      13,10,'Boot marker (00 cold/01 warm): $'
+postmsg:
+        db      '  POST: $'
+abimsg:
+        db      '  ROM ABI: $'
+diskmsg:
+        db      13,10,'Disk status: $'
+triesmsg:
+        db      '  tries left: $'
+consolemsg:
+        db      13,10,'N4 last failure: $'
+reconnectmsg:
+        db      '  reconnects: $'
 newline:
         db      13,10,'$'
 unavailablemsg:

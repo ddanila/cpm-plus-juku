@@ -19,6 +19,14 @@
 
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
+NCRECONNECT    equ     0c5fch
+NCLASTFAIL     equ     0c5fdh
+ROMABISTATUS   equ     0c5f1h
+ROMLASTDISK    equ     0c5feh
+ROMLASTTRIES   equ     0c5ffh
+ROMPOSTSTATUS  equ     0d610h
+NATIVEBOOT     equ     0c5e8h
+NATIVEPOST     equ     0c5e9h
 
 ; The current aggregate console is one physical CP/M 3 character device:
 ; local display/keyboard, with optional transparent N4 mirroring. It is not a
@@ -158,8 +166,32 @@ NSUSERF:
 NSUSERFSAMPLE:
         call    NSSAMPLES21
 NSUSERFRET:
+        call    NSREFRESHINFO
         lxi     h,NSINFO
         xra     a
+        ret
+
+NSREFRESHINFO:
+        lda     NATIVEBOOT
+        sta     NSBOOTCOPY
+        lda     NATIVEPOST
+        sta     NSPOSTCOPY
+        lda     ROMABISTATUS
+        sta     NSROMABICOPY
+        lxi     h,ROMLASTDISK
+        lxi     d,NSDISKSTATUS
+        mvi     c,2
+NSREFRESHCOPY2:
+        mov     a,m
+        stax    d
+        inx     h
+        inx     d
+        dcr     c
+        jnz     NSREFRESHCOPY2
+        lda     NCLASTFAIL
+        sta     NSCONFAIL
+        lda     NCRECONNECT
+        sta     NSCONRECONNECT
         ret
 NSUSERFBAD:
         lxi     h,0
@@ -226,6 +258,20 @@ NSCLOCKOK:
         dw      0                       ; successful clock replies
 NSCLOCKFAIL:
         dw      0                       ; failed clock replies
+NSBOOTCOPY:
+        db      0                       ; 0 cold, 1 warm
+NSPOSTCOPY:
+        db      0                       ; reset POST status copied at cold boot
+NSROMABICOPY:
+        db      0                       ; ROM ABI initialization status
+NSDISKSTATUS:
+        db      0                       ; last BIOS read/write status
+NSDISKTRIES:
+        db      0                       ; attempts left after last wire request
+NSCONFAIL:
+        db      0                       ; last bounded N4 failure reason
+NSCONRECONNECT:
+        db      0                       ; saturated successful reprobe count
 NSINFOEND:
 
         end

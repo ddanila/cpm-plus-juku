@@ -217,8 +217,8 @@ $(BUILD)/adapter-romabi-native.all: \
 		$(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi-native.rel \
-		-P0xc250 $(BUILD)/netconsole-romabi-native.rel \
-		-P0xc500 $(BUILD)/cpm3-native-services.rel
+		-P0xc270 $(BUILD)/netconsole-romabi-native.rel \
+		-P0xc4b0 $(BUILD)/cpm3-native-services.rel
 
 $(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
 	tail -c+49153 $< >$@
@@ -372,6 +372,7 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=NATIVE \
 	CPM_PLUS_JUKU_EXTRA_MARKER='NATIVE: PASS' \
+	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 	CPM_PLUS_JUKU_ROM_SYSTEM=$(NATIVE_ROM_SYSTEM) \
 	CPM_PLUS_JUKU_ROM_FASTBOOT=$(NATIVE_ROM_FASTBOOT) \
@@ -379,6 +380,7 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=STATUS \
 	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Status 1.0' \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 
 regenerate-cpm3: $(ZXCC)

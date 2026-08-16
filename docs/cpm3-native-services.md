@@ -14,7 +14,7 @@ memory is claimed. GENCPM relocates the SCB to BB9Ch (clock BBF4h); FE00h
 symbols in the DRI source are relocatable canonical addresses,
 not runtime addresses for an absolute adapter module. `make
 native-services-check` regenerates the native SYS,
-builds the adapter in C000h..C5E4h (within the reserved C000h..C5EBh window),
+builds the adapter in C000h..C5CDh (within the reserved C000h..C5EBh window),
 boots it through the production network ROM, and runs both the normal CP/M
 command matrix, `NATIVE.COM`, and `STATUS.COM`.
 
@@ -56,6 +56,14 @@ and clock result counters. Its USERF selector also emits NetDisk-v3 operation
 24h, so the host records the same S21, video, feature, and clock-status tuple.
 The operation is idempotent, bounded, and optional: an absent N4 host cannot
 starve the local status display or disk service.
+
+The fixed native status record retains reset POST status at cold boot, changes
+its cold/warm marker only on a real CP/M warm entry, records the last resident
+NetDisk status and remaining attempt count, and counts successful N4 reprobes
+after bounded host loss. The status regression observes cold state through
+`STATUS.COM`, executes `WBOOT`, and then checks the warm marker directly in the
+simulator checkpoint. C4 remains byte-identical because clock, publisher, and
+recording code are assembled only in the separately named native profile.
 
 `NATIVE.COM` calls the actual high-memory BIOS vectors on the emulated 8080.
 It verifies the device table, FLUSH, A-register MULTIO convention, USERF

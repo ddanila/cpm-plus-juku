@@ -112,6 +112,10 @@ boot:
 
 wboot:
         lxi     sp,stack$top
+if native$services
+        mvi     a,1
+        sta     0c5e8h
+endif
 load$ccp:
         call    set$jumps
         lxi     h,default$fcb
@@ -211,7 +215,11 @@ print:  mov     a,m
         jmp     print
 
 signon: db      13,10,'CP/M Plus 3.1 Juku',13,10
+if native$services
+        db      'N3 19200',13,10,10,0
+else
         db      'NetDisk v3, 19200',13,10,10,0
+endif
 
 devtbl: lxi     h,0ffffh
         ret

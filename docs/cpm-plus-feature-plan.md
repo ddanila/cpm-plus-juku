@@ -159,9 +159,11 @@ explained after recovery or on a machine without a monitor.
 
 Initial observability slice completed on 2026-08-17: `STATUS.COM` reports the
 resident map, system/ROM/protocol identities, S21/video configuration, MULTIO,
-and clock counters, and mirrors its compact configuration tuple to host logs.
-POST/bootstrap/reconnect records and the expanded shared hardware diagnostic
-matrix remain open.
+clock counters, reset POST status, cold/warm state, last disk status/attempt
+state, and N4 failure/reconnect state, and mirrors its compact configuration
+tuple to host logs. The simulator proves the cold-to-warm transition and keeps
+the C4 artifacts byte-identical. Richer bootstrap failure reasons and the
+expanded shared hardware diagnostic matrix remain open.
 
 ## Priority 5: NetDisk performance and media safety
 

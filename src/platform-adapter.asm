@@ -152,6 +152,11 @@ PICMASK        equ     001h
 PICSHADOW      equ     0c5f0h
 ROMABISTATUS   equ     0c5f1h
 ROMNETREQUEST  equ     0c5f2h
+ROMLASTDISK    equ     0c5feh
+ROMLASTTRIES   equ     0c5ffh
+ROMN3TRIES     equ     0d79ch
+NATIVEBOOT     equ     0c5e8h
+NATIVEPOST     equ     0c5e9h
 .else
 PICSHADOW      equ     0b0f0h
 .endif
@@ -170,6 +175,14 @@ BOOT:
         ; selected RomBios-input or fully polled RAM-input interrupt policy.
         di
 .endif
+.endif
+.ifdef NATIVE_SERVICES
+        xra     a
+        sta     NATIVEBOOT
+        sta     ROMLASTDISK
+        sta     ROMLASTTRIES
+        lda     0d610h
+        sta     NATIVEPOST
 .endif
 .ifndef CPM3ADAPTER
         lxi     sp,0100h
@@ -672,6 +685,10 @@ ROMRWDISK:
         sta     ROMNETREQUEST+9
         lxi     h,ROMNETREQUEST
         call    JCGNETDISKADDR
+        sta     ROMLASTDISK
+        lda     ROMN3TRIES
+        sta     ROMLASTTRIES
+        lda     ROMLASTDISK
         ret
 .endif
 
