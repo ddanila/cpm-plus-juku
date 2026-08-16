@@ -1,0 +1,18 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "full.json",
+  "name": "museum-demo-a",
+  "description": "Opt-in full A: volume with a deterministic PROFILE.SUB directory demonstration",
+  "files": [
+    {
+      "source": "volume/PROFILE.sub",
+      "destination": "0:PROFILE.SUB",
+      "mode": "text",
+      "provenance": {
+        "source": "volume/PROFILE.sub",
+        "version": "cpm-plus-juku build",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}

@@ -27,14 +27,18 @@ SYSTEM = ROOT / "out" / "cpm-plus-juku-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-fastboot-v15.bin"
 ROM_SYSTEM = ROOT / "out" / "cpm-plus-juku-network-rom-system.bin"
 ROM_FASTBOOT = ROOT / "out" / "cpm-plus-juku-network-rom-fastboot-v15.bin"
-VOLUME = ROOT / "out" / "cpm-plus-juku.img"
+VOLUME = Path(os.environ.get(
+    "CPM_PLUS_JUKU_VOLUME", ROOT / "out" / "cpm-plus-juku.img"
+))
+DRIVE_B = Path(os.environ["CPM_PLUS_JUKU_DRIVE_B"]) \
+    if "CPM_PLUS_JUKU_DRIVE_B" in os.environ else None
 ZMAC = ROOT / "build" / "bin" / "zmac"
 LD80 = ROOT / "build" / "bin" / "ld80"
 ZX0 = ROOT / "build" / "bin" / "zx0"
 sys.path.insert(0, str(COSIM / "tools"))
 sys.path.insert(0, str(ROOT / "third_party" / "juku-common" / "tools"))
 
-from janet_disk_server import serve_disk  # noqa: E402
+from janet_disk_server import juku_image_to_volume, serve_disk  # noqa: E402
 from janet_fastboot import serve_fast  # noqa: E402
 from creep_console_oracle import (  # noqa: E402
     main as check_console_font,
@@ -227,7 +231,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot: Path = FASTBOOT, system: Path = SYSTEM,
         expect_disk_failure: str | None = None,
         network_rom: bool = False, disk_fault: str | None = None,
-        video_mode: int = 3, remote_console: bool = False) -> None:
+        video_mode: int = 3, remote_console: bool = False,
+        drive_b: Path | None = DRIVE_B) -> None:
     require(not network_rom or direct_core,
             "network ROM requires direct-core fastboot")
     require(video_mode in range(4), "video mode must be 0..3")
@@ -280,6 +285,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         case_name += f"-video{video_mode}"
     if remote_console:
         case_name += "-remote-console"
+    expected_profile = os.environ.get("CPM_PLUS_JUKU_EXPECT_PROFILE")
+    if expected_profile:
+        case_name += "-profile"
+    if drive_b is not None:
+        case_name += "-drive-b"
     case = work / case_name
     case.mkdir()
     master, slave = pty.openpty()
@@ -314,6 +324,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     else:
         environment["JUKU_KEYS"] = "N" if direct_core else "TN"
     volume = bytearray(VOLUME.read_bytes())
+    drive_b_volume = juku_image_to_volume(drive_b.read_bytes()) \
+        if drive_b is not None else None
     stats: dict[str, int] = {}
     fault_evidence: dict[str, int] = {}
     restart_armed = threading.Event()
@@ -359,7 +371,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         *, resume: bool,
                     ) -> None:
                         serve_disk(
-                            master, volume, timeout=180, idle_timeout=None,
+                            master, volume, drive_b=drive_b_volume,
+                            timeout=180, idle_timeout=None,
                             writable=True, verbose=False,
                             stats=stats_target,
                             protocol_version=3,
@@ -441,6 +454,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     )
                 command_timeout = 600 if network_rom and remote_console \
                     else 120
+                profile_startup = first
+                if expected_profile:
+                    while profile_startup.count(b"A>") < 2:
+                        profile_startup += read_until(b"A>", command_timeout)
+                    require(
+                        expected_profile.encode("ascii") in profile_startup
+                        and b"CCP" in profile_startup,
+                        "CP/M Plus PROFILE.SUB did not complete its expected "
+                        f"command: {profile_startup!r}",
+                    )
                 if disk_fault == "mid-session-restart":
                     restart_armed.set()
                 send_console(b"DIR\r")
@@ -466,6 +489,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 fault_evidence["soak_cycles"] = soak_cycles
                 send_console(b"ERA README.TXT\r")
                 sixth = read_until(b"A>", command_timeout)
+                if drive_b is not None:
+                    send_console(b"B:\r")
+                    selected_b = read_until(b"B>", command_timeout)
+                    send_console(b"DIR\r")
+                    listed_b = read_until(b"B>", command_timeout)
+                    send_console(b"DIAG CPU\r")
+                    diagnosed_b = read_until(b"B>", command_timeout)
+                    send_console(b"A:\r")
+                    selected_a = read_until(b"A>", command_timeout)
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
@@ -524,6 +556,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 f"CP/M Plus warm boot did not return to CCP: {fifth!r}")
         require(b"ERA README.TXT" in sixth and b"A>" in sixth,
                 f"CP/M Plus erase did not return to CCP: {sixth!r}")
+        if drive_b is not None:
+            require(
+                b"B>" in selected_b and b"DIAG" in listed_b
+                and b"README" in listed_b and b"CPU: PASS" in diagnosed_b
+                and b"A>" in selected_a,
+                "CP/M Plus native B: selection/load/return failed: "
+                f"{selected_b!r} {listed_b!r} {diagnosed_b!r} {selected_a!r}",
+            )
+            require(stats.get("reads_b", 0) > 0,
+                    f"CP/M Plus issued no native B: reads: {stats}")
         require(stats.get("reads", 0) >= 1,
                 f"CP/M Plus issued no NetDisk reads: {stats}")
         require(stats.get("writes", 0) >= 1,
@@ -591,7 +633,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         )
     screen = ram[0xD800:0xD800 + 9600]
     if not expect_disk_failure and direct_core and not network_rom:
-        transcript = first + second + third + fourth + fifth + sixth
+        transcript = (profile_startup if expected_profile else first) \
+            + second + third + fourth + fifth + sixth
+        if drive_b is not None:
+            transcript += selected_b + listed_b + diagnosed_b + selected_a
         expected_screen = render_console_transcript(
             transcript, mode=video_mode,
         )
@@ -672,6 +717,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         f"TYPE README.TXT, DIAG CPU, warm boot, "
         f"ERA README.TXT, reads={stats['reads']}, "
         f"writes={stats['writes']}, retries={stats['retries']}, "
+        f"native-B-reads={stats.get('reads_b', 0)}, "
         f"resident-overruns={resident_overruns}, "
         f"bootstrap-overruns={overruns - resident_overruns}"
         f"{', soak-cycles=' + str(fault_evidence.get('soak_cycles', 0)) if fault_evidence.get('soak_cycles', 0) else ''}"
@@ -687,10 +733,12 @@ def main() -> None:
         ROM_SYSTEM, ROM_FASTBOOT, VOLUME,
     ):
         require(path.is_file(), f"build input is missing: {path}")
+    if DRIVE_B is not None:
+        require(DRIVE_B.is_file(), f"native B: image is missing: {DRIVE_B}")
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
     require(selected in (
         "both", "direct", "stock", "network", "network-remote", "video",
-        "remote", "all",
+        "remote", "distribution", "all",
     ),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
     paths = (True, False) if selected in ("both", "all") else \
@@ -722,6 +770,9 @@ def main() -> None:
         if selected == "network-remote":
             run(trace, work, direct_core=True, network_rom=True,
                 remote_console=True)
+            return
+        if selected == "distribution":
+            run(trace, work, direct_core=True)
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -776,6 +827,9 @@ def main() -> None:
         if selected == "network-remote":
             run(trace, work, direct_core=True, network_rom=True,
                 remote_console=True)
+            return
+        if selected == "distribution":
+            run(trace, work, direct_core=True)
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",

@@ -1,0 +1,10 @@
+CP/M Plus for Juku - approved applications B:
+
+This native 800 KiB Juku volume contains only material whose redistribution
+terms are recorded by the cpm-plus-juku build. DIAG.COM is included as a
+known-good native-geometry load test.
+
+The Juku 3000 J3KGAME1.JUK and J3KGAME2.JUK museum images remain useful,
+externally supplied, read-only B: choices. They are not copied into this image
+because their mixed historical contents do not have one image-wide software
+license. See docs/juku3000-media-provenance.md on the host.

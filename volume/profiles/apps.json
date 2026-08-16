@@ -1,0 +1,30 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "name": "approved-apps-b",
+  "description": "Native-geometry B: staging volume containing only approved project material",
+  "geometry": "juku784",
+  "image_bytes": 819200,
+  "allocation_block_bytes": 4096,
+  "output_layout": "juku-cylinder-head",
+  "files": [
+    {
+      "source": "volume/APPS.txt",
+      "destination": "0:README.TXT",
+      "mode": "text",
+      "provenance": {
+        "source": "volume/APPS.txt",
+        "version": "cpm-plus-juku build",
+        "license": "LICENSE"
+      }
+    },
+    {
+      "source": "build/diag.cim",
+      "destination": "0:DIAG.COM",
+      "provenance": {
+        "source": "src/diag.asm and pinned juku-common diagnostics",
+        "version": "cpm-plus-juku build",
+        "license": "LICENSE and third_party/juku-common notices"
+      }
+    }
+  ]
+}

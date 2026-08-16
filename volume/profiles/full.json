@@ -1,0 +1,22 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "name": "full-a",
+  "description": "Licensed CP/M Plus system and utility A: volume",
+  "geometry": "juku386",
+  "image_bytes": 409600,
+  "allocation_block_bytes": 2048,
+  "files": [
+    { "source": "third_party/cpm3/ccp.com", "destination": "0:CCP.COM", "sha256": "f1837073d217075223d17dd81d068481819665273b59fbb3502c2f9068e8a671", "provenance": { "source": "Digital Research CP/M 3.1 release", "version": "CP/M 3 CCP", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/diag.cim", "destination": "0:DIAG.COM", "provenance": { "source": "src/diag.asm and pinned juku-common diagnostics", "version": "cpm-plus-juku build", "license": "LICENSE and third_party/juku-common notices" } },
+    { "source": "build/wboot.cim", "destination": "0:WBOOT.COM", "provenance": { "source": "src/wboot.asm", "version": "cpm-plus-juku build", "license": "LICENSE" } },
+    { "source": "volume/README.txt", "destination": "0:README.TXT", "mode": "text", "provenance": { "source": "volume/README.txt", "version": "cpm-plus-juku build", "license": "LICENSE" } },
+    { "source": "build/cpm3-utilities/PIP.COM", "destination": "0:PIP.COM", "sha256": "b0b40eada6cebd512333989fdc65f8fa9e2321e2565a633063ae7cac9b02005d", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "CP/M 3 PIP 3.0", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-utilities/SHOW.COM", "destination": "0:SHOW.COM", "sha256": "17a8561c18d1b9dc4d747f0a1ecd36ceb98ade6be2c2133d5ec1774769a4bcee", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "Show 3.1, 2025-01-22", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-utilities/SET.COM", "destination": "0:SET.COM", "sha256": "213fa9a4617372d5b4518863a41adcbbca63ea535aae94632052ebb6ad026709", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "CP/M 3 SET", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-utilities/DEVICE.COM", "destination": "0:DEVICE.COM", "sha256": "1a8dd4c17523f36a297d13556948178e0672f2e67bb9b516771b27bf9722444c", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "CP/M 3 DEVICE", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-utilities/DATE.COM", "destination": "0:DATE.COM", "sha256": "a413859648e340a424de7e8a709aabcee502516122d157b25d5d663d4e771004", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "CP/M 3 DATE, Y2K-corrected", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-utilities/SUBMIT.COM", "destination": "0:SUBMIT.COM", "sha256": "8c641d7383d48e14a60fe72df0f4af926a970b0aba40765770f3034da80a1f24", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "CP/M 3 SUBMIT 3.0", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-utilities/HELP.COM", "destination": "0:HELP.COM", "sha256": "d47256286eb6b05d290ba33c539f8acf79ed0fb18893a4f25f7a588538f343f8", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "HELP 1.1 pl5, 2026-06-07", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-utilities/HELP.HLP", "destination": "0:HELP.HLP", "sha256": "0ba002b32e659c19ccec18f13ab3231d403a41911c5b753d42853243b01ed8a6", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "HELP database, 2026-06-07", "license": "third_party/cpm3/LICENSE.md" } }
+  ]
+}

@@ -62,8 +62,21 @@ license, version, and checksum.
 Preparation completed on 2026-08-17: the maintained 2026-06-07 CP/M 3.1
 source/binary release is pinned locally, and the eight initially selected files
 are checked against source-member mappings, sizes, and SHA-256 before
-extraction. They are not yet present on the immutable C4 volume. See
+extraction. They remain absent from the immutable C4 volume and are now present
+only in the separately named full/demo profiles. See
 [`cpm3-utility-provenance.md`](cpm3-utility-provenance.md).
+
+Distribution implementation completed on 2026-08-17: declarative profiles now
+produce a byte-identical named C4 recovery A:, a licensed full A:, an opt-in
+`PROFILE.SUB` museum A:, and a physical cylinder/head native B: containing
+only approved project material. Deterministic reports include contents,
+provenance, allocation, free space, and hashes. Cosimulation runs the CCP
+profile, the normal disk/read/write/warm-boot matrix, and B: selection, listing,
+and transient loading through the production host conversion. The mixed-license
+Juku 3000 game disks remain checksum-recorded external read-only inputs rather
+than being silently redistributed. See
+[`distribution-profiles.md`](distribution-profiles.md) and
+[`juku3000-media-provenance.md`](juku3000-media-provenance.md).
 
 ## Priority 2: native CP/M 3 BIOS services
 

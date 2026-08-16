@@ -16,11 +16,25 @@ FASTBOOT := $(OUT)/cpm-plus-juku-fastboot-v15.bin
 ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-system.bin
 ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
 VOLUME := $(OUT)/cpm-plus-juku.img
+RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-recovery.img
+FULL_VOLUME := $(OUT)/cpm-plus-juku-full.img
+APPS_VOLUME := $(OUT)/cpm-plus-juku-apps.juk
+DEMO_VOLUME := $(OUT)/cpm-plus-juku-museum-demo.img
+RECOVERY_REPORT := $(OUT)/cpm-plus-juku-recovery.report.json
+FULL_REPORT := $(OUT)/cpm-plus-juku-full.report.json
+APPS_REPORT := $(OUT)/cpm-plus-juku-apps.report.json
+DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
 	network-rom-cosim-check network-rom-soak-check bench-candidate \
-	distribution-input-check regenerate-cpm3 regenerate-cpm3-rom
-all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME)
+	distribution distribution-check distribution-cosim-check \
+	distribution-input-check \
+	regenerate-cpm3 regenerate-cpm3-rom
+all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) distribution
+
+distribution: $(RECOVERY_VOLUME) $(RECOVERY_REPORT) \
+	$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+	$(DEMO_VOLUME) $(DEMO_REPORT)
 
 tools: $(ZMAC) $(LD80) $(ZX0)
 
@@ -34,7 +48,7 @@ verify-prebuilt: all
 rom-budget-check: tools $(BUILD)/fastboot-core.cim $(BUILD)/fastboot-extension.cim
 	$(PYTHON) tools/rom_budget.py --check
 
-check: verify-prebuilt rom-budget-check distribution-input-check
+check: verify-prebuilt rom-budget-check distribution-input-check distribution-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
 distribution-input-check:
@@ -42,6 +56,15 @@ distribution-input-check:
 	$(PYTHON) tools/extract_cpm3_utilities.py
 	$(PYTHON) tools/extract_cpm3_utilities.py --check
 	$(PYTHON) tests/cpm3_utility_inputs_test.py
+
+distribution-check: distribution
+	$(PYTHON) tests/distribution_test.py
+
+distribution-cosim-check: all
+	CPM_PLUS_JUKU_VOLUME=$(DEMO_VOLUME) \
+	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
+	CPM_PLUS_JUKU_EXPECT_PROFILE=DIR \
+	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
@@ -202,11 +225,41 @@ $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUI
 $(BUILD)/wboot.cim: src/wboot.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
-$(VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot.cim \
-		volume/README.txt \
+$(BUILD)/cpm3-utilities/manifest.json: \
+		third_party/cpm3/releases/provenance.json \
+		third_party/cpm3/releases/cpm3src_unix-20260607.zip \
+		third_party/cpm3/releases/cpm3bin_unix-20260607.zip \
+		tools/extract_cpm3_utilities.py | $(BUILD)
+	$(PYTHON) tools/extract_cpm3_utilities.py
+
+$(RECOVERY_VOLUME) $(RECOVERY_REPORT) &: third_party/cpm3/ccp.com \
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt \
+		volume/profiles/recovery.json tools/build_volume.py diskdefs | $(OUT)
+	$(PYTHON) tools/build_volume.py --profile volume/profiles/recovery.json \
+		--output $(RECOVERY_VOLUME) --report $(RECOVERY_REPORT)
+
+$(VOLUME): $(RECOVERY_VOLUME) | $(OUT)
+	cp $(RECOVERY_VOLUME) $@
+
+$(FULL_VOLUME) $(FULL_REPORT) &: third_party/cpm3/ccp.com \
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt \
+		$(BUILD)/cpm3-utilities/manifest.json volume/profiles/full.json \
 		tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py $@ third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt
+	$(PYTHON) tools/build_volume.py --profile volume/profiles/full.json \
+		--output $(FULL_VOLUME) --report $(FULL_REPORT)
+
+$(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
+		volume/profiles/apps.json tools/build_volume.py diskdefs | $(OUT)
+	$(PYTHON) tools/build_volume.py --profile volume/profiles/apps.json \
+		--output $(APPS_VOLUME) --report $(APPS_REPORT)
+
+$(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt \
+		volume/PROFILE.sub $(BUILD)/cpm3-utilities/manifest.json \
+		volume/profiles/full.json volume/profiles/demo.json \
+		tools/build_volume.py diskdefs | $(OUT)
+	$(PYTHON) tools/build_volume.py --profile volume/profiles/demo.json \
+		--output $(DEMO_VOLUME) --report $(DEMO_REPORT)
 
 regenerate-cpm3:
 	test -n "$(ZXCC)" -a -n "$(CPM3_TOOLS)"

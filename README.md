@@ -124,7 +124,19 @@ out/cpm-plus-juku-fastboot-v15.bin direct-fastboot bundle
 out/cpm-plus-juku-network-rom-system.bin       ROM-ABI consumer container
 out/cpm-plus-juku-network-rom-fastboot-v15.bin ROM-ABI consumer fastboot bundle
 out/cpm-plus-juku.img              host-backed A: volume
+out/cpm-plus-juku-recovery.img     named immutable C4 recovery A:
+out/cpm-plus-juku-full.img         licensed utility A:
+out/cpm-plus-juku-museum-demo.img  opt-in PROFILE.SUB demo A:
+out/cpm-plus-juku-apps.juk         approved native 800 KiB B:
 ```
+
+Every named distribution image has a `.report.json` recording contents,
+provenance, free space, and hashes. The profiles and validation commands are
+documented in
+[`docs/distribution-profiles.md`](docs/distribution-profiles.md). Published
+Juku 3000 game disks remain supported external read-only B: inputs; their
+licensing boundary is recorded in
+[`docs/juku3000-media-provenance.md`](docs/juku3000-media-provenance.md).
 
 `prebuilt/` contains byte-for-byte reference copies. `make check` first proves
 that a fresh build matches them. Current SHA-256 values are:

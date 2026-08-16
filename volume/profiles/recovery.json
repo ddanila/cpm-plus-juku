@@ -1,0 +1,48 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "name": "recovery-a",
+  "description": "Minimal immutable recovery and qualification A: volume",
+  "geometry": "juku386",
+  "image_bytes": 409600,
+  "allocation_block_bytes": 2048,
+  "files": [
+    {
+      "source": "third_party/cpm3/ccp.com",
+      "destination": "0:CCP.COM",
+      "sha256": "f1837073d217075223d17dd81d068481819665273b59fbb3502c2f9068e8a671",
+      "provenance": {
+        "source": "Digital Research CP/M 3.1 release",
+        "version": "CP/M 3 CCP",
+        "license": "third_party/cpm3/LICENSE.md"
+      }
+    },
+    {
+      "source": "build/diag.cim",
+      "destination": "0:DIAG.COM",
+      "provenance": {
+        "source": "src/diag.asm and pinned juku-common diagnostics",
+        "version": "cpm-plus-juku build",
+        "license": "LICENSE and third_party/juku-common notices"
+      }
+    },
+    {
+      "source": "build/wboot.cim",
+      "destination": "0:WBOOT.COM",
+      "provenance": {
+        "source": "src/wboot.asm",
+        "version": "cpm-plus-juku build",
+        "license": "LICENSE"
+      }
+    },
+    {
+      "source": "volume/README.txt",
+      "destination": "0:README.TXT",
+      "mode": "text",
+      "provenance": {
+        "source": "volume/README.txt",
+        "version": "cpm-plus-juku build",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}

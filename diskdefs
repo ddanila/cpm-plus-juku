@@ -10,3 +10,16 @@ diskdef juku386
     # CP/M 3 retains the CP/M 2.2 directory and allocation format here.
     os 2.2
 end
+
+# Native double-sided Juku data volume in logical side-then-track order.
+# The host converts an 800 KiB physical .JUK image from cylinder/head order.
+diskdef juku784
+    seclen 512
+    tracks 160
+    sectrk 10
+    blocksize 4096
+    maxdir 128
+    boottrk 2
+    skewtab 0,2,4,6,8,1,3,5,7,9
+    os 2.2
+end
