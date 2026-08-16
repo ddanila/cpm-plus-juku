@@ -183,6 +183,11 @@ $(BUILD)/netconsole.rel: $(COMMON)/platform/netconsole.asm $(ZMAC) | $(BUILD)
 $(BUILD)/netconsole-romabi.rel: $(COMMON)/platform/netconsole.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DNETCONSOLE_EAGER_POLL -o $@ $<
 
+$(BUILD)/netconsole-romabi-native.rel: \
+		$(COMMON)/platform/netconsole.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DNETCONSOLE_EAGER_POLL \
+		-DNATIVE_SERVICES -o $@ $<
+
 $(BUILD)/adapter.all: $(BUILD)/platform-adapter.rel \
 		$(BUILD)/ram-keyboard.rel $(BUILD)/netdisk-v3.rel \
 		$(BUILD)/netconsole.rel $(LD80)
@@ -208,11 +213,11 @@ $(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
 
 $(BUILD)/adapter-romabi-native.all: \
 		$(BUILD)/platform-adapter-romabi-native.rel \
-		$(BUILD)/netconsole-romabi.rel $(BUILD)/cpm3-native-services.rel \
+		$(BUILD)/netconsole-romabi-native.rel $(BUILD)/cpm3-native-services.rel \
 		$(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi-native.rel \
-		-P0xc250 $(BUILD)/netconsole-romabi.rel \
+		-P0xc250 $(BUILD)/netconsole-romabi-native.rel \
 		-P0xc500 $(BUILD)/cpm3-native-services.rel
 
 $(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
