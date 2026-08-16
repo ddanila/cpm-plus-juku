@@ -22,7 +22,8 @@ make bench-candidate
 
 That one command rebuilds and compares every checked-in CP/M artifact, checks
 the ROM budget, runs the complete legacy/clean/recovery cosim matrix, verifies
-the ROM builder, and writes this self-describing directory:
+the ROM builder, runs the focused structural-HDL gate, and writes this
+self-describing directory:
 
 ```text
 out/network-first-abi1-cs00015-c1/
@@ -40,6 +41,14 @@ The manifest records sizes, SHA-256 hashes, 19,200-baud protocol settings,
 programmer order, memory map, and pending physical status. It rejects a ROM
 whose metadata is not exactly C1 and verifies that D15 followed by D16 equals
 the combined 16 KiB ROM.
+
+The structural portion is fixed by `8080-cosim` commit `fefe01cb`. It boots
+the exact production C1 bytes through `juku_top`/`vm80a` to the `C4h` marker,
+then uses test-only dispatch around the unchanged resident bytes to prove the
+framebuffer helper, shifted matrix input, serial ABI, and one CRC-checked
+NetDisk-v3 reply copied as a complete 128-byte DMA record. Full CP/M commands,
+recovery, exact cursor pixels, and soak remain covered by the C-model suite;
+neither model replaces the physical matrix below.
 
 ## Fixed artifact hashes
 

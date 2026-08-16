@@ -145,6 +145,7 @@ Place `cpm-plus-juku` and `8080-cosim` beside each other, or set
 ```sh
 make check
 make network-rom-cosim-check  # focused keyless reset-ROM path
+make bench-candidate          # full C-model matrix, structural HDL, package
 ```
 
 ## Future physical test
@@ -185,6 +186,10 @@ traffic, modeled 8251 overrun, bootstrap-time and live post-prompt stateless
 server replacement, explicit warm boot, and a 16-cycle/271-read soak. The exact results
 are in
 [`docs/network-first-rom-recovery.md`](docs/network-first-rom-recovery.md).
+The focused structural gate in `8080-cosim` commit `fefe01cb` additionally
+boots the exact C1 image through `juku_top`/`vm80a` and proves its resident
+framebuffer, keyboard, serial, and one NetDisk-v3 DMA transaction. Full-system
+behavior remains guarded by the C-model matrix and the pending physical test.
 The deterministic `network-first-abi1-cs00015-c1` programming/runtime package,
 hashes, socket order, and remaining physical matrix are in
 [`docs/network-first-rom-bench-candidate.md`](docs/network-first-rom-bench-candidate.md).

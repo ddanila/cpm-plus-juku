@@ -54,3 +54,16 @@ three-byte `WBOOT.COM`, paginated sequential file reads, replacement of the
 disk server after the prompt, and a 16-cycle post-reconnect soak. That run
 completed 271 reads and one synchronous write with no target retry or overrun;
 the updated A: image hash is fixed by the C1 package record.
+
+`8080-cosim` commit `fefe01cb` then carried the candidate across a focused
+structural-HDL boundary without changing its production ROM hash. The exact C1
+image reaches reset/POST target-ready `C4h` through `juku_top`/`vm80a`; test-only
+dispatch around the unchanged resident bytes proves the framebuffer helper,
+matrix keyboard, serial ABI, and a CRC-checked 128-byte NetDisk-v3 DMA record.
+`make bench-candidate` now includes this structural gate while retaining the C
+model for full CP/M, recovery, cursor-pixel, and soak coverage.
+The combined release run also exposed that the deliberately unmasked-PIC
+negative fixture can corrupt the memory-mode latch after proving its intended
+live-interrupt failure. Its oracle now exempts only that corrupted branch from
+the healthy-mode invariant; every corrected and transport-only path retains
+the exact required mode.

@@ -448,8 +448,14 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         if "=" in line
     )
     expected_mode = "1" if network_rom else "3"
-    require(state.get("mode") == expected_mode,
-            f"CP/M Plus did not retain memory mode {expected_mode}: {state}")
+    # The deliberately unmasked-PIC fixture proves live stale interrupts and
+    # ensuing disk/console corruption. Where its random interrupt vector lands
+    # is timing-dependent, so a later unintended memory-mode write is valid
+    # failure evidence rather than a positive-path invariant. Every corrected
+    # and transport-only fixture must retain its requested mode.
+    if expect_disk_failure != "legacy-unmasked-pic":
+        require(state.get("mode") == expected_mode,
+                f"CP/M Plus did not retain memory mode {expected_mode}: {state}")
     global ram_console_reference
     ram = (case / "final.ram").read_bytes()
     loader_address = 0x9A00 if network_rom else 0x7A00
