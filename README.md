@@ -64,10 +64,11 @@ ROM-ABI consumer image now validates the resident manifest, delegates the CP/M
 resident keyboard, and renders through the resident 80x24 console/font plus a
 119-byte low-RAM pixel helper. It reaches `A>`, accepts `DIR` and `DIAG CPU`,
 and completes both with no USART overrun. Its final 9,600-byte framebuffer is
-byte-identical to the RAM baseline. The corrected source-font bytes are now
-named CS00015 bench candidate C2; general physical qualification is still
-pending. C1 was superseded before burning after a stock-ROM/manual-resume run
-exposed its deterministic glyph corruption. Resident
+byte-identical to the RAM baseline. The Creep font and faster cursor are now
+named CS00015 bench candidate C3; automatic-ROM physical qualification is
+still pending. C1 was superseded before burning after a stock-ROM/manual-resume
+run exposed its deterministic glyph corruption, and C2 remains immutable.
+Resident
 NetDisk-v3 owns bounded read-ahead and
 synchronous write-through, including three-attempt recovery and cache
 invalidation. The dedicated CP/M system is regenerated and relinked as follows:
@@ -88,14 +89,15 @@ cosimulator validates the live page-zero loader/BDOS chain as well as `A>`,
 `DIR`, paginated `TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`,
 `ERA README.TXT`, console parity, and zero resident USART overruns.
 
-Physical CS00015 testing reproduced the timing/ownership failures. With the
-corrected server manually retained at 19,200, the same running machine then
-recovered to `A>`, completed `DIR`, and ran the full `DIAG` successfully. This
-qualifies the corrected resident NetDisk-v3 path. The remaining physical issue
-is earlier in the stock-`TN` wrapper: it misses the final V15 `JA` completion,
-returns the host to 9,600, and leaves the already-started CP/M without its disk
-server. The evidence, cycle budgets, fixes, and remaining acceptance item are in
-[`docs/cs00015-netdisk-v3-timing.md`](docs/cs00015-netdisk-v3-timing.md).
+Physical CS00015 testing first reproduced the timing/ownership failures and
+proved manual 19,200-baud reattachment. The host now treats a fully sent V15
+stream with a missing final reply as explicitly unconfirmed and proceeds to
+NetDisk instead of retransmitting into a possibly running CP/M. A subsequent
+stock-`TN` run received the final confirmation normally, attached A:
+immediately, and reached `A>` without I/O errors. That run also physically
+qualified S21=`02h` as 53x24, the narrower Creep-derived font, and the doubled
+cursor blink rate. See [`docs/cs00015-netdisk-v3-timing.md`](docs/cs00015-netdisk-v3-timing.md)
+and [`docs/s21-video-modes.md`](docs/s21-video-modes.md).
 The adapter intentionally retains the proven CP/M-compatible hardware-call
 shape until a native CP/M 3 implementation matches this baseline.
 
@@ -123,8 +125,8 @@ out/cpm-plus-juku.img              host-backed A: volume
 `prebuilt/` contains byte-for-byte reference copies. `make check` first proves
 that a fresh build matches them. Current SHA-256 values are:
 
-- system: `19b1aab5da38aa20725939caf2abef9eb1486b826251f320397c7c71b5700e93`;
-- fastboot: `d965ceabe9bfebe090475601624538e3f0e3ca90936426b104f9ea822ea55633`;
+- system: `3b61b1fe5de4e7e4cf4fa20dd88582210d5c8c09ef690bc1246021aa97983b6d`;
+- fastboot: `37155d7966cfc655f2755364a0cc9c2f84227c20dd58afd77d0946f013404042`;
 - network-ROM system: `74f2089bc85ef18fe90bb5868570e177037f55311f88484f27181425a7920ab1`;
 - network-ROM fastboot: `0411ff682e7356d33073309b284bde33d627ea6c7769fdb1538d99c2c589bf4a`;
 - A: volume: `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1`.
@@ -151,7 +153,7 @@ make bench-candidate          # full C-model matrix, structural HDL, package
 ```
 
 For the controlled CS00015 burn, `tools/physical_qualification.py` verifies
-the exact C2 package, records repeated boot timing and host logs, keeps writes
+the exact C3 package, records repeated boot timing and host logs, keeps writes
 in a fresh per-boot image, and audits the manual display/keyboard/recovery
 matrix. The complete commands are in the bench-candidate document below.
 
@@ -167,7 +169,7 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   /dev/ttyUSB0 out/cpm-plus-juku-system.bin out/cpm-plus-juku.img
 ```
 
-The corresponding automatic-ROM command and named CS00015 C2 bench gate are
+The corresponding automatic-ROM command and named CS00015 C3 bench gate are
 recorded in
 [`docs/network-first-rom-auto-boot.md`](docs/network-first-rom-auto-boot.md).
 
@@ -193,11 +195,11 @@ traffic, modeled 8251 overrun, bootstrap-time and live post-prompt stateless
 server replacement, explicit warm boot, and a 16-cycle/271-read soak. The exact results
 are in
 [`docs/network-first-rom-recovery.md`](docs/network-first-rom-recovery.md).
-The focused structural gate, rerun for C2 in `8080-cosim` commit `c2581698`,
-boots the exact C2 image through `juku_top`/`vm80a` and proves its resident
+The focused structural gate, rerun for C3 in `8080-cosim` commit `b04aa388`,
+boots the exact C3 image through `juku_top`/`vm80a` and proves its resident
 framebuffer, keyboard, serial, and one NetDisk-v3 DMA transaction. Full-system
 behavior remains guarded by the C-model matrix and the pending physical test.
-The deterministic `network-first-abi1-cs00015-c2` programming/runtime package,
+The deterministic `network-first-abi1-cs00015-c3` programming/runtime package,
 hashes, socket order, and remaining physical matrix are in
 [`docs/network-first-rom-bench-candidate.md`](docs/network-first-rom-bench-candidate.md).
 The memory constraints, staged migration, and acceptance contract are in
@@ -210,4 +212,4 @@ the allocation and measures the first resident serial implementation.
 ABI 1.0 is now fixed at `FF00h`, with a copied low-RAM gate and framebuffer
 helper. The deterministic `8080-cosim` implementation proves overlay, stack,
 register, interrupt, live-serial, and recovery contracts; its generated D15/D16
-halves are the controlled C2 bench candidate, not a promoted release.
+halves are the controlled C3 bench candidate, not a promoted release.

@@ -100,7 +100,8 @@ $(ZX0): $(ZX0_SOURCES) third_party/zx0/zx0.h | $(BIN)
 
 $(BUILD)/platform-adapter.rel: src/platform-adapter.asm \
 		$(COMMON)/platform/ram-console.asm \
-		$(COMMON)/platform/ram-console-font.asm $(ZMAC) | $(BUILD)
+		$(COMMON)/platform/ram-console-font.asm \
+		$(COMMON)/platform/creep-console-font.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 \
 		-I$(COMMON)/platform -o $@ $<
 
@@ -123,9 +124,9 @@ $(BUILD)/adapter.all: $(BUILD)/platform-adapter.rel \
 		$(BUILD)/netconsole.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xa000 $(BUILD)/platform-adapter.rel \
-		-P0xa900 $(BUILD)/ram-keyboard.rel \
+		-P0xaa90 $(BUILD)/ram-keyboard.rel \
 		-P0xac10 $(BUILD)/netdisk-v3.rel \
-		-P0xae80 $(BUILD)/netconsole.rel
+		-P0xae40 $(BUILD)/netconsole.rel
 
 $(BUILD)/adapter.bin: $(BUILD)/adapter.all
 	tail -c+40961 $< >$@

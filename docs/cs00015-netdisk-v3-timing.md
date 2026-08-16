@@ -147,3 +147,22 @@ not qualify the stock one-command V15 handoff. It also exposed deterministic
 malformed compact glyphs. That independent display issue was traced to the
 font generator's 8-vs-9-pixel source-sheet pitch, corrected, and promoted to
 the C2 bench candidate before any network ROM was burned.
+
+## 2026-08-16 host handoff and 53x24 qualification
+
+The host-side conclusion is now corrected. Once a V15 target has acknowledged
+the stream header and the host has drained the complete body, absence of the
+final reply is ambiguous: the resident BIOS may already have changed from
+8N1 to 8O1 and entered its disk loop. Re-sending the complete system is unsafe.
+The host now records `completion_confirmed=0`, switches to NetDisk, and uses
+the first valid disk request as authoritative boot evidence. A PTY regression
+drops the final reply and proves that no stream retransmission occurs.
+
+The next physical stock-Ekta4401 run used the new all-RAM CP/M image and raw
+S21=`02h` (logical bits 2:1=`01`). It received the final V15 reply normally,
+entered NetDisk without falling back to discovery, and issued its first valid
+read at boot+8.811 seconds. `A>` appeared without any I/O-error loop. CS00015
+also physically confirmed the selected 53x24 raster, clean Creep-derived glyph
+spacing, and the halved cursor phase. This supersedes the earlier statement
+that one-command stock handoff remained unqualified; final command/disk checks
+for this exact run are recorded in `s21-video-modes.md`.

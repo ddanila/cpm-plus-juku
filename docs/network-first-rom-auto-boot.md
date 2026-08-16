@@ -111,14 +111,14 @@ stock raster/refresh timer write used during the network load.
 
 Current deterministic candidate hashes are recorded by
 `8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.json`. The JSON
-names `network-first-abi1-cs00015-c2` and records `physical qualification
+names `network-first-abi1-cs00015-c3` and records `physical qualification
 pending`; it is the authoritative controlled-bench release gate. The complete
 package and burn mapping are in
 [`network-first-rom-bench-candidate.md`](network-first-rom-bench-candidate.md).
 
-## Host command for C2 qualification
+## Host command for C3 qualification
 
-For the named C2 D15/D16 pair, the matching identity-free command is:
+For the named C3 D15/D16 pair, the matching identity-free command is:
 
 ```sh
 cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
@@ -128,7 +128,7 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   --disk-baud 19200 --disk-protocol 3 --writable --timeout 86400
 ```
 
-C2 is ready for a controlled CS00015 burn but is not promoted. Automatic boot,
+C3 is ready for a controlled CS00015 burn but is not promoted. Automatic boot,
 resident read-ahead and write-through, CP/M SYS regeneration, the measured TPA
 gain, and simulated recovery qualification are complete. The next milestone
 is the physical matrix documented in the candidate record.

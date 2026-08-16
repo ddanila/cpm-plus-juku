@@ -36,9 +36,8 @@ sys.path.insert(0, str(ROOT / "third_party" / "juku-common" / "tools"))
 
 from janet_disk_server import serve_disk  # noqa: E402
 from janet_fastboot import serve_fast  # noqa: E402
-from ram_console_oracle import (  # noqa: E402
-    load_assembly as load_console_assembly_font,
-    load_reference as load_console_reference_font,
+from creep_console_oracle import (  # noqa: E402
+    main as check_console_font,
     render_transcript as render_console_transcript,
 )
 
@@ -110,9 +109,9 @@ def build_timing_fixture(
     subprocess.run([
         str(LD80), "-m", "-O", "bin", "-o", str(adapter_all),
         "-s", "/dev/null", "-P0xa000",
-        str(platform), "-P0xa900",
+        str(platform), "-P0xaa90",
         str(ROOT / "build" / "ram-keyboard.rel"), "-P0xac10",
-        str(netdisk), "-P0xae80", str(ROOT / "build" / "netconsole.rel"),
+        str(netdisk), "-P0xae40", str(ROOT / "build" / "netconsole.rel"),
     ], cwd=ROOT, check=True)
     adapter.write_bytes(adapter_all.read_bytes()[40960:])
     subprocess.run([
@@ -174,9 +173,11 @@ def read_console_paged(fd: int, timeout: float) -> bytes:
 def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot: Path = FASTBOOT, system: Path = SYSTEM,
         expect_disk_failure: str | None = None,
-        network_rom: bool = False, disk_fault: str | None = None) -> None:
+        network_rom: bool = False, disk_fault: str | None = None,
+        video_mode: int = 3) -> None:
     require(not network_rom or direct_core,
             "network ROM requires direct-core fastboot")
+    require(video_mode in range(4), "video mode must be 0..3")
     if network_rom:
         fastboot = ROM_FASTBOOT
         system = ROM_SYSTEM
@@ -216,6 +217,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         case_name += f"-{expect_disk_failure}"
     if disk_fault:
         case_name += f"-{disk_fault}"
+    if video_mode != 3:
+        case_name += f"-video{video_mode}"
     case = work / case_name
     case.mkdir()
     master, slave = pty.openpty()
@@ -242,12 +245,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         JUKU_DISABLE_SETTLE="1",
         JUKU_KEY_HOLD_FRAMES="6",
         JUKU_KEY_GAP_FRAMES="8",
+        JUKU_S21_CONFIG=f"0x{video_mode << 1:02X}",
         JUKU_CHECKPOINT_PREFIX=str(case / "final"),
     )
     if network_rom:
         environment.pop("JUKU_KEYS", None)
     else:
-        environment["JUKU_KEYS"] = "N" if direct_core else "TN0201"
+        environment["JUKU_KEYS"] = "N" if direct_core else "TN"
     volume = bytearray(VOLUME.read_bytes())
     stats: dict[str, int] = {}
     fault_evidence: dict[str, int] = {}
@@ -462,6 +466,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     if expect_disk_failure != "legacy-unmasked-pic":
         require(state.get("mode") == expected_mode,
                 f"CP/M Plus did not retain memory mode {expected_mode}: {state}")
+        require(
+            state.get("video_console_mode") == str(video_mode),
+            f"CP/M Plus did not select S21 video mode {video_mode}: {state}",
+        )
     global ram_console_reference
     ram = (case / "final.ram").read_bytes()
     loader_address = 0x9A00 if network_rom else 0x7A00
@@ -479,10 +487,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     screen = ram[0xD800:0xD800 + 9600]
     if not expect_disk_failure and direct_core and not network_rom:
         transcript = first + second + third + fourth + fifth + sixth
-        expected_screen = render_console_transcript(transcript)
+        expected_screen = render_console_transcript(
+            transcript, mode=video_mode,
+        )
+        expected_screen_hidden = render_console_transcript(
+            transcript, mode=video_mode, cursor=False,
+        )
         (case / "console.bin").write_bytes(transcript)
         (case / "expected-screen.bin").write_bytes(expected_screen)
-        if screen != expected_screen:
+        if screen not in (expected_screen, expected_screen_hidden):
             first_difference = next(
                 index for index, pair in enumerate(zip(screen, expected_screen))
                 if pair[0] != pair[1]
@@ -553,21 +566,22 @@ def run(trace: Path, work: Path, *, direct_core: bool,
 
 
 def main() -> None:
-    require(
-        load_console_assembly_font() == load_console_reference_font(),
-        "generated RAM console font differs from its source reference",
-    )
+    require(check_console_font() == 0,
+            "generated RAM console font differs from its source reference")
     for path in (
         ROM_DIRECT, ROM_STOCK, ROM_NETWORK, SYSTEM, FASTBOOT,
         ROM_SYSTEM, ROM_FASTBOOT, VOLUME,
     ):
         require(path.is_file(), f"build input is missing: {path}")
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
-    require(selected in ("both", "direct", "stock", "network", "all"),
+    require(selected in (
+        "both", "direct", "stock", "network", "video", "all",
+    ),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
     paths = (True, False) if selected in ("both", "all") else \
         (selected == "direct",) if selected in ("direct", "stock") else ()
     include_network = selected in ("network", "all")
+    video_modes = range(4) if selected in ("video", "all") else ()
     retained = os.environ.get("CPM_PLUS_JUKU_WORK")
     if retained:
         work = Path(retained)
@@ -583,45 +597,9 @@ def main() -> None:
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="mid-session-restart")
             return
-        legacy_fastboot, legacy_system = build_timing_fixture(
-            work, "legacy-target-drain",
-            netdisk_define="NETDISK_V3_LEGACY_DRAIN",
-        )
-        legacy_pic_fastboot, legacy_pic_system = build_timing_fixture(
-            work, "legacy-unmasked-pic",
-            adapter_define="CPM3_LEGACY_UNMASKED_PIC",
-        )
-        run(trace, work, direct_core=True, fastboot=legacy_fastboot,
-            system=legacy_system,
-            expect_disk_failure="legacy-target-drain")
-        run(trace, work, direct_core=True,
-            expect_disk_failure="legacy-host-guard")
-        run(trace, work, direct_core=False, fastboot=legacy_pic_fastboot,
-            system=legacy_pic_system,
-            expect_disk_failure="legacy-unmasked-pic")
-        for direct_core in paths:
-            run(trace, work, direct_core=direct_core)
-        if include_network:
-            run(trace, work, direct_core=True, network_rom=True)
-            run(trace, work, direct_core=True, network_rom=True,
-                disk_fault="compound-recovery")
-            run(trace, work, direct_core=True, network_rom=True,
-                disk_fault="server-restart")
-            run(trace, work, direct_core=True, network_rom=True,
-                disk_fault="mid-session-restart")
-        return
-    with tempfile.TemporaryDirectory(prefix="cpm-plus-juku-cosim.") as name:
-        work = Path(name)
-        trace = work / "trace"
-        build_trace(trace)
-        if selected == "network":
-            run(trace, work, direct_core=True, network_rom=True)
-            run(trace, work, direct_core=True, network_rom=True,
-                disk_fault="compound-recovery")
-            run(trace, work, direct_core=True, network_rom=True,
-                disk_fault="server-restart")
-            run(trace, work, direct_core=True, network_rom=True,
-                disk_fault="mid-session-restart")
+        if selected == "video":
+            for video_mode in video_modes:
+                run(trace, work, direct_core=True, video_mode=video_mode)
             return
         legacy_fastboot, legacy_system = build_timing_fixture(
             work, "legacy-target-drain",
@@ -649,6 +627,56 @@ def main() -> None:
                 disk_fault="server-restart")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="mid-session-restart")
+        if selected == "all":
+            for video_mode in range(3):
+                run(trace, work, direct_core=True, video_mode=video_mode)
+        return
+    with tempfile.TemporaryDirectory(prefix="cpm-plus-juku-cosim.") as name:
+        work = Path(name)
+        trace = work / "trace"
+        build_trace(trace)
+        if selected == "network":
+            run(trace, work, direct_core=True, network_rom=True)
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="compound-recovery")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
+            return
+        if selected == "video":
+            for video_mode in video_modes:
+                run(trace, work, direct_core=True, video_mode=video_mode)
+            return
+        legacy_fastboot, legacy_system = build_timing_fixture(
+            work, "legacy-target-drain",
+            netdisk_define="NETDISK_V3_LEGACY_DRAIN",
+        )
+        legacy_pic_fastboot, legacy_pic_system = build_timing_fixture(
+            work, "legacy-unmasked-pic",
+            adapter_define="CPM3_LEGACY_UNMASKED_PIC",
+        )
+        run(trace, work, direct_core=True, fastboot=legacy_fastboot,
+            system=legacy_system,
+            expect_disk_failure="legacy-target-drain")
+        run(trace, work, direct_core=True,
+            expect_disk_failure="legacy-host-guard")
+        run(trace, work, direct_core=False, fastboot=legacy_pic_fastboot,
+            system=legacy_pic_system,
+            expect_disk_failure="legacy-unmasked-pic")
+        for direct_core in paths:
+            run(trace, work, direct_core=direct_core)
+        if include_network:
+            run(trace, work, direct_core=True, network_rom=True)
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="compound-recovery")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
+        if selected == "all":
+            for video_mode in range(3):
+                run(trace, work, direct_core=True, video_mode=video_mode)
 
 
 if __name__ == "__main__":

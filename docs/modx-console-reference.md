@@ -1,8 +1,8 @@
 # MODX compact-console reference
 
-Status: **CORRECTED SOURCE-FONT ORACLE AND BIOS FRAMEBUFFER PASS IN SIMULATION**
+Status: **CREEP FONT, FOUR VIDEO MODES, AND CS00015 DISPLAY PASS**
 
-Evidence date: **2026-08-15**
+Evidence date: **2026-08-16**
 
 ## Why this is the reference
 
@@ -50,25 +50,25 @@ must not invent a twenty-fifth framebuffer row.
 
 ## Shared implementation
 
-`juku-common/platform/ram-console.asm` now provides the shared 80x24 renderer:
+`juku-common/platform/ram-console.asm` now provides a shared renderer for the
+historical 40x24, 53x24, 64x20, and MODX-compatible 80x24 modes:
 
 - the exact six MODX PIT writes;
 - packed five-pixel read/modify/write cells across byte boundaries;
-- 5x7 glyphs plus an eighth blank scanline;
+- Creep-derived 5x7 glyphs, padded to the selected 5x8, 6x10, or 8x10 cell;
 - CR, LF, backspace, wrapping, scrolling, and `ESC L` clear;
 - a five-pixel blinking underline cursor driven by the polled console-status
   path, independent of firmware interrupts;
 - mode-3 framebuffer access with mode-1 restoration only for the transitional
   RomBios consumer.
 
-The replacement ASCII font is generated from domsson's CC0 “oldschool” 5x7
-bitmap. The source PNG SHA-256 is
-`cf7d942a052f451a2bd24e02f193ea96433eeceeb705c8b0b2d2296f3ce57708`.
-The checked generator validates that hash and reproduces all 95 glyphs from
-U+0020 through U+007E as 665 assembler bytes. This avoids copying an
-unestablished license from the period disk while retaining the proven MODX
-geometry. Font source and license:
-<https://opengameart.org/content/ascii-bitmap-font-oldschool>.
+The active ASCII font is adapted from Romeo Van Snick's MIT-licensed Creep
+0.31 BDF. Its exact source hash and URL are pinned in `juku-common`; all 95
+ASCII glyphs have a readable five-pixel reference. Letters and digits reserve
+their rightmost pixel, fixing the physically observed touching text. A compact
+standard-CP437 subset deliberately reaches cell edges so repeated box glyphs
+form solid horizontal and vertical lines. The corrected domsson CC0 table
+remains available as a historical/future wider-mode asset.
 
 ## Regression contract
 
@@ -79,10 +79,10 @@ glyph rows at y=1,10,19,28,37,46. That one-pixel-per-row drift left the first
 stock-ROM/manual-resume CS00015 run exposed the defect before the network ROM
 was burned.
 
-`ram-console-font-reference.txt` now records every source glyph as readable
-five-pixel rows. `ram_console_oracle.py` parses that reference independently of
-the generator and assembly table. It rejects the old table first at U+0032 row
-zero (`00h` instead of `70h`).
+`creep-console-font-reference.txt` records every active source glyph as
+readable five-pixel rows. `creep_console_oracle.py` parses that reference
+independently of the generator and assembly table, enforces the separator and
+edge-connection rules, and renders every supported geometry.
 
 The C machine model remains in the stock 320x241 view until it observes the
 complete ordered MODX signature, then reports a 50-byte/192-line view. The
@@ -93,16 +93,16 @@ current prompt.
 
 The ROM ABI regression now adds two test-only resident variants around the
 unchanged production image. One calls the public console-status vector
-exactly 1,024 times and proves the underline bytes are erased; the other calls
-it 2,048 times and proves the original underline is restored. Both finish in
+exactly 512 times and proves the underline bytes are erased; the other calls
+it 1,024 times and proves the original underline is restored. Both finish in
 mode 1 with the same glyph framebuffer and passing ABI state. This closes the
 explicit visible/hidden phase requirement in simulation.
 
-The CP/M Plus regression now also captures its complete 875-byte boot/command
-transcript, renders it pixel-by-pixel from the source-glyph reference, and
-compares all 9,600 bytes with the actual BIOS framebuffer. The corrected run
-matches exactly (SHA-256
-`c5810fe73fe76199ae9e33241fcc3ef87aa3c49ddac63d3242d5034d7ecbe73d`).
+The CP/M Plus regression captures its complete boot/command transcript,
+renders it pixel-by-pixel from the source-glyph reference, and compares all
+9,600 bytes with the actual BIOS framebuffer. It repeats that real 8080 run in
+all four S21 modes; each completes disk reads, a write, diagnostics, and warm
+boot without retries or resident USART overruns.
 
 The earlier transcript oracle parsed `ram-console-font.asm`; it therefore
 proved packing and control-character policy but could not detect a bad font
@@ -113,7 +113,8 @@ The oracle also found a real first-draft renderer defect: the packed cell-addres
 calculation reused `DE`, causing glyph selection from a column offset instead
 of the character. The corrected shared routine passes the byte-exact 51K
 RAM-BIOS test. The same oracle now covers the ROM ABI implementation and both
-cursor phases. Physical phase timing remains part of CS00015 qualification.
+cursor phases. CS00015 subsequently confirmed clean 53x24 geometry, visibly
+separated glyphs, and the faster cursor with raw S21=`02h`.
 
 ## Follow-on improvements
 
