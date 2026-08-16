@@ -123,7 +123,7 @@ $(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
 		$(BUILD)/netconsole.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi.rel \
-		-P0xc3e0 $(BUILD)/netconsole.rel
+		-P0xc220 $(BUILD)/netconsole.rel
 
 $(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
 	tail -c+49153 $< >$@

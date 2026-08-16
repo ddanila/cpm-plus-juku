@@ -579,29 +579,8 @@ SETDMA:
 READ:
 .ifdef NETWORKV3
 .ifdef ROMABI
-        mvi     a,1
-        sta     ROMNETREQUEST
         xra     a
-        sta     ROMNETREQUEST+1
-        lda     SEKDSK
-        sta     ROMNETREQUEST+2
-        lda     SEKTRK
-        sta     ROMNETREQUEST+3
-        lda     SEKTRK+1
-        sta     ROMNETREQUEST+4
-        lda     SEKSEC
-        sta     ROMNETREQUEST+5
-        lda     MEMADR
-        sta     ROMNETREQUEST+6
-        lda     MEMADR+1
-        sta     ROMNETREQUEST+7
-        mvi     a,080h
-        sta     ROMNETREQUEST+8
-        mvi     a,0c7h
-        sta     ROMNETREQUEST+9
-        lxi     h,ROMNETREQUEST
-        call    JCGNETDISKADDR
-        ret
+        jmp     ROMRWDISK
 .else
         call    N3READ
         ret
@@ -626,21 +605,49 @@ NETV2SINGLE:
 .endif
 .endif
 
-WRITE:
-.ifdef NETWORKV3
 .ifdef ROMABI
+; Build the shared version-1 request for resident read/write transactions.
+; Input A is JROMNETOPREAD or JROMNETOPWRITE.
+ROMRWDISK:
+        mov     b,a
         mvi     a,1
         sta     ROMNETREQUEST
+        mov     a,b
         sta     ROMNETREQUEST+1
+        lda     SEKDSK
+        sta     ROMNETREQUEST+2
+        lda     SEKTRK
+        sta     ROMNETREQUEST+3
+        lda     SEKTRK+1
+        sta     ROMNETREQUEST+4
+        lda     SEKSEC
+        sta     ROMNETREQUEST+5
+        lda     MEMADR
+        sta     ROMNETREQUEST+6
+        lda     MEMADR+1
+        sta     ROMNETREQUEST+7
+        mvi     a,080h
+        sta     ROMNETREQUEST+8
+        mvi     a,0c7h
+        sta     ROMNETREQUEST+9
         lxi     h,ROMNETREQUEST
         call    JCGNETDISKADDR
+        ret
+.endif
+
+WRITE:
+.ifdef ROMABI
+        mvi     a,JROMNETOPWRITE
+        jmp     ROMRWDISK
 .else
+.ifdef NETWORKV3
         call    N3INV
 .endif
-.endif
         mvi     a,DKWR
+.endif
 
 .ifdef NETWORK
+.ifndef ROMABI
 NETRWDISK:
         public  NRWDISK
 NRWDISK:
@@ -984,6 +991,7 @@ NETCAPDONE:
         ei
 .endif
         ret
+.endif
 .else
 RWDISK:
         sta     REQUEST

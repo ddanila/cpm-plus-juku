@@ -26,3 +26,11 @@ layout; this repository regenerated CP/M Plus with loader/BDOS/BIOS at
 page-zero chain proves a 39,168-byte transient span, exactly 8 KiB larger than
 the frozen baseline, while the complete simulator matrix retains all legacy
 failure reproductions and passes direct, stock, and automatic-ROM boot paths.
+
+The same day, `juku-common` commit `8f7de93` and `8080-cosim` commit
+`0ed8ccee` moved synchronous writes behind ABI 1 using NetDisk-v3 operation
+`15h`. The real CP/M regression erases `README.TXT` through the resident
+write-through path, while cache invalidation, CRC, retry bounds, and the frozen
+RAM artifacts remain proven. Removing the unreachable RAM transaction and
+packing the remote console reduced initialized ROM-consumer adapter RAM from
+1,360 to 912 bytes without changing the measured TPA.

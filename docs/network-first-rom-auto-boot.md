@@ -33,7 +33,8 @@ system is now regenerated for the compact map and exposes an exact 39,168-byte
    the ZX0-compressed CP/M Plus image.
 6. The dedicated ROM-ABI consumer validates the resident manifest, calls
    `JCGINIT`, selects 19,200/8O1 through `JCGSERINIT`, initializes the shared
-   resident keyboard, 80x24 console, and versioned NetDisk-v3 read-ahead service.
+   resident keyboard, 80x24 console, and versioned NetDisk-v3 read-ahead and
+   synchronous write-through service.
 
 The POST status `C4h` and wire-ready byte `C4h` are intentionally on different
 channels: a ROM-integrity failure only writes RAM and halts, while a successful
@@ -77,8 +78,9 @@ NETWORK-FIRST-ROM-BOOT-TEST: PASS ...
   POST C1/C2/C3/C4/C5; ready=725602 cycles;
   absent host; corrupt recovery; keyless 19200 handoff
 JUKU CP/M PLUS 3.1: PASS
-  automatic network ROM boot, A>, DIR, DIAG CPU,
-  reads=36, retries=0, resident-overruns=0, bootstrap-overruns=0
+  automatic network ROM boot, A>, DIR, DIAG CPU, ERA README.TXT,
+  reads=38, writes=1, retries=0, resident-overruns=0,
+  bootstrap-overruns=0
 ```
 
 The ABI check injects a shifted physical `T` through D26 ports 4/5, then proves
@@ -89,7 +91,7 @@ CP/M check asserts that the copied gate reports ready at `D620h`, status at
 were consumed by resident code while mode 1 remained selected. Its complete
 framebuffer matches the RAM-console run byte for byte. The normal system remains
 byte-identical. Packing the binding and remote console shrinks initialized
-adapter RAM from 4,080 to 1,360 bytes. The test additionally checks the live
+adapter RAM from 4,080 to 912 bytes. The test additionally checks the live
 page-zero chain through loader `9A06h` to BDOS `9D06h`, proving an exact
 8,192-byte TPA gain over the frozen `7A06h`/`7D06h` chain.
 
@@ -118,10 +120,9 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   /dev/ttyUSB0 out/cpm-plus-juku-network-rom-system.bin \
   out/cpm-plus-juku.img \
   --fast-stage1 out/cpm-plus-juku-network-rom-fastboot-v15.bin --network-rom \
-  --disk-baud 19200 --disk-protocol 3 --timeout 86400
+  --disk-baud 19200 --disk-protocol 3 --writable --timeout 86400
 ```
 
-Do not burn the present split artifacts. The next milestones are resident
-network writes and the recovery matrix. The read path already crosses the ABI
-once per record and completes its full transaction in resident ROM; the CP/M
-SYS regeneration and measured TPA gain are complete.
+Do not burn the present split artifacts. The next milestone is the recovery
+matrix. Read-ahead and write-through now complete their full transactions in
+resident ROM; the CP/M SYS regeneration and measured TPA gain are complete.

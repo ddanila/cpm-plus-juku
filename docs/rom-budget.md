@@ -26,7 +26,7 @@ Current measured ingredients are:
 | mode-3 console clear/scroll/packed-row helper | 119 | copied low RAM implemented |
 | keyboard matrix scanner | 331 RAM baseline; 328 resident code | resident ROM implemented; three mutable bytes remain in low RAM |
 | shared resident D57/D11 serial initializer and primitives | 86 | implemented resident ROM ABI service |
-| NetDisk v3 read-ahead client and versioned ABI binding | 606 resident; 547 RAM baseline | resident ROM implemented for reads |
+| NetDisk v3 read-ahead/write-through client and versioned ABI binding | 676 resident; 547 RAM baseline | resident ROM implemented for reads and writes |
 | remote console/status client | 368 | resident ROM, optional at boot |
 | CPU diagnostic | 517 | quick POST and resident diagnostic service |
 | byte-cell RAM diagnostic | 29 | quick POST and resident service |
@@ -70,7 +70,7 @@ checks the exact linked layout and deterministic image.
 | `D800h..DCFFh` | 1,280 | console policy, geometry, ASCII font | 1,191 implemented; 89 bytes headroom |
 | `DD00h..DE7Fh` | 384 | keyboard scan and translation | 328 implemented; 56 bytes headroom |
 | `DE80h..E0FFh` | 640 | shared D57/D11 serial layer | 86-byte resident initializer/primitives implemented |
-| `E100h..E3FFh` | 768 | NetDisk v3 protocol | 606 implemented; 162 bytes headroom |
+| `E100h..E3FFh` | 768 | NetDisk v3 protocol | 676 implemented; 92 bytes headroom |
 | `E400h..E5FFh` | 512 | remote console and bounded status | 368 |
 | `E600h..E8FFh` | 768 | common diagnostic mechanisms | 655 |
 | `E900h..E9FFh` | 256 | sound and platform initialization | 114 |
@@ -78,7 +78,7 @@ checks the exact linked layout and deterministic image.
 | `F000h..F7FFh` | 2,048 | locale/font banks and future services | 0 |
 | `F800h..FEFFh` | 1,792 | unassigned reserve | 0 |
 | `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | ABI 1.0 implemented and range-fixed |
-| **total** | **10,240** | exact runtime window | **3,348 measured** |
+| **total** | **10,240** | exact runtime window | **3,418 measured** |
 
 These are link fences, not permission to fill every service to its fence. The
 ABI table is deliberately at the top of ROM so its address survives internal
@@ -126,23 +126,23 @@ bytes (30.25 KiB). It also has 5,114 bytes above its CP/M 3 BIOS:
 - 4,080 initialized adapter bytes at `A000h..AFEFh`;
 - 1,034 bytes of mutable state/buffers through `B409h`.
 
-The ROM-ABI platform binding is 986 bytes. Together with the packed 368-byte
-remote console it produces a 1,360-byte initialized adapter, versus 4,080 bytes
-for the baseline. The system has now been regenerated and relinked with loader
+Removing the legacy RAM disk transaction leaves a 539-byte ROM-ABI platform
+binding. Together with five alignment bytes and the packed 368-byte remote
+console it produces a 912-byte initialized adapter, versus 4,080 bytes for the
+baseline. The system has been regenerated and relinked with loader
 `9A00h`, BDOS `9D00h`, BIOS `BC00h`, and adapter `C000h`. Its exact transient
 span is `0100h..99FFh`, or 39,168 bytes (38.25 KiB): an exact 8,192-byte gain.
 The live test verifies page zero -> loader `9A06h` -> BDOS `9D06h`, rather than
 inferring the gain from link addresses alone.
 
 The dedicated initialized container occupies `9000h..D5FFh`; the adapter code
-is `C000h..C54Fh`. Sparse mutable state is kept at `C5ECh..C909h`, below the
+is `C000h..C38Fh`. Sparse mutable state is kept at `C5ECh..C909h`, below the
 fixed ROM gate/workspace beginning at `D600h`. The resident console is 1,191
-bytes, its mode-3 helper 119, and the resident read-ahead NetDisk service 606.
-Full cosim reaches `A>`, completes `DIR` and `DIAG CPU`, performs 36 reads with
-no retry or resident overrun, and proves the final 9,600-byte framebuffer equal
-to the frozen RAM oracle. Network writes still retain their RAM compatibility
-path; moving them is a code-ownership improvement, not a prerequisite for the
-already measured TPA gain.
+bytes, its mode-3 helper 119, and the resident read/write NetDisk service 676.
+Full cosim reaches `A>`, completes `DIR`, `DIAG CPU`, and `ERA README.TXT`,
+performs 38 reads and at least one resident write with no retry or resident
+overrun, and proves the final 9,600-byte framebuffer equal to the frozen RAM
+oracle.
 
 ## Decisions entering resident-service migration
 

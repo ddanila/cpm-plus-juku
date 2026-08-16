@@ -65,16 +65,16 @@ resident keyboard, and renders through the resident 80x24 console/font plus a
 119-byte low-RAM pixel helper. It reaches `A>`, accepts `DIR` and `DIAG CPU`,
 and completes both with no USART overrun. Its final 9,600-byte framebuffer is
 byte-identical to the RAM baseline. This remains a desk image, not a D15/D16
-programming release. Resident NetDisk-v3 owns the bounded read-ahead path;
-writes retain the RAM compatibility path. The dedicated CP/M system is now
-regenerated and relinked as follows:
+programming release. Resident NetDisk-v3 owns bounded read-ahead and
+synchronous write-through, including three-attempt recovery and cache
+invalidation. The dedicated CP/M system is regenerated and relinked as follows:
 
 ```text
 0100h..99FFh  39,168-byte (38.25 KiB) transient program area
 9A00h..9CFFh  CP/M Plus loader
 9D00h..BBFFh  CP/M Plus BDOS
 BC00h..BFFFh  Juku CP/M 3 BIOS
-C000h..C54Fh  1,360-byte ROM-ABI binding and remote console
+C000h..C38Fh  912-byte ROM-ABI binding and remote console
 C5ECh..C909h  sparse mutable adapter state, directory buffer, and cache
 D600h..D7FFh  fixed ROM call gate/state and framebuffer helper
 D800h..FFFFh  resident runtime ROM
@@ -82,7 +82,8 @@ D800h..FFFFh  resident runtime ROM
 
 The exact transient span is 8,192 bytes larger than the frozen baseline. The
 cosimulator validates the live page-zero loader/BDOS chain as well as `A>`,
-`DIR`, `DIAG CPU`, console parity, and zero resident USART overruns.
+`DIR`, `DIAG CPU`, `ERA README.TXT`, console parity, and zero resident USART
+overruns.
 
 Physical CS00015 testing reproduced the timing/ownership failures. With the
 corrected server manually retained at 19,200, the same running machine then
@@ -121,8 +122,8 @@ that a fresh build matches them. Current SHA-256 values are:
 
 - system: `170e3c2e91790ff08bcb846af65e0726cf8cfdbec53d813fde68f7762e6a96cd`;
 - fastboot: `5ae6c667d0fc0a23f93d184924b771adaca08fecc3319bae1d2e280664d7faec`;
-- network-ROM system: `a3f4d2ebbbd0929cd351be97bf20631919533c86c79a0d0ee410a6329b324c65`;
-- network-ROM fastboot: `e6c6b88bb646116e1b333ae538512f488be50c5adc9a82cd3279abd92e533c7f`;
+- network-ROM system: `74f2089bc85ef18fe90bb5868570e177037f55311f88484f27181425a7920ab1`;
+- network-ROM fastboot: `0411ff682e7356d33073309b284bde33d627ea6c7769fdb1538d99c2c589bf4a`;
 - A: volume: `bc14a67a441ad8c24b7574ee5e290866b058a6fe5d04c05b462b8d2b3abc3100`.
 
 The checked-in baseline `third_party/cpm3/cpm3.sys` and relinked
@@ -175,10 +176,10 @@ provenance, and remaining physical checks are recorded in
 The network-first 16 KiB ROM now has bounded quick POST, automatic
 19,200-baud boot with no menu or keypress, and a proven versioned resident ABI.
 The CP/M consumer validates that ABI and uses its serial, keyboard, and compact
-console/font and NetDisk-v3 read services. CP/M Plus has been regenerated and
-relinked upward, yielding an exact 8 KiB TPA gain while retaining thin bindings
-and mutable state in RAM. The next service milestone moves network writes. The
-exact memory constraints, staged migration,
+console/font and NetDisk-v3 read/write services. CP/M Plus has been regenerated
+and relinked upward, yielding an exact 8 KiB TPA gain while retaining thin
+bindings and mutable state in RAM. The next milestone is the recovery matrix.
+The exact memory constraints, staged migration,
 recovery cases, and acceptance contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).
 The reproducible linked-byte inventory, fixed ROM envelopes, mode-crossing

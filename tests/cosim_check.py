@@ -238,7 +238,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 try:
                     serve_disk(
                         master, volume, timeout=180, idle_timeout=None,
-                        verbose=False, stats=stats, protocol_version=3,
+                        writable=True, verbose=False, stats=stats,
+                        protocol_version=3,
                         read_ahead_records=int(os.environ.get(
                             "CPM_PLUS_JUKU_READ_AHEAD_RECORDS", "3",
                         )),
@@ -274,6 +275,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 second = read_console_until(console_master, b"A>", 120)
                 os.write(console_master, b"DIAG CPU\r")
                 third = read_console_until(console_master, b"A>", 120)
+                os.write(console_master, b"ERA README.TXT\r")
+                fourth = read_console_until(console_master, b"A>", 120)
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
@@ -316,8 +319,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 f"CP/M Plus network DIR failed: {second!r}")
         require(b"DIAG CPU" in third and b"CPU: PASS" in third,
                 f"CP/M Plus transient diagnostic failed: {third!r}")
+        require(b"ERA README.TXT" in fourth and b"A>" in fourth,
+                f"CP/M Plus erase did not return to CCP: {fourth!r}")
         require(stats.get("reads", 0) >= 1,
                 f"CP/M Plus issued no NetDisk reads: {stats}")
+        require(stats.get("writes", 0) >= 1,
+                f"CP/M Plus issued no NetDisk writes: {stats}")
         require(stats.get("retries") == 0,
                 f"fixed NetDisk path required retries: {stats}")
     require(all(isinstance(error, OSError) for error in errors),
@@ -391,7 +398,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         "JUKU CP/M PLUS 3.1: PASS "
         f"({boot_label} "
         f"boot, A>, DIR, DIAG CPU, reads={stats['reads']}, "
-        f"retries={stats['retries']}, resident-overruns={resident_overruns}, "
+        f"writes={stats['writes']}, retries={stats['retries']}, "
+        f"resident-overruns={resident_overruns}, "
         f"bootstrap-overruns={overruns - resident_overruns})"
     )
 
