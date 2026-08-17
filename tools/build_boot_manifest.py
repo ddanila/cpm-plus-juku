@@ -141,7 +141,7 @@ def main() -> int:
             "disk_framing": "8O1",
             "features": [
                 "console", "time", "status", "diagnostics",
-                "capability-query",
+                "capability-query", "bootstrap-report",
             ],
         },
         "volumes": sorted(volumes, key=lambda item: (

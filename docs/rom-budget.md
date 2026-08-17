@@ -36,7 +36,7 @@ Current measured ingredients are:
 | complete diagnostic mechanisms | 655 | boot selects a bounded subset |
 | sound routine plus tune | 114 | resident feedback/service |
 | proven V15 direct core | 125 source bytes; 141 stored with target-ready prelude | automatic bootstrap seed |
-| proven V15 receive/decompress extension | 267 | automatic load engine seed |
+| proven V15 receive/decompress extension | 267 C4 / 307 C5 | automatic load engine seed; C5 adds retained stage/retry updates |
 
 The sum is not a proposed final ROM size. Several current modules contain
 consumer-specific state or duplicate serial loops which will be separated as

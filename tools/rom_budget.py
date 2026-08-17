@@ -132,10 +132,13 @@ def main() -> int:
 
     core = ROOT / "build" / "fastboot-core.cim"
     extension = ROOT / "build" / "fastboot-extension.cim"
-    if not core.is_file() or not extension.is_file():
+    locale_extension = ROOT / "build" / "fastboot-extension-rom-locale.cim"
+    if not core.is_file() or not extension.is_file() or \
+            not locale_extension.is_file():
         raise SystemExit("fastboot objects are missing; run `make` first")
     sizes["fastboot-core"] = core.stat().st_size
     sizes["fastboot-extension"] = extension.stat().st_size
+    sizes["fastboot-extension-c5"] = locale_extension.stat().st_size
 
     diagnostics = sum(sizes[name] for name in (
         "diag-cpu", "diag-memory", "diag-address", "diag-retention",
@@ -155,7 +158,7 @@ def main() -> int:
         ("ABI manifest/vectors", 0, 0x100),
     )
     boot_measured = (
-        sizes["fastboot-core"] + sizes["fastboot-extension"] +
+        sizes["fastboot-core"] + sizes["fastboot-extension-c5"] +
         sizes["diag-cpu"] + sizes["diag-memory"] +
         sizes["diag-address"] + sizes["diag-checksum"] +
         sizes["rom-console-helper"]
@@ -164,7 +167,8 @@ def main() -> int:
         ("reset/init/quick POST", sizes["diag-cpu"] + sizes["diag-memory"] +
          sizes["diag-address"] + sizes["diag-checksum"], 0x600),
         ("automatic boot transport", sizes["fastboot-core"], 0x600),
-        ("validation/decompress/recovery", sizes["fastboot-extension"], 0x600),
+        ("validation/decompress/recovery", sizes["fastboot-extension-c5"],
+         0x600),
         ("RAM helper image/staging", sizes["rom-console-helper"], 0x400),
         ("manifest/checksum/reserve", 0, 0x200),
     )

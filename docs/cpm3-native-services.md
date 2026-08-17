@@ -16,8 +16,8 @@ memory is claimed. GENCPM relocates the SCB to BB9Ch (clock BBF4h); FE00h
 symbols in the DRI source are relocatable canonical addresses,
 not runtime addresses for an absolute adapter module. Running
 `make native-services-check` regenerates the native SYS,
-builds core/transport code in C000h..C504h and native services in
-CA00h..CB55h, while keeping fixed state in C640h..C95Fh,
+builds core/transport code in C000h..C52Ah and native services in
+CA00h..CB80h at most, while keeping fixed state in C640h..C95Fh,
 boots it through the production network ROM, and runs both the normal CP/M
 command matrix, `NATIVE.COM`, and `STATUS.COM`.
 
@@ -46,6 +46,8 @@ command matrix, `NATIVE.COM`, and `STATUS.COM`.
   supplied in B/D/E/L as suite, pass mask, fail mask, and flags. Selector C=3
   performs an explicit host capability query and returns HL pointing to four
   bytes: NetDisk protocol, maximum read-ahead, feature flags, and drive count.
+  Selector C=4 publishes retained bootstrap stage, CRC retry count, protocol,
+  and ROM ABI minor through operation 27h.
   Unknown selectors fail with A=FFh and HL=0000h.
 - TIME gets CP/M day plus BCD hour/minute/second through optional NetDisk-v3
   operation 22h. SET uses operation 23h to establish a host session offset
@@ -60,8 +62,8 @@ ROM, CP/M console setup, and status reporting share one encoding.
 The ABI 1.1 build calls the appended `JCGCONFIG` vector instead, so CP/M uses
 the ROM's reset-latched byte rather than resampling live switches. Its system
 and fast-stage SHA-256 values are respectively
-`f5bde664719bd43dc9bcd6f4ceb5d280649f68e9db775fde7f70e35b0eaee4f1`
-and `83dccb8221a2b65e5269dea62790deeb399bfb8c4763c62738e34064d832ada2`.
+`86b36bd70156d10bafba332bd02e8756473c76bde3e9cc4a50fbc530bfb8a3f2`
+and `4aaff8f9a78c289e96bb1699453d3136f7c2f6c82f3bfb2323d46145028178b0`.
 The C4/native ABI 1.0 artifact retains its bounded direct sampler and byte
 identity.
 
@@ -98,11 +100,23 @@ after bounded host loss. The status regression observes cold state through
 simulator checkpoint. C4 remains byte-identical because clock, publisher, and
 recording code are assembled only in the separately named native profile.
 
+`STATUS.COM` 1.2 extends the `JNS1` block to schema 1.1 and displays the C5
+record at D610h..D613h. Stages distinguish POST (`10h`), V15 core (`20h`),
+extension wait/header/authentication (`30h`/`31h`/`32h`), compressed CRC
+recovery (`E2h`), CP/M entry (`40h`), and the first successful disk turn
+(`50h`). The retry byte saturates instead of wrapping. USERF selector 4 mirrors
+the final tuple through duplicate-safe operation 27h, and the host logs and
+counts it exactly once. ABI 1.0 returns a deterministic zero tuple rather than
+reading unassigned C4 RAM bytes. `make bootstrap-observability-check`
+corrupts the first compressed V15 stream, proves one target-side `E2h` retry,
+then verifies the recovered `50h` report and matching host/target retry counts.
+
 The native fixed layout is deliberately non-overlapping: core and transport
-code end near C500h, cold/warm and transport state occupy C640h..C65Fh, the
+code end at C52Ah, cold/warm and transport state occupy C640h..C65Fh, the
 directory buffer and resident three-record cache occupy C680h..C909h, and the
 adapter's transient disk workspace begins at C920h. Native-only service code
-is linked separately at CA00h, inside the existing C000h..CFFFh adapter
+is linked separately at CA00h and ends no later than CB80h, inside the existing
+C000h..CFFFh adapter
 allocation; this leaves room for future measured native services without
 growing the TPA or colliding with mutable state. Address-watch tracing
 reproduced and eliminated two integration faults: placing the workspace at

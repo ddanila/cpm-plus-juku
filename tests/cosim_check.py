@@ -340,6 +340,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     stats: dict[str, int] = {}
     status_reports: list[dict[str, int]] = []
     diag_reports: list[dict[str, int]] = []
+    boot_reports: list[dict[str, int]] = []
     command_metrics: dict[str, dict[str, int | float]] = {}
     fault_evidence: dict[str, int] = {}
     restart_armed = threading.Event()
@@ -357,11 +358,24 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         try:
             print(f"COSIM {case.name}: bootstrap", flush=True)
             boot_started_at = time.monotonic()
+
+            def fastboot_filter(
+                sequence: int, attempt: int, packet: bytes,
+            ) -> bytes:
+                if os.environ.get(
+                    "CPM_PLUS_JUKU_CORRUPT_FASTBOOT_ONCE", "0",
+                ) != "1" or sequence != 0 or attempt != 0:
+                    return packet
+                corrupted = bytearray(packet)
+                corrupted[-1] ^= 1
+                return bytes(corrupted)
+
             boot = serve_fast(
                 master, fastboot.read_bytes(), container,
                 stock_timeout=120, reply_timeout=8, verbose=False,
                 configure_rate=False, direct_core=direct_core,
                 auto_rom_ready=network_rom,
+                block_filter=fastboot_filter,
             )
 
             def disk_worker() -> None:
@@ -415,6 +429,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             console_output=remote.output,
                             status_report_hook=status_reports.append,
                             diag_report_hook=diag_reports.append,
+                            boot_report_hook=boot_reports.append,
                         )
 
                     if disk_fault in ("server-restart", "mid-session-restart"):
@@ -737,7 +752,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 len(status_reports) == expected_status_reports
                 and status_reports[-1]["s21"] == s21_raw
                 and status_reports[-1]["video_mode"] == video_mode
-                and status_reports[-1]["features"] == 0x0F
+                and status_reports[-1]["features"] == 0x1F
                 and status_reports[-1]["clock_status"] == 0,
                 f"target status tuple differs: {status_reports}",
             )
@@ -758,6 +773,42 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 and diag_reports[-1]["fail_mask"] == 0
                 and diag_reports[-1]["flags"] == 0,
                 f"target I/O diagnostic tuple differs: {diag_reports[-1]}",
+            )
+        expected_boot_reports = int(os.environ.get(
+            "CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS", "0",
+        ))
+        require(
+            stats.get("boot_reports", 0) == expected_boot_reports
+            and len(boot_reports) == expected_boot_reports,
+            "target bootstrap report count differs: "
+            f"expected={expected_boot_reports} reports={boot_reports} "
+            f"stats={stats}",
+        )
+        if expected_boot_reports:
+            expected_stage = int(os.environ.get(
+                "CPM_PLUS_JUKU_EXPECT_BOOT_STAGE", "0",
+            ), 0)
+            expected_protocol = int(os.environ.get(
+                "CPM_PLUS_JUKU_EXPECT_BOOT_PROTOCOL", "0",
+            ), 0)
+            expected_abi_minor = int(os.environ.get(
+                "CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR", "0",
+            ), 0)
+            expected_boot_retries = int(os.environ.get(
+                "CPM_PLUS_JUKU_EXPECT_BOOT_RETRIES", "0",
+            ), 0)
+            report = boot_reports[-1]
+            require(
+                report["stage"] == expected_stage
+                and report["retries"] == expected_boot_retries
+                and report["protocol"] == expected_protocol
+                and report["abi_minor"] == expected_abi_minor,
+                f"target bootstrap tuple differs: {boot_reports[-1]}",
+            )
+            require(
+                boot["retries"] == expected_boot_retries,
+                "host/target bootstrap retry counts differ: "
+                f"host={boot['retries']} target={report}",
             )
         expected_capability_queries = int(os.environ.get(
             "CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES", "0",

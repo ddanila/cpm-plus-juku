@@ -163,6 +163,7 @@ ROMNETREQUEST  equ     0c652h
 ROMLASTDISK    equ     0c65eh
 ROMLASTTRIES   equ     0c65fh
 ROMN3TRIES     equ     0d79ch
+ROMBOOTSTAGE   equ     0d611h
 NATIVEBOOT     equ     0c640h
 NATIVEPOST     equ     0c641h
 NATIVEMARK     equ     0c642h
@@ -731,6 +732,14 @@ ROMCACHESET:
         lda     ROMN3TRIES
         sta     ROMLASTTRIES
         lda     ROMLASTDISK
+.ifdef ROM_ABI_LOCALE
+        ora     a
+        jnz     ROMRWDISKRET
+        mvi     a,050h                  ; first disk transaction confirms CP/M
+        sta     ROMBOOTSTAGE
+        xra     a
+ROMRWDISKRET:
+.endif
 .endif
         ret
 .endif

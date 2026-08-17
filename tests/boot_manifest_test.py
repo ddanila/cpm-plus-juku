@@ -28,7 +28,8 @@ def main() -> int:
     if requirements["rom_abi"] != "1.0" or \
             requirements["netdisk"] != 3 or \
             requirements["disk_baud"] != 19200 or \
-            "capability-query" not in requirements["features"]:
+            "capability-query" not in requirements["features"] or \
+            "bootstrap-report" not in requirements["features"]:
         raise AssertionError("manifest protocol requirements differ")
     slots = {slot["name"]: slot for slot in manifest["system_slots"]}
     if set(slots) != {"native", "c4-compatibility"} or \

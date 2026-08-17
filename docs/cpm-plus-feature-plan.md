@@ -167,12 +167,18 @@ sources used by ROM diagnostics:
 The ROM should retain a small fixed RAM boot-status record so failures can be
 explained after recovery or on a machine without a monitor.
 
-Initial observability slice completed on 2026-08-17: `STATUS.COM` reports the
+Observability implementation completed on 2026-08-17: `STATUS.COM` reports the
 resident map, system/ROM/protocol identities, S21/video configuration, MULTIO,
 clock counters, reset POST status, cold/warm state, last disk status/attempt
 state, and N4 failure/reconnect state, and mirrors its compact configuration
 tuple to host logs. The simulator proves the cold-to-warm transition and keeps
-the C4 artifacts byte-identical. Richer bootstrap failure reasons remain open.
+the C4 ROM artifacts byte-identical. C5 now retains POST, V15 core, extension,
+system-header, CRC-retry, authenticated/decompression, CP/M-entry, and first
+successful-disk stages at D610h..D613h. `STATUS.COM` 1.2 displays that record
+and publishes it through bounded, duplicate-safe operation 27h; ABI 1.0
+publishes a deterministic zero tuple. The regression corrupts one compressed
+stream, observes the retained retry, and then proves recovery through stage
+`50h` with matching host and target counts.
 The safe shared diagnostic matrix is now implemented in Diag 0.5:
 CPU/memory, D57, D11, ROM/integrity, video, keyboard/S21, and combined suites
 use `juku-common` probes and publish a bounded machine-readable result over N4.

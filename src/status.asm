@@ -42,6 +42,20 @@ start:
 
         lxi     d,identity
         call    puts
+        lxi     d,rommsg
+        call    puts
+        lhld    infobase
+        lxi     d,26
+        dad     d
+        mov     a,m
+        call    printhex
+        lxi     d,dotmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,romsuffix
+        call    puts
         lxi     d,mapmsg
         call    puts
 
@@ -170,6 +184,31 @@ start:
         lxi     d,newline
         call    puts
 
+        lxi     d,bootstrapmsg
+        call    puts
+        lhld    infobase
+        lxi     d,23
+        dad     d
+        mov     a,m
+        call    printhex
+        lxi     d,bootstrapretrymsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,bootstrapprotomsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,newline
+        call    puts
+
+        mvi     a,30
+        call    setvector
+        mvi     c,4                    ; publish retained bootstrap tuple
+        call    bioscall
+
         mvi     a,30
         call    setvector
         mvi     c,3                    ; explicit host capability query
@@ -262,14 +301,17 @@ bioscall:
         call    0000h
         ret
 
-title:  db      13,10,'Juku Status 1.1',13,10,'$'
+title:  db      13,10,'Juku Status 1.2',13,10,'$'
 identity:
         db      'System: CP/M Plus 3.1, native profile 1',13,10
-        db      'Transport: NetDisk v3, 19200 baud, N4 services',13,10
-        db      'ROM: Juku ABI 1.0 network-first baseline',13,10,'$'
+        db      'Transport: NetDisk v3, 19200 baud, N4 services',13,10,'$'
+rommsg: db      'ROM: Juku ABI $'
+dotmsg: db      '.$'
+romsuffix:
+        db      ' network-first',13,10,'$'
 mapmsg:
         db      'Map: TPA 0100-9CFF, BDOS 9D00-BB9B, SCB BB9C-BBFF',13,10
-        db      '     Core C000-C504, state C640-C95F, native CA00-CB55',13,10
+        db      '     Core C000-C52A, state C640-C95F, native CA00-CB80 max',13,10
         db      '     ROM gate/work D600-D7FF, framebuffer D800-FFFF',13,10,'$'
 s21msg: db      'S21 raw: $'
 videomsg:
@@ -300,6 +342,12 @@ consolemsg:
         db      13,10,'N4 last failure: $'
 reconnectmsg:
         db      '  reconnects: $'
+bootstrapmsg:
+        db      'Bootstrap stage: $'
+bootstrapretrymsg:
+        db      '  CRC retries: $'
+bootstrapprotomsg:
+        db      '  protocol: $'
 capsmsg:
         db      'Host caps: NetDisk v$'
 aheadmsg:

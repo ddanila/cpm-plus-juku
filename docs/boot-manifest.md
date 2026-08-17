@@ -12,7 +12,7 @@ The manifest records:
 - fastboot format/version, file size, and SHA-256;
 - required Intel 8080, ROM ABI 1.0, fastboot v15, NetDisk v3, 19,200-baud, and
   framing settings plus the required runtime service set, including explicit
-  capability query;
+  capability query and retained bootstrap report;
 - every published A:/B: profile with image hash, geometry, physical layout,
   and recommended media policy;
 - a stable build identity derived from the native system hash.
@@ -34,6 +34,8 @@ after boot, the target can explicitly query the connected server's protocol,
 read-ahead bound, runtime feature bits, and drive count. The manifest prevents
 the host from opening a stale artifact set; the on-wire query prevents target
 software from guessing runtime services from a banner or station identity.
+Operation 27h separately publishes the C5 retained bootstrap stage/retry tuple;
+it is an observability report, not a replacement for capability negotiation.
 
 The production host can pair the two manifest slots with an atomic
 last-known-good state file. Every slot gets the configured bounded restart

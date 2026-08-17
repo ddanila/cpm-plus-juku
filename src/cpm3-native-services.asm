@@ -22,6 +22,7 @@
         extrn   NCTIME
         extrn   NCPUBLISH
         extrn   NCDIAG
+        extrn   NCBOOT
         extrn   NCCAPS
         extrn   NCCFG
 
@@ -33,6 +34,7 @@ ROMABISTATUS   equ     0c651h
 ROMLASTDISK    equ     0c65eh
 ROMLASTTRIES   equ     0c65fh
 ROMPOSTSTATUS  equ     0d610h
+ROMBOOTSTAGE   equ     0d611h
 NATIVEBOOT     equ     0c640h
 NATIVEPOST     equ     0c641h
 
@@ -179,7 +181,8 @@ NSTIMERET:
 ; C=1: refresh and publish the same status tuple to the N4 host, then return
 ;      the status block. Publication is best effort and never blocks status.
 ; C=2 publishes a diagnostic tuple in B/D/E/L. C=3 returns the host's
-; explicit four-byte capability record. Other selectors fail.
+; explicit four-byte capability record. C=4 publishes retained bootstrap
+; stage/retries/protocol/ABI minor. Other selectors fail.
 NSUSERF:
         mov     a,c
         ora     a
@@ -189,7 +192,20 @@ NSUSERF:
         dcr     a
         jz      NSUSERFDIAG
         dcr     a
+        jz      NSUSERFCAPS
+        dcr     a
         jnz     NSUSERFBAD
+        call    NSREFRESHINFO
+        lda     NSBOOTRETRY
+        mov     b,a
+        lda     NSBOOTPROTO
+        mov     d,a
+        lda     NSROMMINOR
+        mov     e,a
+        lda     NSBOOTSTAGE
+        call    NCBOOT
+        jmp     NSUSERFRET
+NSUSERFCAPS:
         call    NCCAPS
         ret
 NSUSERFDIAG:
@@ -201,7 +217,7 @@ NSUSERFDIAG:
         jmp     NSUSERFRET
 NSUSERFPUBLISH:
         call    NSSAMPLES21
-        mvi     d,00fh                  ; NSINFO feature flags
+        mvi     d,01fh                  ; NSINFO feature flags
         lda     NSCLOCKSTATUS
         mov     e,a
         lda     NSVIDEOMODE
@@ -238,6 +254,23 @@ NSREFRESHCOPY2:
         sta     NSCONFAIL
         lda     NCRECONNECT
         sta     NSCONRECONNECT
+.ifdef ROM_ABI_LOCALE
+        lxi     h,ROMBOOTSTAGE
+        lxi     d,NSBOOTSTAGE
+        mvi     c,3
+NSREFRESHBOOT:
+        mov     a,m
+        stax    d
+        inx     h
+        inx     d
+        dcr     c
+        jnz     NSREFRESHBOOT
+.else
+        xra     a
+        sta     NSBOOTSTAGE
+        sta     NSBOOTRETRY
+        sta     NSBOOTPROTO
+.endif
         ret
 NSUSERFBAD:
         lxi     h,0
@@ -297,9 +330,9 @@ NSCHRTBL:
 ; bit2 host time, bit3 raw/decoded S21.
 NSINFO:
         db      'J','N','S','1'
-        db      1,0
+        db      1,1
         db      NSINFOEND-NSINFO
-        db      00fh
+        db      01fh
 NSRAWS21:
         db      0
 NSVIDEOMODE:
@@ -326,6 +359,20 @@ NSCONFAIL:
         db      0                       ; last bounded N4 failure reason
 NSCONRECONNECT:
         db      0                       ; saturated successful reprobe count
+NSBOOTSTAGE:
+        db      0                       ; retained reset/V15/system/disk stage
+NSBOOTRETRY:
+        db      0                       ; saturated compressed-stream failures
+NSBOOTPROTO:
+        db      0                       ; active fastboot protocol version
+NSROMMAJOR:
+        db      1
+NSROMMINOR:
+.ifdef ROM_ABI_LOCALE
+        db      1
+.else
+        db      0
+.endif
 NSINFOEND:
 NSCAPDONE:
         db      0

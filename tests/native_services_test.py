@@ -32,19 +32,26 @@ def main() -> int:
         "call    NCTIME",
         "call    NCPUBLISH",
         "call    NCDIAG",
+        "call    NCBOOT",
         "call    NCCAPS",
         "call    NCCFG",
         "sta     NSCAPDONE",
         "call    NSCAPINIT",
         "db      'J','N','S','1'",
+        "db      1,1",
+        "mvi     d,01fh                  ; NSINFO feature flags",
         "mvi     a,0ffh                  ; authoritative local output is ready",
         "xra     a                       ; no separately assigned AUX source",
     )
     for marker in required:
         if marker not in source:
             raise AssertionError(f"native service marker missing: {marker}")
-    if "mvi     a,04eh" not in ADAPTER.read_text():
+    adapter = ADAPTER.read_text()
+    if "mvi     a,04eh" not in adapter:
         raise AssertionError("native adapter presence marker is missing")
+    if "mvi     a,050h                  ; first disk transaction confirms CP/M" \
+            not in adapter:
+        raise AssertionError("native adapter bootstrap confirmation is missing")
     if not re.search(r"NSFLUSH:\s+xra\s+a\s+ret", source):
         raise AssertionError("FLUSH is not explicitly successful")
 

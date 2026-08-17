@@ -45,7 +45,7 @@ BOOT_MANIFEST := $(OUT)/cpm-plus-juku-native-manifest.json
 	distribution-input-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check regenerate-cpm3 regenerate-cpm3-rom \
-	network-rom-locale-cosim-check
+	network-rom-locale-cosim-check bootstrap-observability-check
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
 	$(LOCALE_NATIVE_ROM_SYSTEM) $(LOCALE_NATIVE_ROM_FASTBOOT) \
 	distribution $(BOOT_MANIFEST)
@@ -64,11 +64,13 @@ verify-prebuilt: all
 	cmp $(ROM_FASTBOOT) prebuilt/cpm-plus-juku-network-rom-fastboot-v15.bin
 	cmp $(VOLUME) prebuilt/cpm-plus-juku.img
 
-rom-budget-check: tools $(BUILD)/fastboot-core.cim $(BUILD)/fastboot-extension.cim
+rom-budget-check: tools $(BUILD)/fastboot-core.cim \
+	$(BUILD)/fastboot-extension.cim $(BUILD)/fastboot-extension-rom-locale.cim
 	$(PYTHON) tools/rom_budget.py --check
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
-	distribution-check manifest-check cpm3-system-check native-services-check
+	distribution-check manifest-check cpm3-system-check native-services-check \
+	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
 distribution-input-check:
@@ -107,8 +109,37 @@ network-rom-locale-cosim-check: all
 	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
 	CPM_PLUS_JUKU_EXPECT_TYPE_READS=1 \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_PROTOCOL=15 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=1 \
 	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=3 \
 	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
+	$(PYTHON) tests/cosim_check.py
+
+bootstrap-observability-check: all
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke CPM_PLUS_JUKU_NETWORK_ROM=\
+	../8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.1-c5.bin \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(LOCALE_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(LOCALE_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(NATIVE_RECOVERY_VOLUME) \
+	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x09 CPM_PLUS_JUKU_EXTRA_COMMAND=STATUS \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Bootstrap stage: 50' \
+	CPM_PLUS_JUKU_EXPECT_PER_DRIVE_CACHE=1 \
+	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_READS=10 \
+	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
+	CPM_PLUS_JUKU_EXPECT_TYPE_READS=1 \
+	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_RETRIES=1 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_PROTOCOL=15 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=3 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
+	CPM_PLUS_JUKU_CORRUPT_FASTBOOT_ONCE=1 \
 	$(PYTHON) tests/cosim_check.py
 
 network-rom-soak-check: all
@@ -261,7 +292,7 @@ $(BUILD)/adapter-romabi-native.all: \
 		$(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi-native.rel \
-		-P0xc280 $(BUILD)/netconsole-romabi-native.rel \
+		-P0xc2a0 $(BUILD)/netconsole-romabi-native.rel \
 		-P0xca00 $(BUILD)/cpm3-native-services.rel
 
 $(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
@@ -274,7 +305,7 @@ $(BUILD)/adapter-romabi-locale-native.all: \
 		$(BUILD)/cpm3-native-services-locale.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi-locale-native.rel \
-		-P0xc280 $(BUILD)/netconsole-romabi-native.rel \
+		-P0xc2a0 $(BUILD)/netconsole-romabi-native.rel \
 		-P0xca00 $(BUILD)/cpm3-native-services-locale.rel
 
 $(BUILD)/adapter-romabi-locale-native.bin: \
@@ -336,6 +367,12 @@ $(BUILD)/fastboot-extension-rom.cim: \
 		$(addprefix -D,$(FASTBOOT_EXTENSION_DEFS) FASTBOOT_CPM3_ROM) \
 		-o $@ $<
 
+$(BUILD)/fastboot-extension-rom-locale.cim: \
+		$(COMMON)/transport/fastboot-extension.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 \
+		$(addprefix -D,$(FASTBOOT_EXTENSION_DEFS) FASTBOOT_CPM3_ROM \
+		FASTBOOT_BOOT_RECORD) -o $@ $<
+
 $(FASTBOOT): $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension.cim $(SYSTEM) $(ZX0) \
 		tools/build_fastboot.py | $(OUT)
@@ -355,10 +392,12 @@ $(NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension-rom.cim $(NATIVE_ROM_SYSTEM) $(ZX0) $@
 
 $(LOCALE_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension-rom.cim $(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) \
+		$(BUILD)/fastboot-extension-rom-locale.cim \
+		$(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) \
 		tools/build_fastboot.py | $(OUT)
 	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension-rom.cim $(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) $@
+		$(BUILD)/fastboot-extension-rom-locale.cim \
+		$(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) $@
 
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<
@@ -472,13 +511,14 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_ROM_FASTBOOT=$(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=STATUS \
-	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Status 1.1' \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Status 1.2' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND2='DIAG IO' \
 	CPM_PLUS_JUKU_EXTRA_MARKER2='Keyboard/S21: PASS' \
 	CPM_PLUS_JUKU_EXPECT_BOOT_READS=22 \
 	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
 	CPM_PLUS_JUKU_EXPECT_TYPE_READS=2 \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
 	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=2 \
 	CPM_PLUS_JUKU_EXPECT_IO_DIAG=1 \
