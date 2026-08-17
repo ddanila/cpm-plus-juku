@@ -12,7 +12,9 @@ diagnostics evolve without changing the C4 qualification artifact.
 
 ## Commands
 
-With no argument, `DIAG` runs the normal safe suite. Individual selectors are:
+With no argument, `DIAG` preserves the original private 256-byte RAM-data
+baseline. `DIAG ALL` runs the complete non-destructive suite. Individual
+selectors are:
 
 - `CPU`, `MEM`, `ADDR`, `RET`, `RAM`, and `SUM` for processor and memory
   checks;
@@ -46,7 +48,7 @@ mask, and flags. Bits in the two masks are:
 | `40h` | keyboard/S21 |
 | `80h` | retention |
 
-The native adapter marker at C5EAh gates this service, preventing Diag 0.5
+The native adapter marker at C642h gates this service, preventing Diag 0.5
 from mistaking the immutable C4 entry 30 for the versioned USERF interface.
 Host absence or rejection cannot block the local result, console, or disk.
 

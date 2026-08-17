@@ -276,3 +276,20 @@ last-known-good slot is preferred on the next run. See
 
 This order keeps the already successful port usable at every milestone and
 prevents performance or convenience work from obscuring hardware regressions.
+
+## Completion audit (2026-08-17)
+
+| Priority | State | Authoritative evidence |
+| --- | --- | --- |
+| 0. Physical baseline | **Pending physical runs** | The immutable C4 package and recorder pass their executable integrity tests. Three repeated cold boots, local display/keyboard/cursor confirmation, and the host-loss/live-reconnect bench sequence still require CS00015. |
+| 1. Distribution | **Complete** | `distribution-check`, deterministic profile reports, provenance checks, native B: conversion, and distribution cosimulation pass. |
+| 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
+| 3. S21/console/locale | **Complete in simulation; two modes physically observed** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, and 53x24/64x20 CS00015 evidence. |
+| 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; STATUS 1.2 and operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state, including a recovered corrupt-stream fixture. |
+| 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 C5 boot/DIR/TYPE counts, per-drive cache oracle, explicit capability query, read-only/copy/snapshot policies, and synchronous-write recovery pass. Write-back caching remains deliberately out of scope. |
+| 6. Manifest/recovery | **Complete** | Manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, and the immutable C4 fallback pass. |
+
+`make check` is the complete desk gate. `make bench-candidate` additionally
+rebuilds the immutable C4 package and proves that incomplete or tampered
+physical evidence cannot pass the recorder audit. Passing those commands does
+not substitute for the Priority 0 hardware observations listed above.

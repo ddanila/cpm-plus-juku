@@ -44,11 +44,13 @@ def assemble_size(module: Module, temporary: Path) -> int:
 
 
 def assemble_span(source: Path, temporary: Path, start: str, end: str,
-                  includes: tuple[Path, ...]) -> int:
+                  includes: tuple[Path, ...],
+                  defines: tuple[str, ...] = ()) -> int:
     output = temporary / "resident-span.cim"
     command = [str(ZMAC), "--nmnv", "--zmac", "-8", "-l"]
     for include in includes:
         command.append(f"-I{include}")
+    command.extend(f"-D{name}" for name in defines)
     command.extend(("-o", str(output), str(source)))
     result = subprocess.run(
         command, check=True, text=True, stdout=subprocess.PIPE,
@@ -125,6 +127,10 @@ def main() -> int:
             helper_source, temporary, "JROMHELPENTRY", "JROMHELPEND",
             (COMMON / "platform",),
         )
+        sizes["rom-console-helper-c5"] = assemble_span(
+            helper_source, temporary, "JROMHELPENTRY", "JROMHELPEND",
+            (COMMON / "platform",), ("ROM_ABI_LOCALE",),
+        )
         sizes["rom-netdisk-v3"] = assemble_span(
             resident_source, temporary, "N3ENA", "rom_netdisk_end",
             (resident_source.parent, COMMON / "platform"),
@@ -161,7 +167,7 @@ def main() -> int:
         sizes["fastboot-core"] + sizes["fastboot-extension-c5"] +
         sizes["diag-cpu"] + sizes["diag-memory"] +
         sizes["diag-address"] + sizes["diag-checksum"] +
-        sizes["rom-console-helper"]
+        sizes["rom-console-helper-c5"]
     )
     boot = (
         ("reset/init/quick POST", sizes["diag-cpu"] + sizes["diag-memory"] +
@@ -169,7 +175,7 @@ def main() -> int:
         ("automatic boot transport", sizes["fastboot-core"], 0x600),
         ("validation/decompress/recovery", sizes["fastboot-extension-c5"],
          0x600),
-        ("RAM helper image/staging", sizes["rom-console-helper"], 0x400),
+        ("RAM helper image/staging", sizes["rom-console-helper-c5"], 0x400),
         ("manifest/checksum/reserve", 0, 0x200),
     )
 

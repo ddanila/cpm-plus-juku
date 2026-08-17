@@ -209,7 +209,7 @@ path. The gain is therefore not inferred merely from source placement.
 | step | status | evidence / remaining work |
 | --- | --- | --- |
 | 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
-| 2. Native RAM console | Complete; 53x24 physically checked | Authentic timing for 40x24, 53x24, 64x20, and MODX-compatible 80x24 is selected by S21 bits 2:1. The Creep-derived font reserves a separator column while its CP437 UI subset joins across cell edges. Independent 9,600-byte oracles exercise all four modes; cursor phases are 512/1,024 polls. CS00015 physically confirms 53x24, glyph spacing, and cursor speed. See [`modx-console-reference.md`](modx-console-reference.md) and [`s21-video-modes.md`](s21-video-modes.md). |
+| 2. Native RAM console | Complete; 53x24 and 64x20 physically checked | Authentic timing for 40x24, 53x24, 64x20, and MODX-compatible 80x24 is selected by S21 bits 2:1. The Creep-derived font reserves a separator column while its CP437 UI subset joins across cell edges. Independent 9,600-byte oracles exercise all four modes; cursor phases are 512/1,024 polls. CS00015 physically confirms 53x24 and 64x20, glyph spacing, and cursor speed. See [`modx-console-reference.md`](modx-console-reference.md) and [`s21-video-modes.md`](s21-video-modes.md). |
 | 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, and records the mode-crossing call graph. The conservative target was exceeded by the measured 38.25 KiB transient span. See [`rom-budget.md`](rom-budget.md). |
 | 4. ROM ABI | ABI 1.0 frozen; 1.1 desk-qualified | `juku-common` defines immutable ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`. The separate ABI 1.1 C5 image appends configuration and four-pair key-remap vectors, uses a 214-byte gate and 128-byte geometry-aware helper, and keeps every 1.0 address/contract unchanged. Executable tests cover manifests, registers, stack guards, DI/PIC ownership, all four S21 video modes, overlay rejection, exact locale pixels, remapping, and bit-0 boot policy. |
 | 5. Automatic network boot | Complete in simulation | Reset establishes PPI/PIC and stock raster/refresh state; POST has distinct C1..C5 failures and reaches C4 target readiness in 725,602 cycles. Identity-free V15 rejects a corrupt extension, recovers, and boots the real CP/M Plus image without keys; `A>`, `DIR`, and `DIAG CPU` pass with zero retries/overruns. The host also recovers when its one-shot C4 observation was missed. See [`network-first-rom-auto-boot.md`](network-first-rom-auto-boot.md). |
@@ -218,60 +218,57 @@ path. The gain is therefore not inferred merely from source placement.
 | 8. Physical qualification | C4 candidate; automatic blind path partly passed | C3 was burned into CS00015 and proved automatic reset/V15, resident output, and NetDisk, then exposed a blocking resident-`CONIN` race in the matching CP/M N4 input path. C4 leaves both EPROM halves byte-identical and corrects the RAM binding. On physical CS00015 it completes remote `DIR`, `DIAG CPU`, explicit `WBOOT`, and post-warm-boot `DIR` with zero bootstrap/disk retry. Delayed-input cosim now locks the failure out. Display, local keyboard, write, repeated cold boot, and live reconnect remain. See [`network-first-rom-bench-candidate.md`](network-first-rom-bench-candidate.md) and the [blind-run evidence](cs00015-c4-blind-qualification-20260817.md). |
 | 9. Acceptance audit | Pending | Publish final maps, artifacts, logs, hashes, timings, and parity decision. |
 
-## Later improvements, outside the first ROM baseline
+## Post-baseline results and remaining experiments
 
-- compress or delta-encode the initial payload only when end-to-end 8080
-  decode time beats the extra wire bytes;
-- negotiate protocol capabilities and ROM ABI features rather than infer them
-  from a banner;
-- prefetch CP/M directory/allocation records and coalesce sequential NetDisk
-  operations, with cache invalidation proved for writes;
-- give the host a small boot manifest so it can select a system without relying
-  on station identity;
-- add a remote diagnostic/status channel that remains bounded and cannot stall
-  normal disk or console traffic;
-- retain a small fixed RAM boot-status record containing the last POST stage,
-  transfer/retry reason, ROM build, and warm/cold-boot marker so the host and
-  `DIAG` can explain a failed or recovered boot without a display;
-- add an optional checksummed boot manifest with image length, load address,
-  entry, protocol requirements, and build identity; defer cryptographic
-  authentication until its EPROM and 8080 cost is measured;
-- consider two host-selectable system slots or a last-known-good image on the
-  server; recovery selection must not require enlarging the ROM menu;
-- investigate baud rates above 19,200 only as a separately named experiment;
-  the proven mode-2/count-4 setting remains the production default;
-- consider a concealed recovery/service entry or local fallback only after the
-  automatic network-only machine is a stable baseline.
+- V15 uses ZX0 compression after end-to-end timing experiments; the stable
+  production rate remains 19,200 baud after separately named higher-rate tests.
+- NetDisk operation 26h provides explicit protocol capabilities, and C5 uses
+  independent eight-record A:/B: read-ahead with write invalidation.
+- The checksummed host manifest binds load/entry addresses, protocol and ABI
+  requirements, build identity, two system slots, and all advertised media
+  without Janet station identity. Last-known-good promotion requires the first
+  valid disk request.
+- Bounded operations 24h, 25h, and 27h publish status, diagnostics, and the C5
+  retained D610h..D613h POST/bootstrap/retry record without stalling ordinary
+  disk or local console service.
+- C5 implements the concealed local-`N` recovery gate when S21 bit 0 is clear;
+  no mandatory ROM menu was added.
+- Cryptographic authentication remains deliberately deferred until its EPROM,
+  wire, and strict-8080 decode costs are measured. Reproducible hashes,
+  Fletcher/CRC guards, and manifest validation remain mandatory meanwhile.
 
 ### Keyboard S21 configuration
 
 The new identity-free network protocol no longer needs S21's stock station
 number fields, so the eight keyboard DIP bits become a machine configuration
 byte shared by ROM and the loaded operating system. The all-RAM CP/M console
-now implements and tests bits 2:1; ROM use remains the next ABI step:
+implements bits 2:1, and the separately named ABI 1.1 C5 ROM applies the same
+table to its resident console:
 
 | logical configuration bits | proposed meaning |
 | --- | --- |
-| bit 0 | ROM-only policy: `1` boots from the network automatically and immediately; `0` does not take the instant path (the exact local/recovery behavior remains to be decided) |
+| bit 0 | ROM-only policy: `1` boots from the network automatically and immediately; `0` waits at the concealed local-`N` recovery gate |
 | bits 2:1 = `00` | 40x24, stock 320x241 timing |
 | bits 2:1 = `01` | 53x24, stock 320x241 timing |
 | bits 2:1 = `10` | 64x20, historical 384x201 timing |
 | bits 2:1 = `11` | MODX-compatible 400x192, 80x24 compact console |
-| bits 7:3 | reserved for later settings; ignored by the first implementation |
+| bits 4:3 | English, Estonian, CP866 Russian, or English/user-remap character bank |
+| bits 7:5 | reserved for later settings |
 
 The physical keyboard drawing serializes S21 during scan positions 8..15 on
 `CONTRDAT`; S21.1..S21.8 map to logical bits 7..0, with a closed active-low
 contact becoming logical one. The shared keyboard driver implements that
 mapping, the simulator models it electrically, and CS00015 raw `02h` selects
-53x24. A future ROM samples S21 once at reset, stores the raw byte in
-its fixed status/workspace, and exposes it through a versioned resident-ABI
-query. Boot bit 0 is consumed only by ROM. The video field is shared policy:
+53x24. C5 samples S21 once at reset, stores the raw byte in its fixed
+status/workspace, and exposes it through the ABI 1.1 resident query. Boot bit
+0 is consumed only by ROM. The video and locale fields are shared policy:
 ROM selects its initial console timing from it and CP/M reads the same latched
 value through the ABI when initializing its console, rather than resampling or
-inventing a separate setting. The host, `DIAG`, and version command should
-report both the raw byte and decoded settings. Resolution selection must be
-table-driven and covered by PIT-write, geometry, framebuffer, ROM-to-CP/M
-handoff, and physical display regressions for all four combinations.
+inventing a separate setting. The host, `DIAG`, and `STATUS` report the raw
+byte and decoded settings. Resolution selection is table-driven and covered
+by geometry, exact-framebuffer, and ROM-to-CP/M handoff regressions for all
+four combinations; 53x24 and 64x20 also have physical display evidence on
+CS00015.
 
 ### CP/M Plus usability
 

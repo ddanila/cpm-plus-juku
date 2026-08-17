@@ -48,17 +48,18 @@ being credited as savings before it exists.
 
 | ROM file range | bytes | envelope | reusable/current implementation evidence |
 | --- | ---: | --- | ---: |
-| `0000h..05FFh` | 1,536 | reset, deterministic hardware init, bounded quick POST | 623 shared mechanisms; 997-byte linked boot |
+| `0000h..05FFh` | 1,536 | reset, deterministic hardware init, bounded quick POST | 623 shared mechanisms; 997-byte C4 / 1,015-byte C5 linked boot |
 | `0600h..0BFFh` | 1,536 | automatic 19,200-baud boot transport | 125-byte source; 141-byte stored core |
-| `0C00h..11FFh` | 1,536 | validation, decompression, timeout/retry recovery | 267 |
-| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | 196-byte gate plus 119-byte console helper |
+| `0C00h..11FFh` | 1,536 | validation, decompression, timeout/retry recovery | 267-byte C4 / 307-byte C5 extension |
+| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | C4 196+119 bytes; C5 214+128 bytes |
 | `1600h..17FFh` | 512 | boot manifest, integrity values, growth reserve | 0 |
-| **total** | **6,144** | exact boot-only window | **1,134 reusable ingredients; 1,453 linked component bytes currently stored** |
+| **total** | **6,144** | exact boot-only window | **1,134 C4 / 1,183 C5 reusable ingredients; 1,453 C4 / 1,498 C5 linked stored bytes** |
 
-The large headroom is intentional. The current builder places 997 bytes of
-reset/POST code, a 141-byte automatic core, a 196-byte gate, and a 119-byte
-helper without overlap. The 267-byte extension is still sent into RAM by the
-host rather than stored in ROM. Later recovery work and moving the complete
+The large headroom is intentional. C4 places 997 bytes of reset/POST code, a
+141-byte automatic core, a 196-byte gate, and a 119-byte helper without
+overlap. C5 uses 1,015, 141, 214, and 128 bytes respectively. The matching
+267-byte C4 or 307-byte C5 extension is sent into RAM by the host rather than
+stored in ROM. Later recovery work and moving the complete
 receive/decompress path into the boot-only window must fit without borrowing
 bytes from the runtime ABI. `network_first_rom_abi_check.sh` independently
 checks the exact linked layout and deterministic image.

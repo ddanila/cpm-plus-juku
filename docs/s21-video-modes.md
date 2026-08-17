@@ -37,7 +37,9 @@ locale-enabled set needs 4,678 bytes. The production integration therefore
 belongs in the network-first ROM's reserved 2 KiB F000h..F7FFh font bank,
 without shrinking the 39,168-byte TPA. The shared keyboard similarly provides
 an optional four-pair persistent substitution table for dead or nonstandard
-per-machine keys; exposing both facilities remains ABI-minor work.
+per-machine keys. The separately named ABI 1.1 C5 ROM exposes both the
+reset-latched configuration byte and four remap pairs through appended vectors;
+the immutable ABI 1.0 C4 image remains unchanged.
 
 The active base font is an adaptation of the MIT-licensed Creep 0.31 BDF.
 Ordinary
@@ -65,11 +67,12 @@ renderer reproduces all 9,600 framebuffer bytes (accepting either cursor blink
 phase). A stock-Ekta4401 `TN` simulation with raw S21=`02h` proves the same
 53x24 path through the exact wrapper subsequently exercised on CS00015.
 
-The ABI 1 resident-ROM compatibility console remains fixed at 80x24. This is
-intentional: the all-RAM implementation establishes the switch policy and
-geometry baseline without changing the published ROM ABI. A later ABI minor
-extension can expose the ROM-latched raw byte and share mode policy during
-automatic-ROM boot.
+The ABI 1.0 C4 resident-ROM compatibility console remains fixed at 80x24. This
+is intentional and immutable. The separately named ABI 1.1 C5 extension
+exposes the ROM-latched raw byte, applies the same four-mode table during
+automatic-ROM boot, and lets matching CP/M consume that latched value rather
+than resampling S21. Independent ROM and CP/M framebuffer oracles cover all
+four 9,600-byte surfaces.
 
 ## CS00015 physical result
 
