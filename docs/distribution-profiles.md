@@ -7,10 +7,10 @@ beside each one:
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
-| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS | 374 KiB | `d3bddfc903fabd4f998fdc7e8c57af6071bed3914a91b752cea29b560c8b67e2` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `a7e5401daaff5f4e4d477b2577241baf58a96f0266eeb0ab8eff46b8aa354b74` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `0df47df9bbff5005625737f73433aa3bbc92bda954bd1ab4c74d46013d4f2fac` |
-| `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and DIAG | 776 KiB | `8e84cb1ab3f2d0be86d516d515389ef4588a0a15665132949de2e5e4c6e7273c` |
+| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS and Diag 0.5 | 374 KiB | `d6bbe01919545daf85d30822926902557ee7c509ad9135b20c73b0b3860398c6` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `3778f6f582006f86613b925058003cda4e028ddc9cc8233b70534b49c635bc1f` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `2d646f67f7b3ab7c04fdf418d3fa6a8827c9244984d68490960dee53ea6ad65f` |
+| `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `b8131b6d695fc276302ff3e341ffae919d803e08e9e6f98e498f658e9c411fd8` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
 must match `prebuilt/cpm-plus-juku.img` byte for byte. Full and demo profiles
@@ -25,6 +25,12 @@ The builder rejects duplicate CP/M names, paths outside the repository,
 checksum differences, invalid geometry/layout values, and inheritance cycles.
 It normalizes host text to CP/M CRLF plus `1Ah`, creates a fresh filesystem,
 and atomically replaces the result.
+
+An inherited file may be replaced only by an explicit boolean
+`"override": true` entry naming exactly one inherited destination. This is
+used by the native recovery profile to replace frozen C4 Diag 0.4 with Diag
+0.5. Missing, ambiguous, or non-boolean overrides fail the build; the override
+marker is not retained in the resolved manifest.
 
 Each report records the image hash, geometry, physical layout, CP/M directory,
 per-file source and volume hashes, provenance, allocation, and free space.

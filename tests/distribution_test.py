@@ -181,6 +181,39 @@ def malformed_profiles_fail_closed() -> None:
             require(result.returncode != 0,
                     f"malformed {label} profile was accepted")
 
+        parent = "recovery.json"
+        for label, override in (
+            ("orphan-override", {
+                "source": "build/diag.cim",
+                "destination": "0:MISSING.COM",
+                "override": True,
+            }),
+            ("typed-override", {
+                "source": "build/diag.cim",
+                "destination": "0:DIAG.COM",
+                "override": "yes",
+            }),
+        ):
+            candidate = {
+                "schema": "cpm-plus-juku-volume-profile-v1",
+                "extends": parent,
+                "name": label,
+                "description": "negative inherited override fixture",
+                "files": [override],
+            }
+            with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json",
+                    dir=ROOT / "volume/profiles") as profile:
+                json.dump(candidate, profile)
+                profile.flush()
+                result = subprocess.run(
+                    ["python3", str(TOOL), "--profile", profile.name,
+                     "--output", str(directory / f"{label}.img")],
+                    cwd=ROOT, capture_output=True, text=True,
+                )
+            require(result.returncode != 0,
+                    f"malformed {label} profile was accepted")
+
 
 def main() -> int:
     generated_profiles_are_stable()

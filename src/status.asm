@@ -11,6 +11,9 @@ PRINT           equ     9
 start:
         lxi     d,title
         call    puts
+        lda     0c5eah                 ; native adapter marker, avoids C4 USERF
+        cpi     04eh
+        jnz     unavailable
         mvi     a,30                   ; versioned Juku USERF
         call    setvector
         mvi     c,1                    ; sample S21 and publish to N4 host

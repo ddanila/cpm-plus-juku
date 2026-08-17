@@ -17,11 +17,11 @@
       }
     },
     {
-      "source": "build/diag.cim",
+      "source": "build/diag-c4.cim",
       "destination": "0:DIAG.COM",
       "provenance": {
-        "source": "src/diag.asm and pinned juku-common diagnostics",
-        "version": "cpm-plus-juku build",
+        "source": "prebuilt/cpm-plus-juku.img",
+        "version": "frozen C4 Juku Diag 0.4",
         "license": "LICENSE and third_party/juku-common notices"
       }
     },

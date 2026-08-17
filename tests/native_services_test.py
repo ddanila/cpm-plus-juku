@@ -9,6 +9,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src" / "cpm3-native-services.asm"
+ADAPTER = ROOT / "src" / "platform-adapter.asm"
 SYSTEM = ROOT / "out" / "cpm-plus-juku-network-rom-native-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-network-rom-native-fastboot-v15.bin"
 
@@ -30,6 +31,7 @@ def main() -> int:
         "NSMOVEFORWARD:",
         "call    NCTIME",
         "call    NCPUBLISH",
+        "call    NCDIAG",
         "db      'J','N','S','1'",
         "mvi     a,0ffh                  ; authoritative local output is ready",
         "xra     a                       ; no separately assigned AUX source",
@@ -37,6 +39,8 @@ def main() -> int:
     for marker in required:
         if marker not in source:
             raise AssertionError(f"native service marker missing: {marker}")
+    if "mvi     a,04eh" not in ADAPTER.read_text():
+        raise AssertionError("native adapter presence marker is missing")
     if not re.search(r"NSFLUSH:\s+xra\s+a\s+ret", source):
         raise AssertionError("FLUSH is not explicitly successful")
 
@@ -57,7 +61,7 @@ def main() -> int:
         raise AssertionError("native V15 bootstrap header is missing")
     print(
         "CPM3-NATIVE-SERVICES: PASS "
-        "(device, MULTIO, FLUSH, MOVE, TIME, USERF, status publish)"
+        "(device, MULTIO, FLUSH, MOVE, TIME, USERF, status/diag publish)"
     )
     return 0
 

@@ -16,6 +16,7 @@
         public  NSUSERF
         extrn   NCTIME
         extrn   NCPUBLISH
+        extrn   NCDIAG
 
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
@@ -153,7 +154,16 @@ NSUSERF:
         ora     a
         jz      NSUSERFSAMPLE
         dcr     a
+        jz      NSUSERFPUBLISH
+        dcr     a
         jnz     NSUSERFBAD
+        mov     a,b                     ; C=2: B/D/E/L -> suite/pass/fail/flags
+        mov     b,d
+        mov     d,e
+        mov     e,l
+        call    NCDIAG
+        jmp     NSUSERFRET
+NSUSERFPUBLISH:
         call    NSSAMPLES21
         mvi     d,00fh                  ; NSINFO feature flags
         lda     NSCLOCKSTATUS

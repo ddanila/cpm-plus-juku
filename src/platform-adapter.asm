@@ -49,7 +49,7 @@ BBASE:
         extrn   NCIN
         extrn   NCOUT
 .endif
-.ifdef NATIVE_SERVICES
+.ifdef NATIVE_SERVICES_EXTRNS
         extrn   NSCONOST
         extrn   NSAUXIST
         extrn   NSAUXOST
@@ -80,7 +80,7 @@ BBASE:
         jmp     WRITE
         jmp     EMPTY
         jmp     SECTRAN
-.ifdef NATIVE_SERVICES
+.ifdef NATIVE_SERVICES_VECTORS
         jmp     NSCONOST
         jmp     NSAUXIST
         jmp     NSAUXOST
@@ -157,6 +157,7 @@ ROMLASTTRIES   equ     0c5ffh
 ROMN3TRIES     equ     0d79ch
 NATIVEBOOT     equ     0c5e8h
 NATIVEPOST     equ     0c5e9h
+NATIVEMARK     equ     0c5eah
 .else
 PICSHADOW      equ     0b0f0h
 .endif
@@ -176,13 +177,15 @@ BOOT:
         di
 .endif
 .endif
-.ifdef NATIVE_SERVICES
+.ifdef NATIVE_SERVICES_BOOT
         xra     a
         sta     NATIVEBOOT
         sta     ROMLASTDISK
         sta     ROMLASTTRIES
         lda     0d610h
         sta     NATIVEPOST
+        mvi     a,04eh
+        sta     NATIVEMARK
 .endif
 .ifndef CPM3ADAPTER
         lxi     sp,0100h
@@ -685,10 +688,12 @@ ROMRWDISK:
         sta     ROMNETREQUEST+9
         lxi     h,ROMNETREQUEST
         call    JCGNETDISKADDR
+.ifdef NATIVE_SERVICES_DISK
         sta     ROMLASTDISK
         lda     ROMN3TRIES
         sta     ROMLASTTRIES
         lda     ROMLASTDISK
+.endif
         ret
 .endif
 

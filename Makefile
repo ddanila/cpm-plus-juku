@@ -23,6 +23,7 @@ NATIVE_ROM_SYS := $(BUILD)/cpm3-network-rom-native.sys
 NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-native-system.bin
 NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-native-fastboot-v15.bin
 NATIVE_TEST_VOLUME := $(OUT)/cpm-plus-juku-native-test.img
+C4_DIAG := $(BUILD)/diag-c4.cim
 NATIVE_RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-native-recovery.img
 VOLUME := $(OUT)/cpm-plus-juku.img
 RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-recovery.img
@@ -166,6 +167,8 @@ $(BUILD)/platform-adapter-romabi.rel: src/platform-adapter.asm \
 $(BUILD)/platform-adapter-romabi-native.rel: src/platform-adapter.asm \
 		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI -DNATIVE_SERVICES \
+		-DNATIVE_SERVICES_EXTRNS -DNATIVE_SERVICES_VECTORS \
+		-DNATIVE_SERVICES_BOOT -DNATIVE_SERVICES_DISK \
 		-I$(COMMON)/platform -o $@ $<
 
 $(BUILD)/cpm3-native-services.rel: src/cpm3-native-services.asm $(ZMAC) | $(BUILD)
@@ -292,6 +295,11 @@ $(NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<
 
+$(C4_DIAG): prebuilt/cpm-plus-juku.img diskdefs | $(BUILD)
+	DISKDEFS=$(abspath diskdefs) cpmcp -f juku386 $< 0:DIAG.COM $@
+	test "$$(sha256sum $@ | cut -d' ' -f1)" = \
+		7603115ef94bf7b6792f80cb87cc71916970af08c34227cfe2368c8e88331110
+
 $(BUILD)/wboot.cim: src/wboot.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
@@ -317,7 +325,7 @@ $(BUILD)/cpm3-utilities/manifest.json: \
 	$(PYTHON) tools/extract_cpm3_utilities.py
 
 $(RECOVERY_VOLUME) $(RECOVERY_REPORT) &: third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim volume/README.txt \
+		$(C4_DIAG) $(BUILD)/wboot.cim volume/README.txt \
 		volume/profiles/recovery.json tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/recovery.json \
 		--output $(RECOVERY_VOLUME) --report $(RECOVERY_REPORT)
@@ -372,6 +380,7 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=NATIVE \
 	CPM_PLUS_JUKU_EXTRA_MARKER='NATIVE: PASS' \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 	CPM_PLUS_JUKU_ROM_SYSTEM=$(NATIVE_ROM_SYSTEM) \
@@ -379,7 +388,11 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=STATUS \
 	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Status 1.0' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND2='DIAG IO' \
+	CPM_PLUS_JUKU_EXTRA_MARKER2='Keyboard/S21: PASS' \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=2 \
+	CPM_PLUS_JUKU_EXPECT_IO_DIAG=1 \
 	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 

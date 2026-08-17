@@ -162,8 +162,13 @@ resident map, system/ROM/protocol identities, S21/video configuration, MULTIO,
 clock counters, reset POST status, cold/warm state, last disk status/attempt
 state, and N4 failure/reconnect state, and mirrors its compact configuration
 tuple to host logs. The simulator proves the cold-to-warm transition and keeps
-the C4 artifacts byte-identical. Richer bootstrap failure reasons and the
-expanded shared hardware diagnostic matrix remain open.
+the C4 artifacts byte-identical. Richer bootstrap failure reasons remain open.
+The safe shared diagnostic matrix is now implemented in Diag 0.5:
+CPU/memory, D57, D11, ROM/integrity, video, keyboard/S21, and combined suites
+use `juku-common` probes and publish a bounded machine-readable result over N4.
+Destructive tests are explicitly refused under live CP/M and remain a ROM-only
+responsibility. The immutable C4 image retains Diag 0.4; post-C4 profiles opt
+into Diag 0.5. See [`cpm3-diagnostics.md`](cpm3-diagnostics.md).
 
 ## Priority 5: NetDisk performance and media safety
 

@@ -64,7 +64,32 @@ def load_profile(path: Path, stack: tuple[Path, ...] = ()) -> dict[str, object]:
             key: value for key, value in profile.items()
             if key not in ("extends", "files")
         })
-        merged["files"] = [*parent["files"], *child_files]
+        merged_files = [dict(item) for item in parent["files"]]
+        for child in child_files:
+            if not isinstance(child, dict):
+                raise ValueError("volume profile child file is not an object")
+            replacement = child.get("override", False)
+            if not isinstance(replacement, bool):
+                raise ValueError("volume file override must be boolean")
+            clean_child = {
+                key: value for key, value in child.items()
+                if key != "override"
+            }
+            if replacement:
+                destination = clean_child.get("destination")
+                matches = [
+                    index for index, item in enumerate(merged_files)
+                    if item.get("destination") == destination
+                ]
+                if len(matches) != 1:
+                    raise ValueError(
+                        "volume override must replace exactly one inherited "
+                        f"destination: {destination!r}"
+                    )
+                merged_files[matches[0]] = clean_child
+            else:
+                merged_files.append(clean_child)
+        merged["files"] = merged_files
         profile = merged
     for key in ("name", "description", "geometry"):
         if not isinstance(profile.get(key), str) or not profile[key]:

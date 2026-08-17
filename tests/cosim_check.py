@@ -334,6 +334,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         if drive_b is not None else None
     stats: dict[str, int] = {}
     status_reports: list[dict[str, int]] = []
+    diag_reports: list[dict[str, int]] = []
     fault_evidence: dict[str, int] = {}
     restart_armed = threading.Event()
     errors: list[BaseException] = []
@@ -406,6 +407,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             console_input=remote.input,
                             console_output=remote.output,
                             status_report_hook=status_reports.append,
+                            diag_report_hook=diag_reports.append,
                         )
 
                     if disk_fault in ("server-restart", "mid-session-restart"):
@@ -501,6 +503,21 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             f"extra command lacks {marker!r}: {extra!r}")
                     print(
                         f"COSIM {case.name}: {extra_command}", flush=True,
+                    )
+                extra_command2 = os.environ.get(
+                    "CPM_PLUS_JUKU_EXTRA_COMMAND2",
+                )
+                if extra_command2:
+                    send_console(extra_command2.encode("ascii") + b"\r")
+                    extra2 = read_until(b"A>", command_timeout)
+                    marker2 = os.environ.get(
+                        "CPM_PLUS_JUKU_EXTRA_MARKER2", extra_command2,
+                    ).encode("ascii")
+                    require(marker2 in extra2,
+                            f"second extra command lacks {marker2!r}: "
+                            f"{extra2!r}")
+                    print(
+                        f"COSIM {case.name}: {extra_command2}", flush=True,
                     )
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)
@@ -623,6 +640,24 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 and status_reports[-1]["features"] == 0x0F
                 and status_reports[-1]["clock_status"] == 0,
                 f"target status tuple differs: {status_reports}",
+            )
+        expected_diag_reports = int(os.environ.get(
+            "CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS", "0",
+        ))
+        require(
+            stats.get("diag_reports", 0) == expected_diag_reports
+            and len(diag_reports) == expected_diag_reports,
+            "target diagnostic report count differs: "
+            f"expected={expected_diag_reports} reports={diag_reports} "
+            f"stats={stats}",
+        )
+        if os.environ.get("CPM_PLUS_JUKU_EXPECT_IO_DIAG") == "1":
+            require(
+                diag_reports[-1]["suite"] == 2
+                and diag_reports[-1]["pass_mask"] == 0x7C
+                and diag_reports[-1]["fail_mask"] == 0
+                and diag_reports[-1]["flags"] == 0,
+                f"target I/O diagnostic tuple differs: {diag_reports[-1]}",
             )
         if disk_fault == "compound-recovery":
             require(
