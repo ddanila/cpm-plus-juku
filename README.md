@@ -136,7 +136,7 @@ out/cpm-plus-juku-network-rom-system.bin       ROM-ABI consumer container
 out/cpm-plus-juku-network-rom-fastboot-v15.bin ROM-ABI consumer fastboot bundle
 out/cpm-plus-juku.img              host-backed A: volume
 out/cpm-plus-juku-recovery.img     named immutable C4 recovery A:
-out/cpm-plus-juku-native-recovery.img post-C4 recovery A: with STATUS
+out/cpm-plus-juku-native-recovery.img post-C4 recovery A: with STATUS/KEYTEST
 out/cpm-plus-juku-full.img         licensed utility A:
 out/cpm-plus-juku-museum-demo.img  opt-in PROFILE.SUB demo A:
 out/cpm-plus-juku-apps.juk         approved native 800 KiB B:

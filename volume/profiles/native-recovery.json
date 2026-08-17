@@ -22,6 +22,15 @@
         "version": "Juku Status 1.1",
         "license": "LICENSE"
       }
+    },
+    {
+      "source": "build/keytest.cim",
+      "destination": "0:KEYTEST.COM",
+      "provenance": {
+        "source": "src/keytest.asm",
+        "version": "Juku Keytest 1.0",
+        "license": "LICENSE"
+      }
     }
   ]
 }

@@ -500,6 +500,49 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     )
                 command_timeout = 600 if network_rom and remote_console \
                     else 120
+
+                def run_extra_command(suffix: str = "") -> None:
+                    command_name = f"CPM_PLUS_JUKU_EXTRA_COMMAND{suffix}"
+                    marker_name = f"CPM_PLUS_JUKU_EXTRA_MARKER{suffix}"
+                    markers_name = f"CPM_PLUS_JUKU_EXTRA_MARKERS{suffix}"
+                    ready_name = \
+                        f"CPM_PLUS_JUKU_EXTRA_READY_MARKER{suffix}"
+                    input_name = f"CPM_PLUS_JUKU_EXTRA_INPUT_HEX{suffix}"
+                    command = os.environ.get(command_name)
+                    if not command:
+                        return
+                    send_console(command.encode("ascii") + b"\r")
+                    ready_marker = os.environ.get(ready_name)
+                    input_hex = os.environ.get(input_name)
+                    if bool(ready_marker) != bool(input_hex):
+                        raise AssertionError(
+                            f"{ready_name} and {input_name} must be paired"
+                        )
+                    response = b""
+                    if ready_marker is not None and input_hex is not None:
+                        response += read_until(
+                            ready_marker.encode("ascii"), command_timeout,
+                        )
+                        send_console(bytes.fromhex(input_hex))
+                    response += read_until(b"A>", command_timeout)
+                    marker = os.environ.get(
+                        marker_name, command,
+                    ).encode("ascii")
+                    require(
+                        marker in response,
+                        f"extra command lacks {marker!r}: {response!r}",
+                    )
+                    for expected in os.environ.get(
+                            markers_name, "").split("|"):
+                        if expected:
+                            encoded = expected.encode("ascii")
+                            require(
+                                encoded in response,
+                                f"extra command lacks {encoded!r}: "
+                                f"{response!r}",
+                            )
+                    print(f"COSIM {case.name}: {command}", flush=True)
+
                 profile_startup = first
                 if expected_profile:
                     while profile_startup.count(b"A>") < 2:
@@ -555,33 +598,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 send_console(b"DIAG CPU\r")
                 fourth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: DIAG", flush=True)
-                extra_command = os.environ.get("CPM_PLUS_JUKU_EXTRA_COMMAND")
-                if extra_command:
-                    send_console(extra_command.encode("ascii") + b"\r")
-                    extra = read_until(b"A>", command_timeout)
-                    marker = os.environ.get(
-                        "CPM_PLUS_JUKU_EXTRA_MARKER", extra_command,
-                    ).encode("ascii")
-                    require(marker in extra,
-                            f"extra command lacks {marker!r}: {extra!r}")
-                    print(
-                        f"COSIM {case.name}: {extra_command}", flush=True,
-                    )
-                extra_command2 = os.environ.get(
-                    "CPM_PLUS_JUKU_EXTRA_COMMAND2",
-                )
-                if extra_command2:
-                    send_console(extra_command2.encode("ascii") + b"\r")
-                    extra2 = read_until(b"A>", command_timeout)
-                    marker2 = os.environ.get(
-                        "CPM_PLUS_JUKU_EXTRA_MARKER2", extra_command2,
-                    ).encode("ascii")
-                    require(marker2 in extra2,
-                            f"second extra command lacks {marker2!r}: "
-                            f"{extra2!r}")
-                    print(
-                        f"COSIM {case.name}: {extra_command2}", flush=True,
-                    )
+                run_extra_command()
+                run_extra_command("2")
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: WBOOT", flush=True)

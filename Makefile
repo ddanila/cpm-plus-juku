@@ -432,8 +432,12 @@ $(BUILD)/nativecheck.cim: src/nativecheck.asm $(ZMAC) | $(BUILD)
 $(BUILD)/status.cim: src/status.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/keytest.cim: src/keytest.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
 $(NATIVE_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
-		$(BUILD)/wboot.cim $(BUILD)/status.cim $(BUILD)/nativecheck.cim \
+		$(BUILD)/wboot.cim $(BUILD)/status.cim $(BUILD)/keytest.cim \
+		$(BUILD)/nativecheck.cim \
 		volume/README.txt volume/profiles/recovery.json \
 		volume/profiles/native-recovery.json volume/profiles/native-test.json \
 		tools/build_volume.py diskdefs | $(OUT)
@@ -458,7 +462,7 @@ $(VOLUME): $(RECOVERY_VOLUME) | $(OUT)
 
 $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) &: \
 		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot.cim \
-		$(BUILD)/status.cim volume/README.txt \
+		$(BUILD)/status.cim $(BUILD)/keytest.cim volume/README.txt \
 		volume/profiles/recovery.json volume/profiles/native-recovery.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py \
@@ -467,7 +471,8 @@ $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) &: \
 		--report $(NATIVE_RECOVERY_REPORT)
 
 $(FULL_VOLUME) $(FULL_REPORT) &: third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim volume/README.txt \
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim \
+		$(BUILD)/keytest.cim volume/README.txt \
 		$(BUILD)/cpm3-utilities/manifest.json volume/profiles/full.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/full.json \
@@ -479,7 +484,8 @@ $(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
 		--output $(APPS_VOLUME) --report $(APPS_REPORT)
 
 $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim volume/README.txt \
+		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim \
+		$(BUILD)/keytest.cim volume/README.txt \
 		volume/PROFILE.sub $(BUILD)/cpm3-utilities/manifest.json \
 		volume/profiles/full.json volume/profiles/demo.json \
 		tools/build_volume.py diskdefs | $(OUT)
@@ -534,6 +540,11 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=NATIVE \
 	CPM_PLUS_JUKU_EXTRA_MARKER='NATIVE: PASS' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND2=KEYTEST \
+	CPM_PLUS_JUKU_EXTRA_READY_MARKER2='Juku Keytest 1.0 READY' \
+	CPM_PLUS_JUKU_EXTRA_INPUT_HEX2='41 20 31 0d 1b' \
+	CPM_PLUS_JUKU_EXTRA_MARKER2='Juku Keytest 1.0 DONE' \
+	CPM_PLUS_JUKU_EXTRA_MARKERS2="KEY 41 'A'|KEY 20 ' '|KEY 31 '1'|KEY 0D|KEY 1B" \
 	CPM_PLUS_JUKU_EXPECT_BOOT_READS=22 \
 	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
 	CPM_PLUS_JUKU_EXPECT_TYPE_READS=2 \

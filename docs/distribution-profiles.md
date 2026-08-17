@@ -7,15 +7,17 @@ beside each one:
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
-| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS and Diag 0.5 | 374 KiB | `92319686c068160c5444d226f3c64bc74bdd7210ba4ecd52463aad5574fe6ab7` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `9e4463d256593e8b800af8a0a9b4990870540be3ade7362c3acbfc3c45fdbbf9` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `d7f27ecf329d3d24521ae47eb9ca0564377758820d8369aeff972576cab4bf01` |
+| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS, KEYTEST, and Diag 0.5 | 372 KiB | `165441407e549ec351709cab4915112e4424c896d050f04e62a2bd0a069a4df7` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 250 KiB | `42c19929f6f4d3d2f168a2757b7bd2492d3cdd18ab2a76b70f31ce0de89fa4c0` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 248 KiB | `2c99a34b02a49c17a745aca6928e5f65306558fb6c7166e9d85acbb6ee97d257` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
 must match `prebuilt/cpm-plus-juku.img` byte for byte. Full and demo profiles
 cannot silently alter that C4 baseline. The native recovery profile is the
 explicit post-baseline successor; it adds `STATUS.COM` without changing C4.
+It also adds `KEYTEST.COM`, whose unbuffered direct-console input and normal
+BIOS output provide a blind local-keyboard test over the N4 console.
 
 ## Build contract
 

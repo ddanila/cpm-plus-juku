@@ -28,7 +28,7 @@ CASES = {
         {
             "CCP.COM", "DIAG.COM", "WBOOT.COM", "README.TXT", "PIP.COM",
             "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
-            "HELP.COM", "HELP.HLP", "STATUS.COM",
+            "HELP.COM", "HELP.HLP", "STATUS.COM", "KEYTEST.COM",
         },
         409600,
     ),
@@ -36,7 +36,10 @@ CASES = {
         ROOT / "volume/profiles/native-recovery.json",
         ROOT / "out/cpm-plus-juku-native-recovery.img",
         ROOT / "out/cpm-plus-juku-native-recovery.report.json",
-        {"CCP.COM", "DIAG.COM", "WBOOT.COM", "README.TXT", "STATUS.COM"},
+        {
+            "CCP.COM", "DIAG.COM", "WBOOT.COM", "README.TXT", "STATUS.COM",
+            "KEYTEST.COM",
+        },
         409600,
     ),
     "apps": (
@@ -53,7 +56,8 @@ CASES = {
         {
             "CCP.COM", "DIAG.COM", "WBOOT.COM", "README.TXT", "PIP.COM",
             "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
-            "HELP.COM", "HELP.HLP", "STATUS.COM", "PROFILE.SUB",
+            "HELP.COM", "HELP.HLP", "STATUS.COM", "KEYTEST.COM",
+            "PROFILE.SUB",
         },
         409600,
     ),

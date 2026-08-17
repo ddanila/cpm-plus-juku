@@ -306,3 +306,8 @@ byte-reproducible tar. This completes every desk-executable item in this plan.
 It deliberately does not promote C5: the full C5 physical matrix remains the
 next hardware gate. See
 [`cpm-plus-31-c5-release-candidate.md`](cpm-plus-31-c5-release-candidate.md).
+
+For monitorless completion of the keyboard portion, the post-C4 profiles now
+include `KEYTEST.COM`. It reports unbuffered local key codes through N4, has a
+bounded exit, and passes an exact simulator transcript including Space and
+Enter. Display and cursor acceptance still require a working external display.
