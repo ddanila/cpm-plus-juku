@@ -369,11 +369,13 @@ $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
 		--output $(DEMO_VOLUME) --report $(DEMO_REPORT)
 
 $(BOOT_MANIFEST): $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
+		$(ROM_SYSTEM) $(ROM_FASTBOOT) \
 		$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
 		$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
 		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
 	$(PYTHON) tools/build_boot_manifest.py \
 		--system $(NATIVE_ROM_SYSTEM) --fast-stage $(NATIVE_ROM_FASTBOOT) \
+		--fallback-system $(ROM_SYSTEM) --fallback-fast-stage $(ROM_FASTBOOT) \
 		--volume $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
 		--volume $(FULL_VOLUME) $(FULL_REPORT) \
 		--volume $(APPS_VOLUME) $(APPS_REPORT) \

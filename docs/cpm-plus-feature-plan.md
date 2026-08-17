@@ -234,8 +234,12 @@ all named A:/B: profiles with geometry and media policy. The production host
 can reject stale artifacts before opening the serial device and records the
 manifest identity in timing evidence. This is station-identity independent.
 The on-wire target capability query is now implemented as operation 26h and is
-kept distinct from the build/media manifest. Last-known-good/two-slot recovery
-remains open. See [`boot-manifest.md`](boot-manifest.md).
+kept distinct from the build/media manifest. The manifest now binds native and
+immutable C4-compatible system/bootstrap slots; the host exhausts one bounded
+restart budget before automatically trying the other and atomically promotes
+a slot only after the first valid disk request proves execution. A matching
+last-known-good slot is preferred on the next run. See
+[`boot-manifest.md`](boot-manifest.md).
 
 ## Completion order
 

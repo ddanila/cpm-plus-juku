@@ -30,6 +30,15 @@ def main() -> int:
             requirements["disk_baud"] != 19200 or \
             "capability-query" not in requirements["features"]:
         raise AssertionError("manifest protocol requirements differ")
+    slots = {slot["name"]: slot for slot in manifest["system_slots"]}
+    if set(slots) != {"native", "c4-compatibility"} or \
+            slots["native"]["system"] != manifest["system"] or \
+            slots["native"]["fast_stage"] != manifest["fast_stage"] or \
+            slots["c4-compatibility"]["system"]["sha256"] != \
+            hashlib.sha256(
+                (ROOT / "out/cpm-plus-juku-network-rom-system.bin").read_bytes()
+            ).hexdigest():
+        raise AssertionError("manifest system-slot set differs")
     profiles = {item["profile"]: item for item in manifest["volumes"]}
     if set(profiles) != {
         "native-recovery-a", "full-a", "museum-demo-a", "approved-apps-b",

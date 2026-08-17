@@ -39,6 +39,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--system", type=Path, required=True)
     parser.add_argument("--fast-stage", type=Path, required=True)
+    parser.add_argument("--fallback-system", type=Path, required=True)
+    parser.add_argument("--fallback-fast-stage", type=Path, required=True)
     parser.add_argument(
         "--volume", action="append", nargs=2, type=Path,
         metavar=("IMAGE", "REPORT"), default=[],
@@ -68,6 +70,28 @@ def main() -> int:
     if fast_data[3:7] != b"JF15":
         raise ValueError("fast stage is not Juku fastboot v15")
     fast_stage.update({"format": "JF15", "version": 15})
+    fallback_system, fallback_system_data = image_record(args.fallback_system)
+    if fallback_system_data[:8] != SYSTEM_MAGIC or \
+            len(fallback_system_data) < 512:
+        raise ValueError("fallback system is not a JUKURM1 container")
+    fallback_length = int.from_bytes(fallback_system_data[12:14], "little")
+    fallback_crc = int.from_bytes(fallback_system_data[14:16], "little")
+    if len(fallback_system_data) != 512 + fallback_length or \
+            crc16_ibm(fallback_system_data[512:]) != fallback_crc:
+        raise ValueError("fallback system length or CRC differs from its header")
+    fallback_system.update({
+        "format": "JUKURM1",
+        "load_address": int.from_bytes(fallback_system_data[8:10], "little"),
+        "entry_address": int.from_bytes(fallback_system_data[10:12], "little"),
+        "payload_bytes": fallback_length,
+        "payload_crc16_ibm": f"{fallback_crc:04X}",
+    })
+    fallback_fast_stage, fallback_fast_data = image_record(
+        args.fallback_fast_stage,
+    )
+    if fallback_fast_data[3:7] != b"JF15":
+        raise ValueError("fallback fast stage is not Juku fastboot v15")
+    fallback_fast_stage.update({"format": "JF15", "version": 15})
 
     volumes: list[dict[str, object]] = []
     for image_path, report_path in args.volume:
@@ -94,6 +118,18 @@ def main() -> int:
         "build_identity": f"native-{system['sha256'][:16]}",
         "system": system,
         "fast_stage": fast_stage,
+        "system_slots": [
+            {
+                "name": "native",
+                "system": system,
+                "fast_stage": fast_stage,
+            },
+            {
+                "name": "c4-compatibility",
+                "system": fallback_system,
+                "fast_stage": fallback_fast_stage,
+            },
+        ],
         "requirements": {
             "cpu": "Intel 8080",
             "rom_abi": "1.0",

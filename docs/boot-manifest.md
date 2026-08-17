@@ -16,6 +16,8 @@ The manifest records:
 - every published A:/B: profile with image hash, geometry, physical layout,
   and recommended media policy;
 - a stable build identity derived from the native system hash.
+- two named, hash-bound system/bootstrap slots: current native and immutable
+  C4 compatibility.
 
 The production Janet server accepts `--boot-manifest`. Before opening the
 serial device it verifies the selected system, optional fast stage, A:,
@@ -32,3 +34,10 @@ after boot, the target can explicitly query the connected server's protocol,
 read-ahead bound, runtime feature bits, and drive count. The manifest prevents
 the host from opening a stale artifact set; the on-wire query prevents target
 software from guessing runtime services from a banner or station identity.
+
+The production host can pair the two manifest slots with an atomic
+last-known-good state file. Every slot gets the configured bounded restart
+budget; exhaustion moves automatically to the other slot. A slot is promoted
+only when the running target sends its first valid disk request, not when the
+bootstrap bytes were merely accepted. State includes both system and fast-stage
+hashes and is ignored if either no longer matches the selected manifest.
