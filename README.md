@@ -68,8 +68,13 @@ byte-identical to the RAM baseline. The Creep font and faster cursor entered
 CS00015 as candidate C3. Its first blind automatic-ROM run proved reset, V15,
 resident output, and NetDisk, then exposed a blocking local-`CONIN` race in the
 matching CP/M N4 input path. Candidate C4 keeps both C3 EPROM halves unchanged
-and freezes the corrected runtime; remote `DIR`, `DIAG CPU`, `WBOOT`, and a
-second `DIR` now pass physically. The remaining physical matrix is pending.
+and freezes the corrected runtime. Three physical cold boots now pass the full
+remote `DIR`, sequential-read, `DIAG CPU`, `WBOOT`, and erase/write matrix in
+6.068--6.070 seconds. A replacement host also restores NetDisk/N4 and returns
+`DIR` to `A>` without RESET. The earlier apparent reconnect failure was a
+host-only PTY input flush, now fixed and regression-tested. Only the exact
+resident display, cursor, and local-keyboard observation remains before C4
+promotion.
 C1 was superseded before burning after a stock-ROM/manual-resume run exposed
 its deterministic glyph corruption, and C2/C3 remain immutable.
 Resident
@@ -223,7 +228,7 @@ boots the byte-identical C4 image through `juku_top`/`vm80a` and proves its resi
 framebuffer, keyboard, serial, and one NetDisk-v3 DMA transaction. Full-system
 behavior remains guarded by the C-model matrix and the pending physical test.
 The deterministic `network-first-abi1-cs00015-c4` programming/runtime package,
-hashes, socket order, and remaining physical matrix are in
+hashes, socket order, and the remaining local-console observation are in
 [`docs/network-first-rom-bench-candidate.md`](docs/network-first-rom-bench-candidate.md).
 The memory constraints, staged migration, and acceptance contract are in
 [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md).

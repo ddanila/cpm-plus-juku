@@ -43,6 +43,10 @@ MANUAL_TESTS = (
     "server_reconnect_without_reset",
 )
 VALID_RESULTS = ("pending", "pass", "fail")
+CONSOLE_READY_MARKERS = (
+    "Advertising N4 remote console on ",
+    "Resuming N4 remote console on ",
+)
 
 
 class N4Console:
@@ -95,6 +99,11 @@ class N4Console:
             "paged N4 console did not return to CCP; "
             f"transcript={bytes(self.transcript[start:])!r}"
         )
+
+
+def console_server_ready(line: str) -> bool:
+    """Return true only after the server has configured and opened its PTY."""
+    return any(marker in line for marker in CONSOLE_READY_MARKERS)
 
 
 def n4_console_smoke(fd: int, *, resume: bool, timeout: float) -> dict[str, Any]:
@@ -368,6 +377,8 @@ def server_command(directory: Path, session: dict[str, Any], args: argparse.Name
     ))
     if console_pty is not None:
         command.extend(("--console-pty", console_pty))
+        if resume:
+            command.append("--console-trace")
     return command
 
 
@@ -410,9 +421,11 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, bufsize=1, start_new_session=True,
         )
-        if console_slave is not None:
-            os.close(console_slave)
-            console_slave = None
+        # Retain our slave descriptor while the server starts. Closing the
+        # last slave before janet_disk_server opens the PTY path makes an
+        # eager read from the master fail with EIO on Linux. More importantly,
+        # do not queue resume input until the server has configured the PTY:
+        # tty.setraw traditionally flushes bytes queued before that point.
 
         def exercise_console() -> None:
             nonlocal smoke_result
@@ -428,18 +441,22 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
                 if process.poll() is None:
                     process.send_signal(signal.SIGINT)
 
-        console_worker = None
-        if console_master is not None:
-            console_worker = threading.Thread(
-                target=exercise_console, daemon=True,
-            )
-            console_worker.start()
+        console_worker: threading.Thread | None = None
         assert process.stdout is not None
         try:
             for line in process.stdout:
                 print(line, end="")
                 log.write(line)
                 log.flush()
+                if console_master is not None and console_worker is None and \
+                        console_server_ready(line):
+                    if console_slave is not None:
+                        os.close(console_slave)
+                        console_slave = None
+                    console_worker = threading.Thread(
+                        target=exercise_console, daemon=True,
+                    )
+                    console_worker.start()
             returncode = process.wait()
         except KeyboardInterrupt:
             if process.poll() is None:
@@ -453,9 +470,16 @@ def run_server(args: argparse.Namespace, *, resume: bool) -> int:
                 console_master = None
                 console_worker.join(timeout=1)
                 smoke_errors.append(TimeoutError("N4 console worker did not stop"))
+        elif console_master is not None:
+            smoke_errors.append(
+                RuntimeError("server never announced N4 console readiness")
+            )
         if console_master is not None:
             os.close(console_master)
             console_master = None
+        if console_slave is not None:
+            os.close(console_slave)
+            console_slave = None
     boot_path = result / "boot.json"
     record = {
         "schema": "juku-network-first-physical-host-run-v1",

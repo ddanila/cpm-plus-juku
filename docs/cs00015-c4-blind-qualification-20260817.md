@@ -66,3 +66,56 @@ input path that exposed the hardware failure. The corrected image completed
 and zero bootstrap overruns. The complete legacy/direct/stock/network fault,
 restart, and video-mode matrix also passed, as did the C4 ABI/POST and
 structural HDL gates.
+
+## Repeated cold boots and complete blind matrix
+
+A later auditable session on the same day ran three independent power-on
+boots of the exact C4 package. Every run used a fresh private writable copy of
+A: and completed the same monitor-independent sequence: automatic boot without
+a keypress, the CP/M Plus banner and `A>`, `DIR`, paginated
+`TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`, `ERA README.TXT`, and a final
+directory proving that the file was gone.
+
+| cold boot | first valid NetDisk request | N4 transcript SHA-256 |
+| ---: | ---: | --- |
+| 1 | 6.070435849 s | `308a010722d53d859d005ed41f6368b4845c556148f6fa28a6eb091f1044ef92` |
+| 2 | 6.069430049 s | `308a010722d53d859d005ed41f6368b4845c556148f6fa28a6eb091f1044ef92` |
+| 3 | 6.068261806 s | `308a010722d53d859d005ed41f6368b4845c556148f6fa28a6eb091f1044ef92` |
+
+All three runs used 7,301 compressed bytes, reported a 4.33-second bulk V15
+transfer, and needed no extension or stream retry. The host missed both the
+one-shot ROM-ready byte and final V15 reply in every run, then safely used the
+synchronized probe/fall-through path. The first valid NetDisk request
+independently confirmed execution; no system retransmission was attempted.
+The identical 931-byte N4 transcripts make the command result repeatable as
+well as the boot timing.
+
+## Live host replacement and PTY false failure
+
+The first automated replacement-host attempt appeared to fail: the new host
+received continuous target N4 polls, but `DIR` never appeared. A traced rerun
+showed more than two complete 8-bit sequence-number laps of valid, increasing
+poll requests and valid empty replies while the host input queue remained
+exactly zero. The Juku had neither hung nor stopped proving liveness.
+
+The cause was entirely on the Linux host. The qualification worker queued
+`DIR` immediately after spawning the server, and the server's subsequent
+`tty.setraw()` used flush semantics, discarding that input before its first
+poll. The corrected server selects raw mode without flushing, and the recorder
+does not start its console worker until the server explicitly announces that
+the N4 PTY is open and configured. Both boundaries have regressions.
+
+Without resetting or rebooting CS00015, the corrected replacement host then
+joined the already-running 19,200/8O1 session. Poll sequence `9Bh` delivered
+`D`, `9Dh` delivered `I`, `9Fh` delivered `R`, and `A1h` delivered carriage
+return. Each character was echoed through a following N4 output transaction;
+the directory listed `CCP.COM`, `DIAG.COM`, and `WBOOT.COM`, then returned to
+`A>`. This physically passes host loss and live NetDisk/N4 reconnection without
+RESET. No ROM or downloaded CP/M correction was required.
+
+The remaining C4 acceptance observation is local rather than blind: with a
+monitor connected, confirm the resident 80x24 output, readable glyphs,
+blinking underline cursor, and physical keyboard (including the repaired Space
+key) against this exact candidate. Earlier RAM-console runs already qualify
+the shared 53x24 and 64x20 implementations, but they are not substituted for
+this final resident-C4 observation.

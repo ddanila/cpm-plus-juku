@@ -32,8 +32,13 @@ boot, N4 input/output, `DIR`, `DIAG CPU`, warm boot, and post-warm-boot `DIR`.
 The qualification recorder now offers `run --console-smoke` and
 `resume --console-smoke` to capture cold boot, sequential read, diagnostics,
 write/erase, warm boot, host loss, and live reattachment without a monitor.
-Repeated runs plus local display, keyboard, and cursor observations remain
-before Priority 0 can be declared frozen.
+Three physical cold boots passed the complete automated suite with first disk
+requests at 6.068--6.070 seconds. A traced replacement host delivered `DIR`
+and returned to `A>` without RESET. The apparent first reconnect failure was a
+host-only PTY input flush; the corrected recorder waits for explicit server
+readiness and has a regression for that ordering. Only the exact resident C4
+display, cursor, and local-keyboard observation remains before Priority 0 can
+be declared frozen.
 
 The compatibility adapter remains the reference until a replacement matches
 this matrix. Higher baud rates, write-back caching, and additional recovery
@@ -281,7 +286,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 
 | Priority | State | Authoritative evidence |
 | --- | --- | --- |
-| 0. Physical baseline | **Pending physical runs** | The immutable C4 package and recorder pass their executable integrity tests. Three repeated cold boots, local display/keyboard/cursor confirmation, and the host-loss/live-reconnect bench sequence still require CS00015. |
+| 0. Physical baseline | **Blind matrix complete; local console pending** | Three CS00015 cold boots passed at 6.068--6.070 seconds with identical full N4 command transcripts. Sequential read, write/erase, warm boot, host loss, and live host reconnect without RESET pass. Exact resident display/keyboard/cursor observation remains. |
 | 1. Distribution | **Complete** | `distribution-check`, deterministic profile reports, provenance checks, native B: conversion, and distribution cosimulation pass. |
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
 | 3. S21/console/locale | **Complete in simulation; two modes physically observed** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, and 53x24/64x20 CS00015 evidence. |

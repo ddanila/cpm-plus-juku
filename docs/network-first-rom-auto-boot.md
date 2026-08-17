@@ -129,9 +129,10 @@ cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
   --disk-baud 19200 --disk-protocol 3 --writable --timeout 86400
 ```
 
-C4 is ready for controlled CS00015 qualification but is not promoted. No new
-burn is needed over C3. A blind physical run has proved automatic boot, N4
-input/output, `DIR`, `DIAG CPU`, explicit `WBOOT`, and post-warm-boot `DIR`
-with zero bootstrap/disk retry. The remaining display, local-keyboard, write,
-repeated-cold-boot, and live-reconnect matrix is documented in the candidate
+C4 is not yet promoted, and no new burn is needed over C3. Three blind physical
+CS00015 runs have proved automatic boot, N4 input/output, `DIR`, sequential
+read, `DIAG CPU`, explicit `WBOOT`, erase/write, and post-warm-boot operation
+at 6.068--6.070 seconds to the first disk request. A replacement host also
+restored NetDisk/N4 and completed `DIR` without RESET. The remaining resident
+display, cursor, and local-keyboard observation is documented in the candidate
 record.

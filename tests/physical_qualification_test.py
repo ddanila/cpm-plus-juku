@@ -156,8 +156,50 @@ def n4_smoke_test() -> None:
         raise AssertionError(f"resume N4 smoke differs: {result}, {failures}")
 
 
+def retained_slave_startup_test() -> None:
+    """The recorder may begin reading before the server opens its PTY path."""
+    master, retained_slave = pty.openpty()
+    tty.setraw(master)
+    tty.setraw(retained_slave)
+    slave_path = os.ttyname(retained_slave)
+    failures: list[BaseException] = []
+
+    def delayed_server() -> None:
+        try:
+            # Model subprocess startup while the recorder already waits on
+            # the master.  Its retained slave keeps that early read valid.
+            import time
+            time.sleep(0.05)
+            server_slave = os.open(slave_path, os.O_RDWR | os.O_NOCTTY)
+            try:
+                os.write(server_slave, b"ready>")
+            finally:
+                os.close(server_slave)
+        except BaseException as error:
+            failures.append(error)
+
+    worker = threading.Thread(target=delayed_server)
+    worker.start()
+    console = qualification.N4Console(master)
+    assert console.read_until(b"ready>", 1) == b"ready>"
+    worker.join(timeout=1)
+    os.close(master)
+    os.close(retained_slave)
+    if worker.is_alive() or failures:
+        raise AssertionError(f"delayed PTY startup differs: {failures}")
+
+    if not qualification.console_server_ready(
+            "Advertising N4 remote console on /dev/pts/1; awaiting target") or \
+            not qualification.console_server_ready(
+                "Resuming N4 remote console on /dev/pts/1; awaiting target") or \
+            qualification.console_server_ready(
+                "Remote console N4 confirmed by target poll request"):
+        raise AssertionError("N4 PTY readiness markers differ")
+
+
 def main() -> int:
     n4_smoke_test()
+    retained_slave_startup_test()
     if not CANDIDATE.is_dir():
         raise AssertionError("bench package must be generated before recorder test")
     manifest = json.loads((CANDIDATE / "manifest.json").read_text())

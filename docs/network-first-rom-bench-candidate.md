@@ -1,6 +1,6 @@
 # Network-first ROM CS00015 bench candidate C4
 
-Status: **READY FOR CONTROLLED CS00015 QUALIFICATION; NOT YET PROMOTED**
+Status: **BLIND QUALIFICATION PASSED; LOCAL CONSOLE CHECK PENDING; NOT YET PROMOTED**
 
 Candidate: `network-first-abi1-cs00015-c4`
 
@@ -18,9 +18,12 @@ later N4 byte arrived. C4 freezes the corrected binding: it checks resident
 C4 changes no EPROM bytes. Its D15 and D16 hashes are identical to C3, so the
 already-installed chips require no rewrite. Only the downloaded CP/M system
 and V15 bundle change. The corrected runtime physically completed remote
-`DIR`, `DIAG CPU`, explicit `WBOOT`, and a second `DIR` on CS00015 with zero
-bootstrap/disk retry; the remaining display, local-keyboard, write, repeated
-cold-boot, and live reconnect matrix is still pending.
+`DIR`, sequential read, `DIAG CPU`, explicit `WBOOT`, erase/write, and
+post-warm-boot operation on CS00015. Three independent cold boots reached the
+first disk request in 6.068--6.070 seconds. A replacement host then restored
+NetDisk and N4, ran `DIR`, and returned to `A>` without RESET. The only
+remaining candidate observation is the exact resident display, cursor, and
+local keyboard with a monitor attached.
 The exact failure evidence, timing, commands, and simulator reproduction are
 preserved in
 [`cs00015-c4-blind-qualification-20260817.md`](cs00015-c4-blind-qualification-20260817.md).
@@ -150,8 +153,12 @@ The underlying production CLI's `--resume-disk` mode reuses the most recent
 cold boot's private A: but sends no bootstrap marker or system image. It waits
 for the target's retried request at 19,200/8O1; prove
 recovery by completing a later `DIR` without RESET. In console-smoke mode the
-command is queued before the target reprobes, captured byte for byte, and the
-replacement host stops cleanly after the returned prompt. Record only
+recorder waits for the replacement server to open and configure its PTY before
+it queues the command. This avoids a host-only `tty.setraw()` input-flush race
+while retaining the target's bounded reprobe behavior. The command is captured
+byte for byte and the replacement host stops cleanly after the returned prompt.
+Add `--console-trace` to a direct server invocation when every N4 sequence,
+status, delivered/output byte, and duplicate decision is needed. Record only
 observations actually made on CS00015 with `record --test name=pass`, add the two programmer
 readback hashes, then run:
 
@@ -172,6 +179,8 @@ Promotion requires the physical matrix in
 [`network-first-rom-plan.md`](network-first-rom-plan.md): repeated cold and
 warm boots, prompt and timing, `DIR`, sequential read, `DIAG`, erase/write,
 keyboard, compact display and blinking cursor, host-loss recovery, and a later
-server reconnection without manual reset. Record board identity and programmer
-verification hashes. A failure keeps C4 unpromoted and must be reproduced in
-simulation before another named candidate is made.
+server reconnection without manual reset. The blind portions of that list now
+pass; resident display, cursor, and local-keyboard observation remains. Record
+board identity and programmer verification hashes. A failure keeps C4
+unpromoted and must be reproduced in simulation before another named candidate
+is made.
