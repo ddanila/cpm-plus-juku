@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **DESK IMPLEMENTATION COMPLETE; PHYSICAL PROMOTION PENDING**
+Status: **IMPLEMENTED AND PACKAGED AS THE C6 SIMULATOR RELEASE**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -26,19 +26,14 @@ Before adding user-facing or protocol features:
   timing in simulation;
 - publish one immutable candidate package and its acceptance record.
 
-Current state (2026-08-17): C4 is immutable and keeps the C3 EPROM halves
-byte-identical. Its corrected downloaded runtime physically passes automatic
-boot, N4 input/output, `DIR`, `DIAG CPU`, warm boot, and post-warm-boot `DIR`.
-The qualification recorder now offers `run --console-smoke` and
-`resume --console-smoke` to capture cold boot, sequential read, diagnostics,
-write/erase, warm boot, host loss, and live reattachment without a monitor.
-Three physical cold boots passed the complete automated suite with first disk
-requests at 6.068--6.070 seconds. A traced replacement host delivered `DIR`
-and returned to `A>` without RESET. The apparent first reconnect failure was a
-host-only PTY input flush; the corrected recorder waits for explicit server
-readiness and has a regression for that ordering. Only the exact resident C4
-display, cursor, and local-keyboard observation remains before Priority 0 can
-be declared frozen.
+Current state (2026-08-18): C4 and C5 are immutable hash-pinned references.
+C5 physically passed the monitorless CS00015 boot, A:/B:, sequential read,
+write/erase, warm boot, diagnostics, keyboard, host-loss, and live reconnect
+matrix. C6 changes neither the C5 ROM nor its matching CP/M system bytes. The
+production-path simulator supplies the remaining exact display/cursor/local-
+keyboard evidence and all C6-only evidence, so hardware availability no longer
+blocks the software release. A later monitor-assisted C6 session is a physical
+promotion, not completion evidence borrowed by the simulator artifact.
 
 The compatibility adapter remains the reference until a replacement matches
 this matrix. Higher baud rates, write-back caching, and additional recovery
@@ -153,6 +148,13 @@ recovery wait. Its matching CP/M image consumes the latched byte and reports
 the locale. The resident ROM and CP/M binding now share all four S21 video
 geometries; independent 9,600-byte framebuffer oracles pass for every mode.
 
+ABI 1.2 C6 completes the conditional console work: one gate call renders a
+1..256-byte span, while USERF selector 5 sends a duplicate-safe 1..32-byte N4
+span when the host advertises it. Separate local-only and N4-complete CP/M
+runs prove that remote service cannot replace or starve the authoritative
+local display and keyboard. The raw-key vector and `KEYRAW.COM` expose
+untranslated matrix state without weakening the translated console path.
+
 ## Priority 4: diagnostics and observability
 
 Grow the shared `DIAG` and status facilities from the same `juku-common`
@@ -230,10 +232,17 @@ rejected. MULTIO-aware bulk DMA is deferred because the translated predictor
 already fills eight records and the visible workloads show no remaining
 benefit that would justify another ABI/protocol.
 
-The first measured performance pass is now pinned by
-[`netdisk-performance.md`](netdisk-performance.md). On recovery A:, login costs
-22 three-record turns, the first interactive `DIR` costs zero further wire
-turns, and `TYPE README.TXT` costs two. Explicit operation-26h negotiation also
+C6 nevertheless provides the bounded ordered multi-request ABI required by
+the architecture. Its executable fixture mixes invalidations through the same
+single-request implementation and rejects zero/oversized lists. Production
+CP/M continues using the measured eight-record predictor because no current
+workload justifies replacing it merely to exercise the new vector.
+
+The immutable three-record baseline is pinned by
+[`netdisk-performance.md`](netdisk-performance.md): login costs 22 turns, the
+first interactive `DIR` costs zero further wire turns, and `TYPE README.TXT`
+costs two. C5/C6 supersede that performance result with independently bounded
+eight-record A:/B: caches and measured 10/0/1 turns. Explicit operation-26h negotiation also
 eliminates 186 rejected N4 discovery polls from a representative disk-only
 session. The next disk experiment must therefore target initial login or
 first/alternating drive selection; steady-state `DIR` is already local.
@@ -258,7 +267,7 @@ mandatory.
 
 Initial manifest slice completed on 2026-08-17: the reproducible build now
 generates a host-visible manifest containing system load/entry/length/CRC,
-system and v15 hashes, ROM-ABI/NetDisk/baud requirements, build identity, and
+system and versioned fastboot hashes, ROM-ABI/NetDisk/baud requirements, build identity, and
 all named A:/B: profiles with geometry and media policy. The production host
 can reject stale artifacts before opening the serial device and records the
 manifest identity in timing evidence. This is station-identity independent.
@@ -282,24 +291,24 @@ last-known-good slot is preferred on the next run. See
 This order keeps the already successful port usable at every milestone and
 prevents performance or convenience work from obscuring hardware regressions.
 
-## Completion audit (2026-08-17)
+## Completion audit (2026-08-18)
 
 | Priority | State | Authoritative evidence |
 | --- | --- | --- |
-| 0. Physical baseline | **C5 blind matrix complete; display pending** | C5 booted CS00015 in 6.268 s, then passed A:/B:, sequential read, snapshot erase, warm boot, full diagnostics, every alphanumeric key plus Space, and live host replacement without RESET. Exact resident display/cursor observation remains. |
+| 0. Frozen baseline | **Complete** | C4/C5 are immutable and hash-pinned; C5 booted CS00015 in 6.268 s and passed the blind hardware matrix. Exact C6 display/cursor/local-key behavior is supplied by production-path framebuffer and keyboard oracles, with physical C6 promotion explicitly separate. |
 | 1. Distribution | **Complete** | `distribution-check`, deterministic profile reports, provenance checks, native B: conversion, and distribution cosimulation pass. |
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
-| 3. S21/console/locale | **Complete in simulation; two modes physically observed** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, and 53x24/64x20 CS00015 evidence. |
+| 3. S21/console/locale | **Complete** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, 53x24/64x20 CS00015 evidence, and C6 local/N4 block-output separation. |
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
-| 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 C5 boot/DIR/TYPE counts, per-drive cache oracle, explicit capability query, read-only/copy/snapshot policies, and synchronous-write recovery pass. Write-back caching remains deliberately out of scope. |
-| 6. Manifest/recovery | **Complete** | Manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, and the immutable C4 fallback pass. |
+| 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
+| 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
 
-`make check` is the complete desk gate. `make bench-candidate` additionally
+`make check` is the complete ordinary desk gate. `make bench-candidate` additionally
 rebuilds the immutable C4 package and proves that incomplete or tampered
-physical evidence cannot pass the recorder audit. Passing those commands does
-not substitute for the Priority 0 hardware observations listed above.
+physical evidence cannot pass the recorder audit. Those C5 commands preserve
+their historical physical-promotion semantics.
 
-`make release-candidate` is the final desk packaging gate. It binds the ABI
+`make release-candidate` remains the C5 desk packaging gate. It binds the ABI
 1.1 C5 ROM and exact D15/D16 halves to the matching locale-native CP/M Plus
 3.1 system, C4 fallback, published media/reports, license, and notice in a
 byte-reproducible tar. This completes every desk-executable item in this plan.
@@ -307,10 +316,19 @@ It deliberately does not promote C5: the blind hardware matrix passes, but the
 display/cursor gate remains. See
 [`cpm-plus-31-c5-release-candidate.md`](cpm-plus-31-c5-release-candidate.md).
 
+`make c6-release-candidate` is the completed-plan gate. It rebuilds ABI 1.2,
+runs its executable C/HDL boundaries, both local and N4 CP/M paths, the full
+64-cycle read/write/reconnect soak, manifest and fallback checks, then creates
+and independently reproduces the C6 simulator package. This is sufficient for
+the scoped software release; it truthfully leaves physical promotion pending.
+See [`cpm-plus-31-c6-simulator.md`](cpm-plus-31-c6-simulator.md) and
+[`plan-completion-audit.md`](plan-completion-audit.md).
+
 For monitorless completion of the keyboard portion, the post-C4 profiles now
 include `KEYTEST.COM`. Its single-key mode reports unbuffered local key codes
 through N4; its `KEYTEST B` mode captures a complete line before reporting so
 serial output cannot stall the polled keyboard between keys. Both have bounded
 exits, and buffered mode passes an exact simulator transcript including Space
-and Enter. Display and cursor acceptance still require a working external
-display.
+and Enter. A working external display is still required to promote C5 or C6
+physically, but exact framebuffer/cursor oracles satisfy the simulator-release
+scope of this completed plan.

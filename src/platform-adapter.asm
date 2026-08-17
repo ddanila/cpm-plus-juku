@@ -302,6 +302,20 @@ BOOT:
         sta     ROMABISTATUS
         ora     a
         jnz     ROMABIFAIL
+.ifdef ROM_ABI_EXTENDED
+        ; The host manifest rejects stale pairings before transfer, and this
+        ; independent target check prevents a mismatched C5 gate from being
+        ; accepted if artifacts are loaded manually.
+        call    JCGGETINFOADDR
+        mov     a,d
+        ani     00eh
+        cpi     00eh                    ; block, multi, and raw feature high bits
+        jnz     ROMABIFAIL
+        mov     a,e
+        ani     010h                    ; implemented sound service
+        cpi     010h
+        jnz     ROMABIFAIL
+.endif
         mvi     a,1                     ; 19,200/8O1 NetDisk framing
         call    JCGSERINITADDR
         sta     ROMABISTATUS

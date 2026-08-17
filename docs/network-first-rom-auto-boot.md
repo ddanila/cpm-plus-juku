@@ -1,6 +1,6 @@
 # Network-first ROM automatic-boot checkpoint
 
-Status: **SIMULATOR-QUALIFIED DESK MILESTONE; NOT A PROGRAMMING RELEASE**
+Status: **C4 BASELINE RETAINED; C6 FASTBOOT V16 SIMULATOR-QUALIFIED**
 
 Date: **2026-08-16**
 
@@ -11,6 +11,16 @@ and reaches the existing NetDisk-v3 baseline. The dedicated consumer stays in
 mode 1 for resident serial, keyboard, console, and NetDisk-read calls. Its CP/M
 system is now regenerated for the compact map and exposes an exact 39,168-byte
 (38.25 KiB) transient span, 8 KiB larger than the frozen RAM-BIOS baseline.
+
+The numbered path below records the immutable ABI 1.0 C4 checkpoint. ABI 1.2
+C6 now completes the stricter original architecture: the generic receive,
+CRC, retry, and ZX0 decompression engine is a 361-byte boot-only ROM object at
+file offset `0600h`. Reset copies it to `0300h`; the 49-byte V16 core (padded
+to a fixed 128-byte descriptor at `0F00h`) sends C7 and enters it directly.
+The host's JF16 artifact consequently carries zero executable extension bytes
+and sends only `JZ`, a bounded length, 7,895 compressed system bytes, and
+CRC-16/IBM. This removes 307 downloaded executable bytes from the C5 wire
+path while retaining retry-safe dynamic system selection.
 
 ## Reset and transfer path
 
@@ -53,6 +63,14 @@ complete recovery matrix: the restarted target discards stale bytes already
 present on the same serial link and accepts a later complete retransmission.
 Resident disk-server restart and malformed-reply coverage are recorded in
 [`network-first-rom-recovery.md`](network-first-rom-recovery.md).
+
+C6 retains the same no-RESET policy with a distinct synchronization contract.
+The target sends one C7 byte and one `JR16` frame, then blocks in its
+overlap-safe JZ scanner. The release fixture waits two seconds, drains and
+asserts both announcements so the host cannot observe them, and only then
+starts `serve_fast`. The host synthesizes the known V16 readiness state, sends
+JZ, waits for C6 header acknowledgement, and completes the real CP/M boot.
+This is direct evidence for a restarted host, not a mocked target state.
 
 No client/server station arguments are needed. The direct path retains neutral
 station values only for report-schema compatibility; they are not placed on

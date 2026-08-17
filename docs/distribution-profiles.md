@@ -1,13 +1,14 @@
 # Reproducible CP/M Plus distribution profiles
 
 The distribution build keeps hardware qualification separate from user-facing
-software. `make distribution` creates five named artifacts and a JSON report
+software. `make distribution` creates six named artifacts and a JSON report
 beside each one:
 
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
 | `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.5 | 372 KiB | `17751ba06fa5a59836a99b0dd83ea2185186f025cf3dbb650610d16a6e6b5074` |
+| `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 366 KiB | `5b114df3b053af325e8254afd2134997cff180c13c6cfee17645059390367905` |
 | `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 250 KiB | `7edc5f6023c01e3cca025f3fce0f2dbd1d1bf7c3ca70af9f00b86aa9f2c92fb4` |
 | `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 248 KiB | `c2e75309b9a1701f9bbe39ababd3e616e2e6ad61ad262967613b45a0b14d0818` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
@@ -19,6 +20,10 @@ explicit post-baseline successor; it adds `STATUS.COM` without changing C4.
 It also adds `KEYTEST.COM`, whose direct-console single-key and buffered-line
 input modes and normal BIOS output provide a blind local-keyboard test over
 the N4 console.
+The C6 recovery profile is separately named because `KEYRAW.COM` and
+`N4BULK.COM` require ABI 1.2. `SOAK.COM` provides one deterministic
+read/diagnostic/write cycle for the long reconnect harness. None of these
+files is inserted into the immutable C4 or physically established C5 images.
 
 ## Build contract
 

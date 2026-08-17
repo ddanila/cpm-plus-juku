@@ -52,3 +52,14 @@ slot. Keeping this separate prevents the ordinary ABI 1.0 native manifest
 from silently becoming a C5 claim. The deterministic package and promotion
 boundary are described in
 [`cpm-plus-31-c5-release-candidate.md`](cpm-plus-31-c5-release-candidate.md).
+
+The ABI 1.2 C6 simulator candidate similarly has
+`out/cpm-plus-juku-c6-manifest.json`. It binds the C6 ROM/metadata, extended
+system and Fastboot V16 stage, dedicated C6 recovery volume, and immutable C4
+fallback. Its requirements explicitly say Fastboot 16; the ROM metadata binds
+the 361-byte embedded loader and zero-byte executable wire extension.
+Its required feature list adds bounded console span, ordered NetDisk multi,
+raw keyboard, and sound. `tests/c6_boot_manifest_test.py` rejects a stale C5
+system, missing service, wrong slot, media mismatch, or changed build identity.
+The deterministic simulator package and its non-claim of physical promotion
+are described in [`cpm-plus-31-c6-simulator.md`](cpm-plus-31-c6-simulator.md).

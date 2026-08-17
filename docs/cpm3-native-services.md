@@ -7,6 +7,8 @@ are built as separately named network-ROM artifacts:
 - `out/cpm-plus-juku-network-rom-native-fastboot-v15.bin`;
 - `out/cpm-plus-juku-network-rom-locale-native-system.bin` and matching
   fastboot-v15 bundle for the separately named ABI 1.1 C5 desk candidate;
+- `out/cpm-plus-juku-network-rom-extended-native-system.bin` and matching
+  fastboot-v16 bundle for the ABI 1.2 C6 simulator candidate;
 - `out/cpm-plus-juku-native-recovery.img` for post-C4 recovery use;
 - `out/cpm-plus-juku-native-test.img` for the target-side regression only.
 
@@ -48,6 +50,9 @@ command matrix, `NATIVE.COM`, and `STATUS.COM`.
   bytes: NetDisk protocol, maximum read-ahead, feature flags, and drive count.
   Selector C=4 publishes retained bootstrap stage, CRC retry count, protocol,
   and ROM ABI minor through operation 27h.
+  In the ABI 1.2 build, selector C=5 sends a caller-owned `DE` span of `B`
+  bytes (1..32) through duplicate-safe operation 28h. It is deliberately
+  absent from the C5 object, whose system image remains byte-identical.
   Unknown selectors fail with A=FFh and HL=0000h.
 - TIME gets CP/M day plus BCD hour/minute/second through optional NetDisk-v3
   operation 22h. SET uses operation 23h to establish a host session offset
@@ -67,6 +72,17 @@ and `4aaff8f9a78c289e96bb1699453d3136f7c2f6c82f3bfb2323d46145028178b0`.
 The C4/native ABI 1.0 artifact retains its bounded direct sampler and byte
 identity.
 
+The ABI 1.2 C6 binding additionally links the bounded N4 block sender and
+requires the ROM's appended console-span, multi-request NetDisk, raw-keyboard,
+and sound features. Its system and fast-stage SHA-256 values are respectively
+`6dbe02421fb88cc964b9536f0f5c51f0e31a652a6017cb4a8d3178394849b70b`
+and `40c1560348b2615064cf8d2f216c5c85a020f9b1384707ec83e93d94a94a3706`.
+The latter is a Fastboot V16 stream descriptor plus checked compressed system;
+its receive/decompress code is the exact 361-byte image embedded in the C6
+ROM rather than a downloaded executable extension.
+The packed adapter occupies `C000h..CB6Bh` (2,924 bytes), still within the
+existing allocation and without changing the 39,168-byte TPA.
+
 `STATUS.COM` prints the system/protocol/ROM identities, resident memory map,
 raw and decoded S21/video/locale selection, native feature flags, last MULTIO count,
 and clock result counters. Its USERF selector also emits NetDisk-v3 operation
@@ -83,7 +99,7 @@ any dependency to local diagnostics. See
 startup N3/N4 marker, this is a checksummed request/reply exchange that may be
 repeated after host replacement. It reports the actual server protocol,
 bounded read-ahead limit, console/time/status/diagnostic/B:/writable-A feature
-bits, and advertised drive count. An older or absent server returns
+bits, bounded N4 block-output capability, and advertised drive count. An older or absent server returns
 "unavailable" without affecting local display, disk, or boot.
 
 Cold boot also issues this query once after resident serial initialization.
@@ -100,9 +116,10 @@ after bounded host loss. The status regression observes cold state through
 simulator checkpoint. C4 remains byte-identical because clock, publisher, and
 recording code are assembled only in the separately named native profile.
 
-`STATUS.COM` 1.2 extends the `JNS1` block to schema 1.1 and displays the C5
-record at D610h..D613h. Stages distinguish POST (`10h`), V15 core (`20h`),
-extension wait/header/authentication (`30h`/`31h`/`32h`), compressed CRC
+`STATUS.COM` 1.2 extends the `JNS1` block to schema 1.1 and displays the C5/C6
+record at D610h..D613h. C5 stage `20h` identifies its V15 downloaded-extension
+path; C6 identifies the V16 core and ROM-resident loader. Later stages retain
+the shared header/authentication (`30h`/`31h`/`32h`), compressed CRC
 recovery (`E2h`), CP/M entry (`40h`), and the first successful disk turn
 (`50h`). The retry byte saturates instead of wrapping. USERF selector 4 mirrors
 the final tuple through duplicate-safe operation 27h, and the host logs and
@@ -124,7 +141,7 @@ C600h overwrote native service code, while C780h overwrote the NetDisk cache.
 The regression now executes real reads, STATUS/capabilities, diagnostics,
 warm boot, and write/erase through this map.
 
-The C5-only binding adds eight-record buffers at CB80h..CF97h and
+The C5/C6 binding adds eight-record buffers at CB80h..CF97h and
 CFA0h..D3B7h. The resident ROM stores independent A:/B: counts and pointers
 at D7DAh..D7DFh;
 the alternating-drive regression loads B:, returns to A:, reloads an A:
@@ -138,6 +155,14 @@ The ordinary cosimulation then proves `DIR`, paged `TYPE`, shared diagnostics,
 warm boot, write/erase, framebuffer behavior, and zero-retry NetDisk. A
 separate compound run passed shortened, duplicated, and CRC-corrupted replies
 with two target retries and three intentionally induced USART overruns.
+
+The C6 gate runs the same matrix twice: once through authoritative local
+display/keyboard with N4 absent, and once with the complete console carried
+through N4. `N4BULK.COM` invokes USERF selector 5 and the host must record
+exactly one operation-28h block containing `N4 BULK PASS`; returning locally
+without a console-advertising host is intentionally a successful best-effort
+no-op. `KEYRAW.COM` is also present only in the C6 recovery profile and proves
+that the extended binding is installed before physical promotion.
 
 The CP/M Plus System Guide is the interface authority, including the TIME
 requirement to preserve HL/DE and the standard device-table layout. The pinned

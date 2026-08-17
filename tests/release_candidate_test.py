@@ -49,6 +49,11 @@ def main() -> int:
             path = first / file_name
             if record != {"bytes": path.stat().st_size, "sha256": digest(path)}:
                 raise AssertionError(f"release file binding differs: {file_name}")
+        memory_map = json.loads((first / manifest["build_map"]).read_text())
+        if memory_map["ram"].get("transient") != \
+                "0100h..99FFh (39168 bytes)" or \
+                memory_map.get("tpa_gain_over_frozen_ram_bios") != 8192:
+            raise AssertionError("release memory/TPA map differs")
         boot_manifest = json.loads(
             (first / "cpm-plus-juku-c5-manifest.json").read_text()
         )

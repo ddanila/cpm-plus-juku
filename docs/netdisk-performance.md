@@ -71,7 +71,7 @@ sessions.
 - A: defaults to read-only at the host; copy, snapshot, and explicit
   write-through policies remain unchanged.
 - B: remains read-only.
-- C5 uses independent A: (`CB80h..CF97h`) and B: (`CFA0h..D3B7h`) buffers and
+- C5/C6 use independent A: (`CB80h..CF97h`) and B: (`CFA0h..D3B7h`) buffers and
   resident validity/pointer metadata. An alias guard preserves safe behavior
   for an older consumer that supplies one shared pointer.
 
@@ -97,3 +97,31 @@ cannot improve these commands further without a new bulk-DMA BIOS contract;
 the existing translated predictor already fills the eight-record cache before
 the next individual `READ`. Such a protocol is deferred until a real workload
 shows benefit beyond these counts.
+
+## C6 bounded operations and soak
+
+ABI 1.2 supplies an ordered list service for 1..8 ordinary ten-byte resident
+NetDisk requests. It is not silently substituted into the production BIOS:
+the measured eight-record translated predictor already achieves the pinned
+10/0/1 boot/`DIR`/`TYPE` request counts without another buffer/copy contract.
+The executable C6 fixture rejects zero and oversized lists and executes mixed
+valid descriptors through the same single-request implementation, preserving
+synchronous write and invalidation semantics. A later workload may adopt it
+without another ROM ABI change.
+
+The release soak deliberately replaces the stateless host after `A>`, then
+runs 64 cycles of directory activity, safe diagnostics, synchronous write and
+erase through the real CP/M/ROM/serial paths. Its server timeout is derived
+from the requested cycle count; the earlier fixed 180-second harness limit was
+identified as a host-test defect rather than misreported as target disk decay.
+The release gate requires every cycle, the reconnect marker, exact diagnostic
+count, one write cycle per requested cycle, zero unrecovered retries, and zero
+resident USART overruns.
+The accepted C6 run records 1,193 read requests, 257 synchronous writes, zero
+retries, and zero resident/bootstrap overruns across all 64 cycles.
+
+ABI 1.2 also adds bounded N4 output operation `28h`. This improves unattended
+observability, not disk timing. Capability bit `40h` advertises it, the request
+contains an explicit 1..32-byte length, duplicate replay cannot duplicate
+visible output, and lack of N4 remains a successful best-effort no-op so local
+console/disk behavior is unchanged.

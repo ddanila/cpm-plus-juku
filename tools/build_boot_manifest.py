@@ -72,9 +72,11 @@ def main() -> int:
     })
 
     fast_stage, fast_data = image_record(args.fast_stage)
-    if fast_data[3:7] != b"JF15":
-        raise ValueError("fast stage is not Juku fastboot v15")
-    fast_stage.update({"format": "JF15", "version": 15})
+    fast_version = {b"JF15": 15, b"JF16": 16}.get(fast_data[3:7])
+    if fast_version is None:
+        raise ValueError("fast stage is not Juku fastboot v15/v16")
+    fast_stage.update({"format": f"JF{fast_version}",
+                       "version": fast_version})
     fallback_system, fallback_system_data = image_record(args.fallback_system)
     if fallback_system_data[:8] != SYSTEM_MAGIC or \
             len(fallback_system_data) < 512:
@@ -163,7 +165,7 @@ def main() -> int:
         "requirements": {
             "cpu": "Intel 8080",
             "rom_abi": args.rom_abi,
-            "fastboot": 15,
+            "fastboot": fast_version,
             "bootstrap_baud": 19200,
             "bootstrap_framing": "8N1",
             "netdisk": 3,
@@ -180,6 +182,15 @@ def main() -> int:
     }
     if rom is not None:
         manifest["rom"] = rom
+        if args.rom_abi == "1.2":
+            required = {
+                "bounded-console-span", "netdisk-multi", "raw-keyboard",
+                "sound",
+            }
+            services = rom_metadata.get("resident_services", [])
+            if not isinstance(services, list) or not required.issubset(services):
+                raise ValueError("ABI 1.2 ROM lacks required resident services")
+            manifest["requirements"]["features"].extend(sorted(required))
     args.output.write_text(json.dumps(manifest, indent=2) + "\n")
     print(
         f"wrote {args.output} ({manifest['build_identity']}, "

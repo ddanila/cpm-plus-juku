@@ -1,8 +1,8 @@
 # Network-first ROM inventory and byte budget
 
-Status: **MEASURED; AUTOMATIC BOOT AND 8 KiB TPA GAIN ACHIEVED**
+Status: **MEASURED THROUGH ABI 1.2 C6; 8 KiB TPA GAIN RETAINED**
 
-Measurement date: **2026-08-16**
+Measurement date: **2026-08-18**
 
 ## Reproduce the report
 
@@ -22,12 +22,12 @@ Current measured ingredients are:
 
 | shared ingredient | linked bytes | intended first use |
 | --- | ---: | --- |
-| MODX-compatible console, including 665-byte font | 1,228 RAM baseline; 1,191 resident | resident ROM implemented |
+| MODX-compatible console, including 665-byte font and RAM-keyboard binding | 1,795 RAM baseline; 1,191 resident | resident ROM implemented |
 | mode-3 console clear/scroll/packed-row helper | 119 | copied low RAM implemented |
-| keyboard matrix scanner | 331 RAM baseline; 328 resident code | resident ROM implemented; three mutable bytes remain in low RAM |
+| keyboard matrix scanner | 369 RAM baseline; 366 resident code | resident ROM implemented; mutable state remains in low RAM |
 | shared resident D57/D11 serial initializer and primitives | 86 | implemented resident ROM ABI service |
 | NetDisk v3 read-ahead/write-through client and versioned ABI binding | 676 resident; 547 RAM baseline | resident ROM implemented for reads and writes |
-| remote console/status client | 368 | resident ROM, optional at boot |
+| remote console/status client | 372 | resident ROM, optional at boot |
 | CPU diagnostic | 517 | quick POST and resident diagnostic service |
 | byte-cell RAM diagnostic | 29 | quick POST and resident service |
 | address-alias diagnostic | 59 | quick POST and resident service |
@@ -35,8 +35,11 @@ Current measured ingredients are:
 | checksum primitive | 18 | ROM/load integrity |
 | complete diagnostic mechanisms | 655 | boot selects a bounded subset |
 | sound routine plus tune | 114 | resident feedback/service |
-| proven V15 direct core | 125 source bytes; 141 stored with target-ready prelude | automatic bootstrap seed |
-| proven V15 receive/decompress extension | 267 C4 / 307 C5 | automatic load engine seed; C5 adds retained stage/retry updates |
+| proven V15 direct core | 125 source bytes; 141 stored with target-ready prelude | immutable C4/C5 bootstrap seed |
+| proven V15 receive/decompress extension | 267 C4 / 307 C5 | host-downloaded compatibility load engine |
+| Fastboot V16 core | 49 source bytes; 128-byte fixed ROM/bundle descriptor | C6 bootstrap seed and C7 handoff |
+| Fastboot V16 receive/decompress engine | 361 | embedded C6 boot-only loader; zero executable wire bytes |
+| ABI 1.2 bounded console/multi/raw services | included in C6 resident image | appended fixed vectors; older ABI bytes unchanged |
 
 The sum is not a proposed final ROM size. Several current modules contain
 consumer-specific state or duplicate serial loops which will be separated as
@@ -48,21 +51,23 @@ being credited as savings before it exists.
 
 | ROM file range | bytes | envelope | reusable/current implementation evidence |
 | --- | ---: | --- | ---: |
-| `0000h..05FFh` | 1,536 | reset, deterministic hardware init, bounded quick POST | 623 shared mechanisms; 997-byte C4 / 1,015-byte C5 linked boot |
-| `0600h..0BFFh` | 1,536 | automatic 19,200-baud boot transport | 125-byte source; 141-byte stored core |
-| `0C00h..11FFh` | 1,536 | validation, decompression, timeout/retry recovery | 267-byte C4 / 307-byte C5 extension |
-| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | C4 196+119 bytes; C5 214+128 bytes |
+| `0000h..05FFh` | 1,536 | reset, deterministic hardware init, bounded quick POST | 623 shared mechanisms; 997-byte C4 / 1,015-byte C5 / 1,027-byte C6 linked boot |
+| `0600h..0BFFh` | 1,536 | checked receive/decompress engine | empty in C4/C5; exact 361-byte C6 V16 loader at `0600h` |
+| `0C00h..11FFh` | 1,536 | bootstrap core and copied call gate | core at `0F00h`: 141-byte C4/C5 or 128-byte C6; gate at `1000h`: 196-byte C4 or 214-byte C5/C6 |
+| `1200h..15FFh` | 1,024 | copied all-RAM helper image and staging | helper at `1400h`: 119-byte C4 or 128-byte C5/C6 |
 | `1600h..17FFh` | 512 | boot manifest, integrity values, growth reserve | 0 |
-| **total** | **6,144** | exact boot-only window | **1,134 C4 / 1,183 C5 reusable ingredients; 1,453 C4 / 1,498 C5 linked stored bytes** |
+| **total** | **6,144** | exact boot-only window | **1,453 C4 / 1,498 C5 / 1,858 C6 linked stored bytes** |
 
 The large headroom is intentional. C4 places 997 bytes of reset/POST code, a
 141-byte automatic core, a 196-byte gate, and a 119-byte helper without
-overlap. C5 uses 1,015, 141, 214, and 128 bytes respectively. The matching
-267-byte C4 or 307-byte C5 extension is sent into RAM by the host rather than
-stored in ROM. Later recovery work and moving the complete
-receive/decompress path into the boot-only window must fit without borrowing
-bytes from the runtime ABI. `network_first_rom_abi_check.sh` independently
-checks the exact linked layout and deterministic image.
+overlap. C5 uses 1,015, 141, 214, and 128 bytes respectively; their matching
+267-byte/307-byte extensions remain host-downloaded compatibility artifacts.
+C6 completes the planned migration: 1,027-byte boot code copies its 361-byte
+generic V16 receive/decompress engine from `0600h` to RAM, then enters the
+128-byte core at `0F00h`; the 214-byte gate and 128-byte helper retain their
+fixed windows. Thus the complete load engine is inside the boot-only 6 KiB and
+no executable extension crosses the wire. `network_first_rom_abi_check.sh`
+independently checks the exact linked layout and deterministic image.
 
 ## Upper 10 KiB: runtime-mapped at `D800h..FFFFh`
 
@@ -76,10 +81,10 @@ checks the exact linked layout and deterministic image.
 | `E600h..E8FFh` | 768 | common diagnostic mechanisms | 655 |
 | `E900h..E9FFh` | 256 | sound and platform initialization | 114 |
 | `EA00h..EFFFh` | 1,536 | near-term implementation growth | 0 |
-| `F000h..F7FFh` | 2,048 | console extensions, locale/font banks, and future services | 1,128 in the separately named ABI 1.1 C5 desk candidate |
+| `F000h..F7FFh` | 2,048 | console extensions, locale/font banks, and extended services | C5 locale bank plus C6 bounded console/multi/raw/sound implementation |
 | `F800h..FEFFh` | 1,792 | unassigned reserve | 0 |
-| `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | immutable ABI 1.0 plus compatible ABI 1.1 appended vectors |
-| **total** | **10,240** | exact runtime window | **3,418 measured** |
+| `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | immutable ABI 1.0/1.1 plus compatible ABI 1.2 appended vectors through `FF59h` |
+| **total** | **10,240** | exact runtime window | **3,460 measured** |
 
 These are link fences, not permission to fill every service to its fence. The
 ABI table is deliberately at the top of ROM so its address survives internal
@@ -145,10 +150,15 @@ least one resident write with no retry or resident
 overrun, and proves the final 9,600-byte framebuffer equal to the frozen RAM
 oracle.
 
-The separately named C5 consumer adds eight-record A:/B: caches at
+The separately named C5/C6 consumers add eight-record A:/B: caches at
 `CB80h..CF97h` and `CFA0h..D3B7h`, in an otherwise unused part of the same
 `C000h..D5FFh` container. The TPA remains `0100h..99FFh`, and C4 stays
 byte-exact.
+
+C6's complete native binding is 2,924 bytes at `C000h..CB6Bh`; its extended
+services and C6-only utilities still leave the same loader/BDOS/BIOS placement
+and `0100h..99FFh` transient span. The generated release map derives this end
+address from the actual adapter rather than copying a prose constant.
 
 ## Decisions entering resident-service migration
 

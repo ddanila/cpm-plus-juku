@@ -25,6 +25,9 @@
         extrn   NCBOOT
         extrn   NCCAPS
         extrn   NCCFG
+.ifdef ROM_ABI_EXTENDED
+        extrn   NCBULK
+.endif
 
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
@@ -182,7 +185,8 @@ NSTIMERET:
 ;      the status block. Publication is best effort and never blocks status.
 ; C=2 publishes a diagnostic tuple in B/D/E/L. C=3 returns the host's
 ; explicit four-byte capability record. C=4 publishes retained bootstrap
-; stage/retries/protocol/ABI minor. Other selectors fail.
+; stage/retries/protocol/ABI minor. C=5 in the ABI 1.2 image sends a bounded
+; N4 span from DE with length B (1..32). Other selectors fail.
 NSUSERF:
         mov     a,c
         ora     a
@@ -194,7 +198,17 @@ NSUSERF:
         dcr     a
         jz      NSUSERFCAPS
         dcr     a
+.ifdef ROM_ABI_EXTENDED
+        jz      NSUSERFBOOT
+        dcr     a
         jnz     NSUSERFBAD
+        xchg
+        call    NCBULK
+        ret
+.else
+        jnz     NSUSERFBAD
+.endif
+NSUSERFBOOT:
         call    NSREFRESHINFO
         lda     NSBOOTRETRY
         mov     b,a
@@ -368,10 +382,14 @@ NSBOOTPROTO:
 NSROMMAJOR:
         db      1
 NSROMMINOR:
+.ifdef ROM_ABI_EXTENDED
+        db      2
+.else
 .ifdef ROM_ABI_LOCALE
         db      1
 .else
         db      0
+.endif
 .endif
 NSINFOEND:
 NSCAPDONE:

@@ -370,9 +370,38 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 corrupted[-1] ^= 1
                 return bytes(corrupted)
 
+            # A network-first target emits its readiness only once before it
+            # blocks in the self-synchronising stream scanner. Delaying the
+            # host here exercises a real restarted/missed-ready session rather
+            # than an injected protocol shortcut in either endpoint.
+            host_delay = float(os.environ.get(
+                "CPM_PLUS_JUKU_BOOT_HOST_DELAY", "0",
+            ))
+            if host_delay:
+                time.sleep(host_delay)
+            if os.environ.get(
+                "CPM_PLUS_JUKU_DISCARD_BOOT_READY", "0",
+            ) == "1":
+                discarded = bytearray()
+                while select.select([master], [], [], 0.05)[0]:
+                    discarded.extend(os.read(master, 4096))
+                require(
+                    bytes((0xC7,)) in discarded
+                    and b"JR\x10\x01" in discarded,
+                    "delayed-host fixture did not capture the one-shot "
+                    f"V16 readiness bytes: {discarded.hex()}",
+                )
+                print(
+                    "COSIM: discarded one-shot C7/JR16 readiness before "
+                    "starting the restarted host",
+                    flush=True,
+                )
             boot = serve_fast(
                 master, fastboot.read_bytes(), container,
-                stock_timeout=120, reply_timeout=8, verbose=False,
+                stock_timeout=120, reply_timeout=8,
+                verbose=os.environ.get(
+                    "CPM_PLUS_JUKU_FASTBOOT_VERBOSE", "0",
+                ) == "1",
                 configure_rate=False, direct_core=direct_core,
                 auto_rom_ready=network_rom,
                 block_filter=fastboot_filter,
@@ -402,7 +431,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     ) -> None:
                         serve_disk(
                             master, volume, drive_b=drive_b_volume,
-                            timeout=180, idle_timeout=None,
+                            timeout=max(
+                                180,
+                                30 * int(os.environ.get(
+                                    "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
+                                )),
+                            ), idle_timeout=None,
                             writable=True,
                             verbose=os.environ.get(
                                 "CPM_PLUS_JUKU_SERVER_VERBOSE", "0",
@@ -423,6 +457,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             v3_wire_drain=(
                                 expect_disk_failure != "legacy-host-guard"
                             ),
+                            accumulate_stats=resume,
                             resume=resume or network_rom,
                             console_protocol=remote_console,
                             console_input=remote.input,
@@ -600,12 +635,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 print(f"COSIM {case.name}: DIAG", flush=True)
                 run_extra_command()
                 run_extra_command("2")
+                run_extra_command("3")
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: WBOOT", flush=True)
                 soak_cycles = int(os.environ.get(
                     "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
                 )) if disk_fault == "mid-session-restart" else 0
+                soak_writes = os.environ.get(
+                    "CPM_PLUS_JUKU_SOAK_WRITES", "0",
+                ) == "1"
                 for _ in range(soak_cycles):
                     send_console(b"DIR\r")
                     read_until(b"A>", 120)
@@ -613,7 +652,18 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     soak_diag = read_until(b"A>", 120)
                     require(b"CPU: PASS" in soak_diag,
                             "NetDisk soak diagnostic failed")
+                    if soak_writes:
+                        writes_before = stats.get("writes", 0)
+                        send_console(b"SOAK\r")
+                        soak_save = read_until(b"A>", 120)
+                        require(
+                            b"SOAK: PASS" in soak_save
+                            and stats.get("writes", 0) > writes_before,
+                            f"NetDisk soak write cycle failed: {soak_save!r}",
+                        )
                 fault_evidence["soak_cycles"] = soak_cycles
+                fault_evidence["soak_write_cycles"] = \
+                    soak_cycles if soak_writes else 0
                 send_console(b"ERA README.TXT\r")
                 sixth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: ERA", flush=True)
@@ -684,11 +734,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             os.close(console_master)
 
     if direct_core:
+        expected_auto_ready = int(os.environ.get(
+            "CPM_PLUS_JUKU_EXPECT_AUTO_READY_SEEN",
+            str(int(network_rom)),
+        ))
         require(
             boot["direct_core"] == 1
             and boot["stock_sent_frames"] == 0
             and boot["auto_rom_ready"] == int(network_rom)
-            and boot["auto_ready_seen"] == int(network_rom),
+            and boot["auto_ready_seen"] == expected_auto_ready,
             f"CP/M Plus did not use the requested direct ROM path: {boot}",
         )
     else:
@@ -757,6 +811,14 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 and stats.get("console_output_bytes", 0) > 0,
                 f"N4 console did not carry bidirectional traffic: {stats}",
             )
+        expected_console_bulk = int(os.environ.get(
+            "CPM_PLUS_JUKU_EXPECT_CONSOLE_BULK", "0",
+        ))
+        require(
+            stats.get("console_bulk_requests", 0) == expected_console_bulk,
+            "bounded N4 console-output count differs: "
+            f"expected={expected_console_bulk} stats={stats}",
+        )
         expected_status_reports = int(os.environ.get(
             "CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS", "0",
         ))
@@ -854,6 +916,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             )) if disk_fault == "mid-session-restart" else 0
             require(fault_evidence.get("soak_cycles", 0) == expected_soak,
                     "NetDisk soak cycle count differs")
+            expected_writes = expected_soak if os.environ.get(
+                "CPM_PLUS_JUKU_SOAK_WRITES", "0",
+            ) == "1" else 0
+            require(
+                fault_evidence.get("soak_write_cycles", 0) == expected_writes,
+                "NetDisk soak write cycle count differs",
+            )
         else:
             require(stats.get("retries") == 0,
                     f"fixed NetDisk path required retries: {stats}")
@@ -1023,7 +1092,7 @@ def main() -> None:
     selected = os.environ.get("CPM_PLUS_JUKU_BOOT_PATH", "both")
     require(selected in (
         "both", "direct", "stock", "network", "network-smoke",
-        "network-compound", "network-remote", "video",
+        "network-compound", "network-soak", "network-remote", "video",
         "remote", "distribution", "all",
     ),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
@@ -1043,6 +1112,10 @@ def main() -> None:
                 disk_fault="compound-recovery")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
+            return
+        if selected == "network-soak":
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="mid-session-restart")
             return
@@ -1105,6 +1178,10 @@ def main() -> None:
                 disk_fault="compound-recovery")
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="server-restart")
+            run(trace, work, direct_core=True, network_rom=True,
+                disk_fault="mid-session-restart")
+            return
+        if selected == "network-soak":
             run(trace, work, direct_core=True, network_rom=True,
                 disk_fault="mid-session-restart")
             return

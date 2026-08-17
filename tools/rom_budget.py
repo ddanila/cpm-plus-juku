@@ -68,6 +68,21 @@ def assemble_span(source: Path, temporary: Path, start: str, end: str,
     return values[end] - values[start]
 
 
+def assemble_binary_size(source: Path, temporary: Path, name: str,
+                         includes: tuple[Path, ...],
+                         defines: tuple[str, ...] = ()) -> int:
+    """Return the exact stored byte count for an absolute ROM object."""
+    output = temporary / f"{name}.cim"
+    command = [str(ZMAC), "--nmnv", "--zmac", "-8"]
+    for include in includes:
+        command.append(f"-I{include}")
+    command.extend(f"-D{define}" for define in defines)
+    command.extend(("-o", str(output), str(source)))
+    subprocess.run(command, check=True, stdout=subprocess.PIPE,
+                   stderr=subprocess.STDOUT)
+    return output.stat().st_size
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -135,16 +150,35 @@ def main() -> int:
             resident_source, temporary, "N3ENA", "rom_netdisk_end",
             (resident_source.parent, COMMON / "platform"),
         )
+        network_rom = resident_source.parent
+        c6_defines = ("ROM_ABI_LOCALE", "ROM_ABI_EXTENDED")
+        c6_includes = (
+            network_rom, COMMON / "platform", COMMON / "diag",
+            COMMON / "music",
+        )
+        sizes["network-rom-boot-c6"] = assemble_binary_size(
+            network_rom / "boot.asm", temporary, "network-rom-boot-c6",
+            c6_includes, c6_defines,
+        )
+        sizes["rom-gate-c6"] = assemble_binary_size(
+            network_rom / "gate-wrapper.asm", temporary, "rom-gate-c6",
+            c6_includes, c6_defines,
+        )
 
     core = ROOT / "build" / "fastboot-core.cim"
     extension = ROOT / "build" / "fastboot-extension.cim"
     locale_extension = ROOT / "build" / "fastboot-extension-rom-locale.cim"
+    core_v16 = ROOT / "build" / "fastboot-core-v16.cim"
+    extension_v16 = ROOT / "build" / "fastboot-extension-rom-v16.cim"
     if not core.is_file() or not extension.is_file() or \
-            not locale_extension.is_file():
+            not locale_extension.is_file() or not core_v16.is_file() or \
+            not extension_v16.is_file():
         raise SystemExit("fastboot objects are missing; run `make` first")
     sizes["fastboot-core"] = core.stat().st_size
     sizes["fastboot-extension"] = extension.stat().st_size
     sizes["fastboot-extension-c5"] = locale_extension.stat().st_size
+    sizes["fastboot-core-v16"] = core_v16.stat().st_size
+    sizes["fastboot-extension-v16"] = extension_v16.stat().st_size
 
     diagnostics = sum(sizes[name] for name in (
         "diag-cpu", "diag-memory", "diag-address", "diag-retention",
@@ -163,18 +197,18 @@ def main() -> int:
         ("unassigned reserve", 0, 0x700),
         ("ABI manifest/vectors", 0, 0x100),
     )
+    c6_core_stored = max(128, sizes["fastboot-core-v16"])
     boot_measured = (
-        sizes["fastboot-core"] + sizes["fastboot-extension-c5"] +
-        sizes["diag-cpu"] + sizes["diag-memory"] +
-        sizes["diag-address"] + sizes["diag-checksum"] +
+        sizes["network-rom-boot-c6"] + sizes["fastboot-extension-v16"] +
+        c6_core_stored + sizes["rom-gate-c6"] +
         sizes["rom-console-helper-c5"]
     )
     boot = (
-        ("reset/init/quick POST", sizes["diag-cpu"] + sizes["diag-memory"] +
-         sizes["diag-address"] + sizes["diag-checksum"], 0x600),
-        ("automatic boot transport", sizes["fastboot-core"], 0x600),
-        ("validation/decompress/recovery", sizes["fastboot-extension-c5"],
+        ("reset/init/quick POST", sizes["network-rom-boot-c6"], 0x600),
+        ("embedded receive/decompress", sizes["fastboot-extension-v16"],
          0x600),
+        ("bootstrap core and call gate",
+         c6_core_stored + sizes["rom-gate-c6"], 0x600),
         ("RAM helper image/staging", sizes["rom-console-helper-c5"], 0x400),
         ("manifest/checksum/reserve", 0, 0x200),
     )

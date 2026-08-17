@@ -1,6 +1,6 @@
 # Network-first 16 KiB ROM plan
 
-Status: **IN PROGRESS — AUTOMATIC BOOT AND 8 KiB TPA GAIN PROVEN**
+Status: **IMPLEMENTED AS ABI 1.2 C6; SIMULATOR RELEASE QUALIFIED**
 
 Decision date: **2026-08-15**
 
@@ -208,20 +208,22 @@ path. The gain is therefore not inferred merely from source placement.
 
 | step | status | evidence / remaining work |
 | --- | --- | --- |
-| 1. Freeze reference | Reference frozen | Corrected resident NetDisk-v3, stock-ROM route, timing failures, and the remaining stock-`TN` final-handoff issue are recorded. Final physical parity remains part of step 8. |
+| 1. Freeze reference | Complete | Stock-ROM/RAM-BIOS, immutable C4, and physically exercised C5 remain named, hash-pinned references. C6 changes neither C5 ROM nor its matching system bytes. |
 | 2. Native RAM console | Complete; 53x24 and 64x20 physically checked | Authentic timing for 40x24, 53x24, 64x20, and MODX-compatible 80x24 is selected by S21 bits 2:1. The Creep-derived font reserves a separator column while its CP437 UI subset joins across cell edges. Independent 9,600-byte oracles exercise all four modes; cursor phases are 512/1,024 polls. CS00015 physically confirms 53x24 and 64x20, glyph spacing, and cursor speed. See [`modx-console-reference.md`](modx-console-reference.md) and [`s21-video-modes.md`](s21-video-modes.md). |
 | 3. Inventory and budget | Complete | `make rom-budget-check` measures linked shared modules, enforces exact 6 KiB/10 KiB envelopes, and records the mode-crossing call graph. The conservative target was exceeded by the measured 38.25 KiB transient span. See [`rom-budget.md`](rom-budget.md). |
-| 4. ROM ABI | ABI 1.0 frozen; 1.1 desk-qualified | `juku-common` defines immutable ABI 1.0 at `FF00h` and a fixed 196-byte gate at `D620h`. The separate ABI 1.1 C5 image appends configuration and four-pair key-remap vectors, uses a 214-byte gate and 128-byte geometry-aware helper, and keeps every 1.0 address/contract unchanged. Executable tests cover manifests, registers, stack guards, DI/PIC ownership, all four S21 video modes, overlay rejection, exact locale pixels, remapping, and bit-0 boot policy. |
-| 5. Automatic network boot | Complete in simulation | Reset establishes PPI/PIC and stock raster/refresh state; POST has distinct C1..C5 failures and reaches C4 target readiness in 725,602 cycles. Identity-free V15 rejects a corrupt extension, recovers, and boots the real CP/M Plus image without keys; `A>`, `DIR`, and `DIAG CPU` pass with zero retries/overruns. The host also recovers when its one-shot C4 observation was missed. See [`network-first-rom-auto-boot.md`](network-first-rom-auto-boot.md). |
-| 6. Move services / relink | Complete in simulation | Resident serial, keyboard, console/font, and the 676-byte NetDisk-v3 read-ahead/write-through service pass. The regenerated system moves loader/BDOS/BIOS to `9A00h`/`9D00h`/`BC00h`; the packed 928-byte adapter at `C000h` yields a measured 39,168-byte transient span, exactly 8 KiB over baseline. The real system completes `DIR`, paginated `TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`, and `ERA README.TXT` with 53 reads, one write, zero retries/overruns, and byte-exact screen parity. |
-| 7. Recovery matrix | Complete in simulation | Absent-host and missed-ready recovery, corrupt bootstrap rejection, target reset amid stale extension bytes, truncated/delayed/duplicate/bad-CRC disk replies, deliberate modeled 8251 overrun, idempotent request replay, and stateless server restart both during bootstrap and after `A>` pass. Every path completes `DIR`, paginated `TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`, and `ERA README.TXT`. A 16-cycle post-reconnect soak completes 271 reads and one write without retry or overrun. See [`network-first-rom-recovery.md`](network-first-rom-recovery.md). |
-| 8. Physical qualification | C5 blind matrix complete; display pending | C5 physically completed 19,200-baud autoboot, A:/B:, sequential read, snapshot erase, `DIAG ALL`, `WBOOT`, alphanumeric/Space keyboard coverage, and live host replacement without RESET on CS00015. Exact display geometry, glyphs, and cursor remain to observe with a monitor. See the [C5 blind evidence](cs00015-c5-blind-qualification-20260817.md). |
-| 9. Acceptance audit | Pending display evidence | Maps, immutable artifact hashes, timings, command transcripts, keyboard coverage, and reconnect diagnosis are published. Promotion waits for the exact resident display/cursor observation and final recorder audit. |
+| 4. ROM ABI | Complete through ABI 1.2 | `juku-common` freezes ABI 1.0/1.1 and C6 appends fixed bounded-console-span, ordered NetDisk-multi, and raw-key vectors while implementing sound. The gate remains 214 bytes and helper 128 bytes. Executable tests cover the complete vector map, manifests, registers, stack guards, DI/PIC ownership, all four S21 modes, overlay rejection, locale pixels, remapping, raw scan, block output, multi-request ordering, sound, and boot policy. |
+| 5. Automatic network boot | Complete in simulation | Reset establishes PPI/PIC and stock raster/refresh state; POST has distinct C1..C5 failures and the frozen C4 reaches readiness in 725,602 cycles. C6 embeds the complete 361-byte receive/decompress engine in boot-only ROM and uses Fastboot V16, so the wire carries no executable extension. It boots the real CP/M Plus image without keys; `A>`, `DIR`, and `DIAG CPU` pass with zero retries/overruns. A delayed-host fixture discards both C7/JR16 indications and still recovers through the overlap-safe JZ exchange without RESET. See [`network-first-rom-auto-boot.md`](network-first-rom-auto-boot.md). |
+| 6. Move services / relink | Complete in simulation | Resident serial, keyboard, console/font, sound, diagnostics, and NetDisk read-ahead/write-through pass. C6 adds bounded gate operations without moving loader/BDOS/BIOS from `9A00h`/`9D00h`/`BC00h`; its 2,924-byte extended adapter ends at `CB6Bh` and retains the measured 39,168-byte TPA. Local and N4 runs complete `DIR`, paginated `TYPE`, diagnostics, raw-key presence, bounded block output, `WBOOT`, and write/erase with zero clean-path retries/overruns. |
+| 7. Recovery matrix | Complete in simulation | Absent-host and missed-ready recovery, corrupt bootstrap rejection, target reset amid stale extension bytes, truncated/delayed/duplicate/bad-CRC disk replies, deliberate modeled 8251 overrun, idempotent replay, and stateless server restart during bootstrap and after `A>` pass. The final gate adds 64 read/diagnostic/write cycles after reconnect; the harness timeout scales with the requested soak instead of becoming a false target failure. See [`network-first-rom-recovery.md`](network-first-rom-recovery.md). |
+| 8. Physical qualification | Simulator substitute complete; C6 promotion optional | The exact production ROM and CP/M paths execute in the timing/device C model, including local screen/key/cursor and serial recovery. C5 already has broad CS00015 evidence. Burning C6 and observing it on CS00015 is now a separately scoped promotion action, not a blocker to completing the software plan. |
+| 9. Acceptance audit | Complete for simulator release | The deterministic C6 package binds maps, complete ABI vectors, hashes, D15/D16 halves, system/bootstrap slots, media, 39,168-byte TPA, local/N4 transcripts, and long-soak evidence. See [`cpm-plus-31-c6-simulator.md`](cpm-plus-31-c6-simulator.md) and [`plan-completion-audit.md`](plan-completion-audit.md). |
 
-## Post-baseline results and remaining experiments
+## Post-baseline results and recorded future experiments
 
-- V15 uses ZX0 compression after end-to-end timing experiments; the stable
-  production rate remains 19,200 baud after separately named higher-rate tests.
+- C4/C5 retain the proven downloaded V15 extension. C6 uses Fastboot V16:
+  its generic receive/CRC/ZX0 engine is embedded in boot-only ROM and the host
+  sends only the bounded compressed system stream. The stable production rate
+  remains 19,200 baud after separately named higher-rate tests.
 - NetDisk operation 26h provides explicit protocol capabilities, and C5 uses
   independent eight-record A:/B: read-ahead with write invalidation.
 - The checksummed host manifest binds load/entry addresses, protocol and ABI
@@ -233,6 +235,10 @@ path. The gain is therefore not inferred merely from source placement.
   disk or local console service.
 - C5 implements the concealed local-`N` recovery gate when S21 bit 0 is clear;
   no mandatory ROM menu was added.
+- C6 implements ABI 1.2 bounded console span, ordered NetDisk-multi,
+  instantaneous raw keyboard, sound, and duplicate-safe bounded N4 output.
+- The C6 local-console and remote-console CP/M paths are independently run so
+  lack of N4 cannot be mistaken for failure and N4 cannot mask local behavior.
 - Cryptographic authentication remains deliberately deferred until its EPROM,
   wire, and strict-8080 decode costs are measured. Reproducible hashes,
   Fletcher/CRC guards, and manifest validation remain mandatory meanwhile.
@@ -245,7 +251,7 @@ byte shared by ROM and the loaded operating system. The all-RAM CP/M console
 implements bits 2:1, and the separately named ABI 1.1 C5 ROM applies the same
 table to its resident console:
 
-| logical configuration bits | proposed meaning |
+| logical configuration bits | implemented meaning |
 | --- | --- |
 | bit 0 | ROM-only policy: `1` boots from the network automatically and immediately; `0` waits at the concealed local-`N` recovery gate |
 | bits 2:1 = `00` | 40x24, stock 320x241 timing |
@@ -319,7 +325,7 @@ CS00015.
 - extend the completed focused structural-HDL gate only when a new boundary
   benefits from it: the byte-identical C4 ROM already proves automatic reset/POST,
   framebuffer helper, keyboard, serial ABI, and one CRC-checked NetDisk-v3
-  DMA record; full V15/CP/M, recovery, exact cursor pixels, and soak remain in
+  DMA record; full V16/CP/M, recovery, exact cursor pixels, and soak remain in
   the practical C-model oracle;
 - provide one deterministic command that builds the combined ROM, named D15
   and D16 programmer images, CP/M system, disk images, hashes, and build map;
@@ -333,7 +339,9 @@ CS00015.
 
 ## Acceptance contract
 
-The first network-first ROM is complete only when all of these are true:
+The network-first software plan is complete when all of these are proven by
+the production-path simulator. Physical installation is a separately named
+promotion level and must never be inferred from simulator qualification:
 
 - cold reset with no keypress reaches CP/M Plus over a 19,200-baud link;
 - quick POST has a bounded measured duration and distinct, tested failures;
@@ -346,7 +354,9 @@ The first network-first ROM is complete only when all of these are true:
 - `DIR`, a sequential file read, `DIAG`, warm boot, and NetDisk reconnect pass;
 - old failure fixtures still fail for the original reason and corrected
   fixtures pass without synthetic error injection;
-- exact D15/D16 images, hashes, build identity, RAM/ROM map, TPA gain, simulator
-  logs, and repeated CS00015 results are documented;
-- the relinked system retains its measured 39,168-byte transient span, exceeding
-  the original minimum target, through final physical qualification.
+- exact D15/D16 images, hashes, build identity, RAM/ROM map, complete vector
+  map, TPA gain, simulator logs, and any available CS00015 results are documented;
+- the relinked system retains its measured 39,168-byte transient span,
+  exceeding the original minimum target, through the final simulator release
+  gate; a later physical promotion repeats the short matrix without changing
+  this scoped software result.

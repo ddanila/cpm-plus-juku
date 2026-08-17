@@ -21,6 +21,7 @@ VERSIONS = {
     b"JF13": (13, b"ZD"),
     b"JF14": (14, b"ZE"),
     b"JF15": (15, b"ZF"),
+    b"JF16": (16, b"ZG"),
 }
 EXTENSION_LENGTH_SENTINEL = bytes.fromhex("01 5A A5")
 LENGTH_SENTINEL = bytes.fromhex("21 5A A5 22")
@@ -74,20 +75,24 @@ def main() -> int:
         raise ValueError(
             f"fastboot v{version} extension has invalid size {len(extension)}"
         )
-    if version == 15:
+    if version in (15, 16):
         if not system_image.startswith(b"JUKURM1\x1a"):
-            raise ValueError("fastboot v15 requires a JUKURM1 system image")
+            raise ValueError(
+                f"fastboot v{version} requires a JUKURM1 system image"
+            )
         if system_image[8:12] not in (
             bytes.fromhex("00 b0 00 c6"),
             bytes.fromhex("00 70 00 9c"),
             bytes.fromhex("00 90 00 bc"),
         ):
             raise ValueError(
-                "fastboot v15 requires a supported Juku RAM layout"
+                f"fastboot v{version} requires a supported Juku RAM layout"
             )
         system_size = int.from_bytes(system_image[12:14], "little")
         if len(system_image) != SYSTEM_PREFIX + system_size:
-            raise ValueError("fastboot v15 JUKURM1 length is inconsistent")
+            raise ValueError(
+                f"fastboot v{version} JUKURM1 length is inconsistent"
+            )
         system = system_image[SYSTEM_PREFIX:]
     else:
         if len(system_image) != 10240 or \
@@ -97,12 +102,13 @@ def main() -> int:
             )
         system = system_image[SYSTEM_PREFIX:SYSTEM_PREFIX + SYSTEM_SIZE]
 
-    extension_size = len(extension)
+    extension_size = 0 if version == 16 else len(extension)
     core[9:11] = extension_size.to_bytes(2, "little")
-    patch_unique(
-        core, EXTENSION_LENGTH_SENTINEL, 1,
-        extension_size.to_bytes(2, "little"), "extension length",
-    )
+    if version != 16:
+        patch_unique(
+            core, EXTENSION_LENGTH_SENTINEL, 1,
+            extension_size.to_bytes(2, "little"), "extension length",
+        )
 
     with tempfile.TemporaryDirectory(
         prefix=f"juku-fastboot-v{version}-"
@@ -118,31 +124,32 @@ def main() -> int:
         compressed = compressed_path.read_bytes()
 
     compressed_limit = V15_COMPRESSED_LIMIT \
-        if version == 15 else COMPRESSED_LIMIT
+        if version in (15, 16) else COMPRESSED_LIMIT
     if len(compressed) < 0x100 or len(compressed) >= compressed_limit:
         raise ValueError(
             f"fastboot v{version} compressed system is {len(compressed)} bytes, "
             f"required range 256..{compressed_limit - 1}"
         )
     compressed_crc = crc16_ibm(compressed)
-    length_sentinel = BUFFERED_LENGTH_SENTINEL \
-        if version in (14, 15) else LENGTH_SENTINEL
-    crc_high_sentinel = BUFFERED_CRC_HIGH_SENTINEL \
-        if version in (14, 15) else CRC_HIGH_SENTINEL
-    crc_low_sentinel = BUFFERED_CRC_LOW_SENTINEL \
-        if version in (14, 15) else CRC_LOW_SENTINEL
-    patch_unique(
-        extension, length_sentinel, 1,
-        len(compressed).to_bytes(2, "little"), "length",
-    )
-    patch_unique(
-        extension, crc_high_sentinel, 1,
-        bytes((compressed_crc >> 8,)), "CRC high",
-    )
-    patch_unique(
-        extension, crc_low_sentinel, 1 if version in (14, 15) else 2,
-        bytes((compressed_crc & 0xFF,)), "CRC low",
-    )
+    if version != 16:
+        length_sentinel = BUFFERED_LENGTH_SENTINEL \
+            if version in (14, 15) else LENGTH_SENTINEL
+        crc_high_sentinel = BUFFERED_CRC_HIGH_SENTINEL \
+            if version in (14, 15) else CRC_HIGH_SENTINEL
+        crc_low_sentinel = BUFFERED_CRC_LOW_SENTINEL \
+            if version in (14, 15) else CRC_LOW_SENTINEL
+        patch_unique(
+            extension, length_sentinel, 1,
+            len(compressed).to_bytes(2, "little"), "length",
+        )
+        patch_unique(
+            extension, crc_high_sentinel, 1,
+            bytes((compressed_crc >> 8,)), "CRC high",
+        )
+        patch_unique(
+            extension, crc_low_sentinel, 1 if version in (14, 15) else 2,
+            bytes((compressed_crc & 0xFF,)), "CRC low",
+        )
     system_crc = crc16_ibm(system)
     descriptor = (
         payload_magic
@@ -150,12 +157,16 @@ def main() -> int:
         + len(compressed).to_bytes(2, "big")
         + compressed_crc.to_bytes(2, "big")
     )
-    bundle = bytes(core).ljust(CORE_SIZE, b"\0") + bytes(extension) + \
-        descriptor + compressed
+    bundle = bytes(core).ljust(CORE_SIZE, b"\0") + \
+        (b"" if version == 16 else bytes(extension)) + descriptor + compressed
     args.output.write_bytes(bundle)
+    extension_detail = (
+        f"embedded-extension={len(extension)} bytes, wire-extension=0, "
+        if version == 16 else f"extension={len(extension)} exact bytes, "
+    )
     print(
         f"Fastboot v{version} bundle: core={len(core)}/{CORE_SIZE}, "
-        f"extension={len(extension)} exact bytes, "
+        f"{extension_detail}"
         f"system={len(system)}->{len(compressed)}, "
         f"compressed CRC16/IBM={compressed_crc:04X}, "
         f"system CRC16/IBM={system_crc:04X}, total={len(bundle)}"

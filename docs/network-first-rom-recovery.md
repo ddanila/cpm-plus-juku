@@ -1,8 +1,8 @@
 # Network-first ROM recovery qualification
 
-Status: **COMPLETE IN SIMULATION; C4 BLIND PHYSICAL MATRIX COMPLETE**
+Status: **COMPLETE THROUGH THE C6 64-CYCLE SIMULATOR SOAK**
 
-Date: **2026-08-16**
+Date: **2026-08-18**
 
 This checkpoint completes execution-plan step 7 for the network-first ROM.
 The tests exercise faults at both bootstrap and resident NetDisk boundaries and
@@ -13,8 +13,8 @@ a valid host is available.
 
 | fault | exercised behavior | accepted result |
 | --- | --- | --- |
-| Host absent at reset | ROM waits and continues overlapping V15 synchronization probes | A later host can attach without resetting Juku |
-| Ready byte missed | Host times out of its C4 wait and begins safe synchronization | Bootstrap completes |
+| Host absent at reset | C4 waits in overlapping V15 synchronization; C6 waits in the ROM-resident V16 JZ scanner | A later host can attach without resetting Juku |
+| Ready byte missed | C4 times out of its C4 wait; the C6 fixture deliberately discards both C7 and JR16 before starting the host | The production synchronization exchange completes without RESET |
 | Corrupt bootstrap extension | Target rejects the CRC and accepts a later valid extension | Bootstrap completes |
 | Target reset halfway through an extension | A new target instance starts on the same PTY while stale body bytes remain | Stale bytes are discarded; a complete retransmission executes |
 | Truncated NetDisk reply | Only half of the first reply is sent | Resident service times out and retries |
@@ -28,9 +28,15 @@ a valid host is available.
 Every clean and injected-fault CP/M run must reach `A>`, execute `DIR`, run
 `DIAG CPU`, and erase `README.TXT`. The compound run currently records three
 host-observed retries and three modeled resident-phase 8251 overruns. The clean
-run records zero retries and zero overruns. The extended post-reconnect soak
-runs 16 further `DIR` plus `DIAG CPU`/warm-boot pairs and finishes with 271
-reads, one synchronous write, no target retry, and no overrun.
+run records zero retries and zero overruns. The C6 release soak replaces the
+server after `A>`, then runs 64 further directory/diagnostic cycles with one
+synchronous write/erase cycle per iteration. Every cycle completes without a
+manual reset, unrecovered target retry, or resident overrun. The final run
+records 1,193 accepted read requests, 257 synchronous write requests (the
+initial erase plus four filesystem updates per soak cycle), and zero retries.
+The older
+16-cycle/271-read result remains useful history but is no longer the release
+ceiling.
 
 ## Recovery rules fixed by this milestone
 
@@ -65,6 +71,7 @@ From this repository:
 ```sh
 make network-rom-cosim-check
 make network-rom-soak-check
+make network-rom-long-soak-check
 make check
 ```
 
@@ -72,8 +79,8 @@ The exact bytes are packaged and hashed as
 `network-first-abi1-cs00015-c4`. On 2026-08-17, three CS00015 cold boots passed
 the complete blind command/disk matrix at 6.068--6.070 seconds, and a corrected
 replacement host delivered `DIR` and returned to `A>` without RESET. Exact
-resident display, cursor, and local-keyboard observation remains the final C4
-promotion boundary; see
+resident display, cursor, and local-keyboard observation remains a physical C4
+promotion boundary rather than a blocker to the C6 simulator release; see
 [`cs00015-c4-blind-qualification-20260817.md`](cs00015-c4-blind-qualification-20260817.md).
 
 The shared resident recovery layer has separate physical evidence: on
@@ -82,4 +89,4 @@ CS00015 recovered after the original disk/N4 server was absent for about 23.19
 seconds and a fresh stateless `--resume-disk` process took over. Remote `DIR`
 and `DIAG CPU` then completed without target reset. This evidence predates and
 complements the later automatic C4 cold-start and handoff runs. It does not by
-itself promote either C4 or the separately named C5 desk candidate.
+itself promote C4, C5, or C6 physically.

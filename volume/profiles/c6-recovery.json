@@ -1,0 +1,35 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "native-recovery.json",
+  "name": "c6-recovery-a",
+  "description": "ABI 1.2 simulator-qualified recovery A: with raw matrix reporter",
+  "files": [
+    {
+      "source": "build/keyraw.cim",
+      "destination": "0:KEYRAW.COM",
+      "provenance": {
+        "source": "src/keyraw.asm and pinned juku-common ROM ABI",
+        "version": "Juku Keyraw 1.0",
+        "license": "LICENSE and third_party/juku-common notices"
+      }
+    },
+    {
+      "source": "build/disksoak.cim",
+      "destination": "0:SOAK.COM",
+      "provenance": {
+        "source": "src/disksoak.asm",
+        "version": "Juku NetDisk Soak 1.0",
+        "license": "LICENSE"
+      }
+    },
+    {
+      "source": "build/n4bulk.cim",
+      "destination": "0:N4BULK.COM",
+      "provenance": {
+        "source": "src/n4bulk.asm",
+        "version": "Juku N4 Bulk 1.0",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}
