@@ -32,6 +32,7 @@ def main() -> int:
         "call    NCTIME",
         "call    NCPUBLISH",
         "call    NCDIAG",
+        "call    NCCAPS",
         "db      'J','N','S','1'",
         "mvi     a,0ffh                  ; authoritative local output is ready",
         "xra     a                       ; no separately assigned AUX source",

@@ -114,7 +114,7 @@ wboot:
         lxi     sp,stack$top
 if native$services
         mvi     a,1
-        sta     0c5e8h
+        sta     0c640h
 endif
 load$ccp:
         call    set$jumps

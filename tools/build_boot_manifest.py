@@ -103,7 +103,10 @@ def main() -> int:
             "netdisk": 3,
             "disk_baud": 19200,
             "disk_framing": "8O1",
-            "features": ["console", "time", "status", "diagnostics"],
+            "features": [
+                "console", "time", "status", "diagnostics",
+                "capability-query",
+            ],
         },
         "volumes": sorted(volumes, key=lambda item: (
             item["drive"], item["profile"], item["file"],

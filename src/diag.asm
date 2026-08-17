@@ -10,7 +10,7 @@ COMMAND_TEXT    equ     081h
 DIAG_PIT_COUNT0 equ    018h
 DIAG_PIT_CONTROL equ   01bh
 DIAG_USART_CONTROL equ 009h
-NATIVE_MARKER   equ     0c5eah
+NATIVE_MARKER   equ     0c642h
 ROM_DIAG_GATE   equ     0d644h
 ROM_INFO_GATE   equ     0d647h
 

@@ -27,7 +27,8 @@ def main() -> int:
     requirements = manifest["requirements"]
     if requirements["rom_abi"] != "1.0" or \
             requirements["netdisk"] != 3 or \
-            requirements["disk_baud"] != 19200:
+            requirements["disk_baud"] != 19200 or \
+            "capability-query" not in requirements["features"]:
         raise AssertionError("manifest protocol requirements differ")
     profiles = {item["profile"]: item for item in manifest["volumes"]}
     if set(profiles) != {

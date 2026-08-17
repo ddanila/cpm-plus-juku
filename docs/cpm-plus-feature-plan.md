@@ -192,6 +192,15 @@ Directory prefetch and bounded sequential coalescing are the first performance
 experiments. They have high expected value and do not require risking a write
 cache.
 
+Safety/capability slice completed on 2026-08-17: the host defaults to
+read-only A: and provides explicit synchronous write-through, full writable
+copy, and sparse snapshot modes with atomic persistence and base-image hash
+validation. B: remains read-only. NetDisk-v3 operation 26h now provides an
+explicit, bounded, duplicate-safe capability reply containing protocol,
+maximum read-ahead, feature flags, and drive count; `STATUS.COM` displays it.
+Directory caching, independent per-drive read-ahead, and measured MULTIO
+coalescing remain open performance work.
+
 ## Priority 6: manifests and recovery policy
 
 - add a host-visible boot manifest containing length, load and entry address,
@@ -216,8 +225,9 @@ system and v15 hashes, ROM-ABI/NetDisk/baud requirements, build identity, and
 all named A:/B: profiles with geometry and media policy. The production host
 can reject stale artifacts before opening the serial device and records the
 manifest identity in timing evidence. This is station-identity independent.
-On-wire target capability query and last-known-good/two-slot recovery remain
-open. See [`boot-manifest.md`](boot-manifest.md).
+The on-wire target capability query is now implemented as operation 26h and is
+kept distinct from the build/media manifest. Last-known-good/two-slot recovery
+remains open. See [`boot-manifest.md`](boot-manifest.md).
 
 ## Completion order
 

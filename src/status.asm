@@ -11,7 +11,7 @@ PRINT           equ     9
 start:
         lxi     d,title
         call    puts
-        lda     0c5eah                 ; native adapter marker, avoids C4 USERF
+        lda     0c642h                 ; native adapter marker, avoids C4 USERF
         cpi     04eh
         jnz     unavailable
         mvi     a,30                   ; versioned Juku USERF
@@ -148,6 +148,40 @@ start:
         mov     a,m
         call    printhex
         lxi     d,newline
+        call    puts
+
+        mvi     a,30
+        call    setvector
+        mvi     c,3                    ; explicit host capability query
+        call    bioscall
+        ora     a
+        jnz     caps_unavailable
+        shld    capsbase
+        lxi     d,capsmsg
+        call    puts
+        lhld    capsbase
+        mov     a,m
+        call    printhex
+        lxi     d,aheadmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,hostfeaturesmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,drivesmsg
+        call    puts
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,newline
+        jmp     puts
+
+caps_unavailable:
+        lxi     d,capsunavailablemsg
         jmp     puts
 
 unavailable:
@@ -215,7 +249,7 @@ identity:
         db      'ROM: Juku ABI 1.0 network-first baseline',13,10,'$'
 mapmsg:
         db      'Map: TPA 0100-9CFF, BDOS 9D00-BB9B, SCB BB9C-BBFF',13,10
-        db      '     BIOS BC00-BFFF, adapter C000-C5EB, state C5EC-C909',13,10
+        db      '     BIOS BC00-BFFF, adapter C000-C63F, state C640-C95F',13,10
         db      '     ROM gate/work D600-D7FF, framebuffer D800-FFFF',13,10,'$'
 s21msg: db      'S21 raw: $'
 videomsg:
@@ -244,6 +278,16 @@ consolemsg:
         db      13,10,'N4 last failure: $'
 reconnectmsg:
         db      '  reconnects: $'
+capsmsg:
+        db      'Host caps: NetDisk v$'
+aheadmsg:
+        db      '  read-ahead: $'
+hostfeaturesmsg:
+        db      '  features: $'
+drivesmsg:
+        db      '  drives: $'
+capsunavailablemsg:
+        db      'Host capability query unavailable.',13,10,'$'
 newline:
         db      13,10,'$'
 unavailablemsg:
@@ -255,5 +299,7 @@ mode3:  db      ' (80x24)',13,10,'$'
 modetable:
         dw      mode0,mode1,mode2,mode3
 infobase:
+        dw      0
+capsbase:
         dw      0
         end

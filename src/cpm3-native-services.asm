@@ -17,17 +17,18 @@
         extrn   NCTIME
         extrn   NCPUBLISH
         extrn   NCDIAG
+        extrn   NCCAPS
 
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
-NCRECONNECT    equ     0c5fch
-NCLASTFAIL     equ     0c5fdh
-ROMABISTATUS   equ     0c5f1h
-ROMLASTDISK    equ     0c5feh
-ROMLASTTRIES   equ     0c5ffh
+NCRECONNECT    equ     0c65ch
+NCLASTFAIL     equ     0c65dh
+ROMABISTATUS   equ     0c651h
+ROMLASTDISK    equ     0c65eh
+ROMLASTTRIES   equ     0c65fh
 ROMPOSTSTATUS  equ     0d610h
-NATIVEBOOT     equ     0c5e8h
-NATIVEPOST     equ     0c5e9h
+NATIVEBOOT     equ     0c640h
+NATIVEPOST     equ     0c641h
 
 ; The current aggregate console is one physical CP/M 3 character device:
 ; local display/keyboard, with optional transparent N4 mirroring. It is not a
@@ -148,7 +149,8 @@ NSTIMERET:
 ; C=0: return HL -> read-only status block after refreshing S21.
 ; C=1: refresh and publish the same status tuple to the N4 host, then return
 ;      the status block. Publication is best effort and never blocks status.
-; Other selectors return A=FFh, HL=0000h.
+; C=2 publishes a diagnostic tuple in B/D/E/L. C=3 returns the host's
+; explicit four-byte capability record. Other selectors fail.
 NSUSERF:
         mov     a,c
         ora     a
@@ -156,7 +158,12 @@ NSUSERF:
         dcr     a
         jz      NSUSERFPUBLISH
         dcr     a
+        jz      NSUSERFDIAG
+        dcr     a
         jnz     NSUSERFBAD
+        call    NCCAPS
+        ret
+NSUSERFDIAG:
         mov     a,b                     ; C=2: B/D/E/L -> suite/pass/fail/flags
         mov     b,d
         mov     d,e

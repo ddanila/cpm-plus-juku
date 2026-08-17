@@ -7,10 +7,10 @@ beside each one:
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
-| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS and Diag 0.5 | 374 KiB | `d6bbe01919545daf85d30822926902557ee7c509ad9135b20c73b0b3860398c6` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `3778f6f582006f86613b925058003cda4e028ddc9cc8233b70534b49c635bc1f` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `2d646f67f7b3ab7c04fdf418d3fa6a8827c9244984d68490960dee53ea6ad65f` |
-| `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `b8131b6d695fc276302ff3e341ffae919d803e08e9e6f98e498f658e9c411fd8` |
+| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS and Diag 0.5 | 374 KiB | `7acd58c114366b4e815e65870dec720233db09612e6ce99ea3e44a43e4794a20` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `7f1cc5f9d16a92380a5f7ef9a3167ba2d3861686aad5c4e7b6447c07d768e0bb` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `47c1bde66fa5f736c972b8160edb84c1569a58c3ab28d138fc328b9d38cc28ce` |
+| `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
 must match `prebuilt/cpm-plus-juku.img` byte for byte. Full and demo profiles

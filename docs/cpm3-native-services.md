@@ -12,9 +12,9 @@ They retain the same non-banked memory map: BDOS begins at 9D00h, BIOS at
 BC00h, the adapter at C000h, and the 39,168-byte TPA ends at 9CFFh. No banked
 memory is claimed. GENCPM relocates the SCB to BB9Ch (clock BBF4h); FE00h
 symbols in the DRI source are relocatable canonical addresses,
-not runtime addresses for an absolute adapter module. `make
-native-services-check` regenerates the native SYS,
-builds the adapter in C000h..C5DBh (within the reserved C000h..C5EBh window),
+not runtime addresses for an absolute adapter module. Running
+`make native-services-check` regenerates the native SYS,
+builds the adapter in C000h..C633h, keeps fixed state in C640h..C95Fh,
 boots it through the production network ROM, and runs both the normal CP/M
 command matrix, `NATIVE.COM`, and `STATUS.COM`.
 
@@ -40,8 +40,10 @@ command matrix, `NATIVE.COM`, and `STATUS.COM`.
   a `JNS1` status block with features, raw S21, decoded video mode, and the
   last MULTIO count. Selector C=1 refreshes the block and publishes the same
   bounded tuple to the host. Selector C=2 publishes a bounded diagnostic tuple
-  supplied in B/D/E/L as suite, pass mask, fail mask, and flags. Unknown
-  selectors fail with A=FFh and HL=0000h.
+  supplied in B/D/E/L as suite, pass mask, fail mask, and flags. Selector C=3
+  performs an explicit host capability query and returns HL pointing to four
+  bytes: NetDisk protocol, maximum read-ahead, feature flags, and drive count.
+  Unknown selectors fail with A=FFh and HL=0000h.
 - TIME gets CP/M day plus BCD hour/minute/second through optional NetDisk-v3
   operation 22h. SET uses operation 23h to establish a host session offset
   without changing the host OS clock. An absent, invalid, or torn reply leaves
@@ -64,6 +66,13 @@ each completed safe suite. The host logs and counts the result without adding
 any dependency to local diagnostics. See
 [`cpm3-diagnostics.md`](cpm3-diagnostics.md).
 
+`STATUS.COM` also uses USERF selector 3 / NetDisk-v3 operation 26h. Unlike the
+startup N3/N4 marker, this is a checksummed request/reply exchange that may be
+repeated after host replacement. It reports the actual server protocol,
+bounded read-ahead limit, console/time/status/diagnostic/B:/writable-A feature
+bits, and advertised drive count. An older or absent server returns
+"unavailable" without affecting local display, disk, or boot.
+
 The fixed native status record retains reset POST status at cold boot, changes
 its cold/warm marker only on a real CP/M warm entry, records the last resident
 NetDisk status and remaining attempt count, and counts successful N4 reprobes
@@ -71,6 +80,15 @@ after bounded host loss. The status regression observes cold state through
 `STATUS.COM`, executes `WBOOT`, and then checks the warm marker directly in the
 simulator checkpoint. C4 remains byte-identical because clock, publisher, and
 recording code are assembled only in the separately named native profile.
+
+The native fixed layout is deliberately non-overlapping: initialized service
+code ends at C633h, cold/warm and transport state occupy C640h..C65Fh, the
+directory buffer and resident three-record cache occupy C680h..C909h, and the
+adapter's transient disk workspace begins at C920h. Address-watch tracing
+reproduced and eliminated two integration faults: placing the workspace at
+C600h overwrote native service code, while C780h overwrote the NetDisk cache.
+The regression now executes real reads, STATUS/capabilities, diagnostics,
+warm boot, and write/erase through this map.
 
 `NATIVE.COM` calls the actual high-memory BIOS vectors on the emulated 8080.
 It verifies the device table, FLUSH, A-register MULTIO convention, USERF

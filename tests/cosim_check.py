@@ -659,6 +659,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 and diag_reports[-1]["flags"] == 0,
                 f"target I/O diagnostic tuple differs: {diag_reports[-1]}",
             )
+        expected_capability_queries = int(os.environ.get(
+            "CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES", "0",
+        ))
+        require(
+            stats.get("capability_queries", 0) ==
+            expected_capability_queries,
+            "host capability-query count differs: "
+            f"expected={expected_capability_queries} stats={stats}",
+        )
         if disk_fault == "compound-recovery":
             require(
                 stats.get("short_replies") == 1
@@ -746,16 +755,20 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         require(signature > 0 and gate[signature - 1] == 1,
                 "CP/M Plus did not initialize the fixed ROM call gate")
         expected_local_key = 0 if remote_console else 0x0D
+        native_record = os.environ.get(
+            "CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD",
+        ) == "1"
+        abi_status_address = 0xC651 if native_record else 0xC5F1
         require(
-            ram[0xC5F1] == 0 and ram[0xD785] == 1
+            ram[abi_status_address] == 0 and ram[0xD785] == 1
             and ram[0xD788] == expected_local_key,
             "CP/M Plus did not retain ROM serial/keyboard binding state",
         )
-        if os.environ.get("CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD") == "1":
+        if native_record:
             require(
-                ram[0xC5E8] == 1 and ram[0xC5E9] == 0,
+                ram[0xC640] == 1 and ram[0xC641] == 0,
                 "native cold/warm or reset-POST record differs: "
-                f"boot={ram[0xC5E8]:02X} post={ram[0xC5E9]:02X}",
+                f"boot={ram[0xC640]:02X} post={ram[0xC641]:02X}",
             )
         if ram_console_reference is not None:
             require(

@@ -108,7 +108,11 @@ CONCW          equ     0ffb4h
 ; build relinks this binding at C000h and keeps its state at C5ECh..C909h.
 .ifdef CPM3ADAPTER
 .ifdef ROMABI
+.ifdef NATIVE_SERVICES
+TYP            equ     0c920h
+.else
 TYP            equ     0c600h
+.endif
 .else
 TYP            equ     0b100h
 .endif
@@ -149,6 +153,17 @@ PIT3CTL        equ     01bh
 PICMASK        equ     001h
 .ifdef CPM3ADAPTER
 .ifdef ROMABI
+.ifdef NATIVE_SERVICES
+PICSHADOW      equ     0c650h
+ROMABISTATUS   equ     0c651h
+ROMNETREQUEST  equ     0c652h
+ROMLASTDISK    equ     0c65eh
+ROMLASTTRIES   equ     0c65fh
+ROMN3TRIES     equ     0d79ch
+NATIVEBOOT     equ     0c640h
+NATIVEPOST     equ     0c641h
+NATIVEMARK     equ     0c642h
+.else
 PICSHADOW      equ     0c5f0h
 ROMABISTATUS   equ     0c5f1h
 ROMNETREQUEST  equ     0c5f2h
@@ -158,6 +173,7 @@ ROMN3TRIES     equ     0d79ch
 NATIVEBOOT     equ     0c5e8h
 NATIVEPOST     equ     0c5e9h
 NATIVEMARK     equ     0c5eah
+.endif
 .else
 PICSHADOW      equ     0b0f0h
 .endif
@@ -1176,8 +1192,13 @@ NETTRIES:db     0
 ; than inside the CA00h BIOS image.
 .ifdef CPM3ADAPTER
 .ifdef ROMABI
+.ifdef NATIVE_SERVICES
+SAVEHL   equ    0c64ah
+SAVESP   equ    0c648h
+.else
 SAVEHL   equ    0c5eeh
 SAVESP   equ    0c5ech
+.endif
 .else
 SAVEHL   equ    0b0eeh
 SAVESP   equ    0b0ech
