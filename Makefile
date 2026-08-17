@@ -160,7 +160,8 @@ $(ZXCC): $(ZXCC_ARCHIVE) | $(BUILD) $(BIN)
 $(BUILD)/platform-adapter.rel: src/platform-adapter.asm \
 		$(COMMON)/platform/ram-console.asm \
 		$(COMMON)/platform/ram-console-font.asm \
-		$(COMMON)/platform/creep-console-font.asm $(ZMAC) | $(BUILD)
+		$(COMMON)/platform/creep-console-font.asm \
+		$(COMMON)/platform/locale-console-fonts.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 \
 		-I$(COMMON)/platform -o $@ $<
 

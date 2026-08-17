@@ -19,10 +19,28 @@ Bits 2:1 select the historical console geometry:
 The first two use the stock 320x241 timing sequence. Mode `10` uses the
 EktaSoft 384x201 sequence, and mode `11` uses the exact MODX 400x192 writes.
 Each text surface owns exactly 9,600 framebuffer bytes. Bit 0 is reserved for
-a future ROM auto-netboot policy and is ignored by the present CP/M console;
-bits 7:3 are reserved.
+the final ROM auto-netboot policy and is ignored by the present CP/M console.
+Bits 4:3 are assigned to the character bank, while bits 7:5 remain reserved:
 
-The active font is an adaptation of the MIT-licensed Creep 0.31 BDF. Ordinary
+| raw bits 4:3 | character bank |
+| --- | --- |
+| `00` | English ASCII plus CP437 UI glyphs |
+| `01` | English plus ISO-8859-1 Estonian `ÄÕÖÜäõöü` |
+| `10` | English plus Russian CP866 |
+| `11` | English/user-remap fallback |
+
+CP866 keeps B0h..DFh for the connected CP437 pseudographics. `juku-common`
+now provides these sparse banks and a single S21-selecting renderer behind the
+`RAMLOCALEFONTS` build option. The compact 4 KiB compatibility adapter keeps
+that option off: its four fixed modules already occupy 3,989 bytes, while the
+locale-enabled set needs 4,678 bytes. The production integration therefore
+belongs in the network-first ROM's reserved 2 KiB F000h..F7FFh font bank,
+without shrinking the 39,168-byte TPA. The shared keyboard similarly provides
+an optional four-pair persistent substitution table for dead or nonstandard
+per-machine keys; exposing both facilities remains ABI-minor work.
+
+The active base font is an adaptation of the MIT-licensed Creep 0.31 BDF.
+Ordinary
 letters and digits keep the fifth pixel blank, preventing adjacent characters
 from sticking together. The 80x24 mode additionally exposes a compact subset
 at standard CP437 byte values. Box strokes are deliberately edge-connected:
@@ -30,6 +48,10 @@ repeating horizontal glyphs fills all five pixels and vertically stacked
 glyphs occupy both the top and bottom scanlines, forming solid lines. The
 earlier corrected CC0 font remains in `juku-common` as a reference/future
 wider-mode asset but is not embedded in the 4 KiB adapter.
+The eight Estonian glyphs come from the same pinned Creep release. The 66
+Russian glyphs come from u8g2's pinned public-domain Unicode 4x6 BDF and are
+padded into the common seven-row cell. Both source hashes and readable glyph
+references live in `juku-common` and are checked by independent oracles.
 
 The console's underline phase is 512 idle status polls, half the physically
 observed slow baseline. Cursor painting uses XOR so it does not destroy a

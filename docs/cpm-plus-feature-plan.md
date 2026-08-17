@@ -135,8 +135,14 @@ and publishes raw S21, decoded video mode, native feature flags, and last clock
 status through idempotent NetDisk-v3 operation 24h. `STATUS.COM` prints the
 same configuration plus resident map and build/protocol identities. The C4
 recovery image remains immutable; a separately named native recovery profile
-adds the utility. Locale banks, key remapping, and final ROM bit-0 policy
-remain open.
+adds the utility. Shared code now provides optional English, Estonian, and
+CP866 Russian font extensions selected by S21 bits 4:3 without duplicating the
+renderer, retains the connected CP437 UI range, and offers a bounded four-pair
+resident key remap. Their pinned MIT/public-domain sources and generated rows
+have independent oracles. Exact measurement rejects enabling them in the
+already 3,989-byte compatibility adapter; production integration belongs in
+the network ROM's reserved 2 KiB locale bank. ROM-ABI exposure and the final
+ROM bit-0 policy remain open.
 
 ## Priority 4: diagnostics and observability
 
