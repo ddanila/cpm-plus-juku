@@ -60,8 +60,8 @@ ROM, CP/M console setup, and status reporting share one encoding.
 The ABI 1.1 build calls the appended `JCGCONFIG` vector instead, so CP/M uses
 the ROM's reset-latched byte rather than resampling live switches. Its system
 and fast-stage SHA-256 values are respectively
-`d99d18589730af017b4dbcf3a378d0a0430bc3bcec07b6a3fddbc64486f6ebdf`
-and `6ce3c6931b041d006ba36aa645ec06b3f96f01feaba2fc0d434a678e33ae0414`.
+`f5bde664719bd43dc9bcd6f4ceb5d280649f68e9db775fde7f70e35b0eaee4f1`
+and `83dccb8221a2b65e5269dea62790deeb399bfb8c4763c62738e34064d832ada2`.
 The C4/native ABI 1.0 artifact retains its bounded direct sampler and byte
 identity.
 
@@ -110,8 +110,9 @@ C600h overwrote native service code, while C780h overwrote the NetDisk cache.
 The regression now executes real reads, STATUS/capabilities, diagnostics,
 warm boot, and write/erase through this map.
 
-The C5-only binding adds a second three-record buffer at CB80h..CD08h. The
-resident ROM stores independent A:/B: counts and pointers at D7DAh..D7DFh;
+The C5-only binding adds eight-record buffers at CB80h..CF97h and
+CFA0h..D3B7h. The resident ROM stores independent A:/B: counts and pointers
+at D7DAh..D7DFh;
 the alternating-drive regression loads B:, returns to A:, reloads an A:
 transient, and proves both counts remain nonzero with the expected distinct
 pointers. The immutable C4/native binding and memory map remain unchanged.

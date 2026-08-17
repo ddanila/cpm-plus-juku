@@ -211,9 +211,13 @@ maximum read-ahead, feature flags, and drive count; `STATUS.COM` displays it.
 The C5 slice now retains independent A:/B: read-ahead buffers and validity
 metadata, with an alias-safe fallback for ABI 1.0 consumers. Its alternating
 B: -> A: regression leaves both entries live after loading a transient from
-each drive. Directory caching and measured MULTIO coalescing remain open; the
-pinned zero-turn steady `DIR` means any larger transfer experiment must reduce
-the 22-turn initial login rather than optimize an artificial loop.
+each drive. Its explicit eight-record setting reduces initial A: login from 22
+turns to 10, B: login from 11 to 4, and `TYPE` from 2 to 1 while preserving the
+zero-turn `DIR` and flat measured wire volume. CP/M's existing directory state
+already supplies the useful directory cache; a second protocol cache is
+rejected. MULTIO-aware bulk DMA is deferred because the translated predictor
+already fills eight records and the visible workloads show no remaining
+benefit that would justify another ABI/protocol.
 
 The first measured performance pass is now pinned by
 [`netdisk-performance.md`](netdisk-performance.md). On recovery A:, login costs

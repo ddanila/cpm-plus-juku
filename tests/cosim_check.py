@@ -873,8 +873,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         if os.environ.get("CPM_PLUS_JUKU_EXPECT_PER_DRIVE_CACHE") == "1":
             require(
                 ram[0xD7DA] > 0 and ram[0xD7DB] > 0
-                and ram[0xD7DC:0xD7DE] == bytes((0x80, 0xC7))
-                and ram[0xD7DE:0xD7E0] == bytes((0x80, 0xCB)),
+                and ram[0xD7DC:0xD7DE] == bytes((0x80, 0xCB))
+                and ram[0xD7DE:0xD7E0] == bytes((0xA0, 0xCF)),
                 "C5 did not retain independent A:/B: read-ahead state: "
                 f"{ram[0xD7DA:0xD7E0].hex()}",
             )
@@ -920,9 +920,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         require(resident_overruns == 0,
                 f"fixed NetDisk path still overran the resident 8251: {state}")
     if command_metrics:
-        (case / "disk-metrics.json").write_text(
-            json.dumps(command_metrics, indent=2) + "\n",
-        )
+        metrics_text = json.dumps(command_metrics, indent=2) + "\n"
+        (case / "disk-metrics.json").write_text(metrics_text)
+        metrics_output = os.environ.get("CPM_PLUS_JUKU_METRICS_OUTPUT")
+        if metrics_output:
+            Path(metrics_output).write_text(metrics_text)
     print(
         "JUKU CP/M PLUS 3.1: PASS "
         f"({boot_label} "

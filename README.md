@@ -88,8 +88,8 @@ D600h..D7FFh  fixed ROM call gate/state and framebuffer helper
 D800h..FFFFh  resident runtime ROM
 ```
 
-The separately named C5/ABI 1.1 binding retains A:'s three-record buffer at
-`C780h..C909h` and adds B:'s at `CB80h..CD08h`; neither changes the TPA.
+The separately named C5/ABI 1.1 binding uses eight-record A:/B: buffers at
+`CB80h..CF97h` and `CFA0h..D3B7h`; neither changes the TPA.
 Alternating B: and A: in cosimulation leaves both resident validity records
 live. An ABI 1.0 consumer may still share one buffer and triggers C5's safe
 alias-invalidating fallback.

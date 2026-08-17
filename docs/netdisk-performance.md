@@ -71,14 +71,29 @@ sessions.
 - A: defaults to read-only at the host; copy, snapshot, and explicit
   write-through policies remain unchanged.
 - B: remains read-only.
-- C5 uses independent A: (`C780h..C909h`) and B: (`CB80h..CD08h`) buffers and
+- C5 uses independent A: (`CB80h..CF97h`) and B: (`CFA0h..D3B7h`) buffers and
   resident validity/pointer metadata. An alias guard preserves safe behavior
   for an older consumer that supplies one shared pointer.
 
 The per-drive slice is now executable rather than speculative: the C5 test
 selects and lists B:, loads its diagnostic transient, returns to A:, loads the
-A: copy, then validates that both three-record entries remain live. It costs no
-TPA and does not change the request count of a first login. MULTIO-aware larger
-coalescing remains a candidate for a later ROM-ABI/protocol revision, but only
-an initial-login measurement can justify its extra target buffer and wire
-contract. Steady-state `DIR` and short sequential reads do not.
+A: copy, then validates that both entries remain live. C5 explicitly raises
+the bounded reply/cache capacity from three to eight records, while the host
+default remains three for C4 and older clients.
+
+The paced C5 comparison is:
+
+| Phase | 3-record baseline | C5 8-record | reply bytes | elapsed |
+| --- | ---: | ---: | ---: | ---: |
+| recovery-A login | 22 requests / 66 records | 10 / 80 | 4,309 -> 4,072 | 9.78 -> 9.63 s |
+| first A:`DIR` | 0 / 0 | 0 / 0 | 0 -> 0 | 3.34 -> 3.19 s |
+| A:`TYPE README.TXT` | 2 / 6 | 1 / 8 | 546 -> 549 | 20.48 -> 20.49 s |
+| first B: login | 11 / 33 | 4 / 32 | workload-dependent | 2.72 -> 2.72 s |
+
+This is a turnaround/robustness gain, not a visible-speed breakthrough. It
+costs no TPA, keeps the wire volume flat for measured phases, and is pinned by
+the C5 regression at 10/0/1 boot/`DIR`/`TYPE` requests. CP/M's MULTIO hint
+cannot improve these commands further without a new bulk-DMA BIOS contract;
+the existing translated predictor already fills the eight-record cache before
+the next individual `READ`. Such a protocol is deferred until a real workload
+shows benefit beyond these counts.
