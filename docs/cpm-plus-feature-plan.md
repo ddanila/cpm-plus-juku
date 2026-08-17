@@ -286,11 +286,11 @@ prevents performance or convenience work from obscuring hardware regressions.
 
 | Priority | State | Authoritative evidence |
 | --- | --- | --- |
-| 0. Physical baseline | **Blind matrix complete; local console pending** | Three CS00015 cold boots passed at 6.068--6.070 seconds with identical full N4 command transcripts. Sequential read, write/erase, warm boot, host loss, and live host reconnect without RESET pass. Exact resident display/keyboard/cursor observation remains. |
+| 0. Physical baseline | **C5 blind matrix complete; display pending** | C5 booted CS00015 in 6.268 s, then passed A:/B:, sequential read, snapshot erase, warm boot, full diagnostics, every alphanumeric key plus Space, and live host replacement without RESET. Exact resident display/cursor observation remains. |
 | 1. Distribution | **Complete** | `distribution-check`, deterministic profile reports, provenance checks, native B: conversion, and distribution cosimulation pass. |
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
 | 3. S21/console/locale | **Complete in simulation; two modes physically observed** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, and 53x24/64x20 CS00015 evidence. |
-| 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; STATUS 1.2 and operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state, including a recovered corrupt-stream fixture. |
+| 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 C5 boot/DIR/TYPE counts, per-drive cache oracle, explicit capability query, read-only/copy/snapshot policies, and synchronous-write recovery pass. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | Manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, and the immutable C4 fallback pass. |
 
@@ -303,11 +303,14 @@ not substitute for the Priority 0 hardware observations listed above.
 1.1 C5 ROM and exact D15/D16 halves to the matching locale-native CP/M Plus
 3.1 system, C4 fallback, published media/reports, license, and notice in a
 byte-reproducible tar. This completes every desk-executable item in this plan.
-It deliberately does not promote C5: the full C5 physical matrix remains the
-next hardware gate. See
+It deliberately does not promote C5: the blind hardware matrix passes, but the
+display/cursor gate remains. See
 [`cpm-plus-31-c5-release-candidate.md`](cpm-plus-31-c5-release-candidate.md).
 
 For monitorless completion of the keyboard portion, the post-C4 profiles now
-include `KEYTEST.COM`. It reports unbuffered local key codes through N4, has a
-bounded exit, and passes an exact simulator transcript including Space and
-Enter. Display and cursor acceptance still require a working external display.
+include `KEYTEST.COM`. Its single-key mode reports unbuffered local key codes
+through N4; its `KEYTEST B` mode captures a complete line before reporting so
+serial output cannot stall the polled keyboard between keys. Both have bounded
+exits, and buffered mode passes an exact simulator transcript including Space
+and Enter. Display and cursor acceptance still require a working external
+display.

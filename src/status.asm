@@ -49,8 +49,10 @@ start:
         dad     d
         mov     a,m
         call    printhex
+        push    h
         lxi     d,dotmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
@@ -67,8 +69,10 @@ start:
         mov     a,m
         call    printhex
 
+        push    h
         lxi     d,videomsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         push    h
@@ -121,13 +125,17 @@ start:
         mov     a,m
         call    printhex
 
+        push    h
         lxi     d,clockmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,clockokmsg
         call    puts
+        pop     h
         inx     h
         mov     e,m
         inx     h
@@ -151,33 +159,45 @@ start:
         dad     d
         mov     a,m
         call    printhex
+        push    h
         lxi     d,postmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,abimsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,diskmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,triesmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,consolemsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,reconnectmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
@@ -191,13 +211,17 @@ start:
         dad     d
         mov     a,m
         call    printhex
+        push    h
         lxi     d,bootstrapretrymsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,bootstrapprotomsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
@@ -221,18 +245,24 @@ start:
         lhld    capsbase
         mov     a,m
         call    printhex
+        push    h
         lxi     d,aheadmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,hostfeaturesmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
+        push    h
         lxi     d,drivesmsg
         call    puts
+        pop     h
         inx     h
         mov     a,m
         call    printhex
@@ -301,7 +331,7 @@ bioscall:
         call    0000h
         ret
 
-title:  db      13,10,'Juku Status 1.2',13,10,'$'
+title:  db      13,10,'Juku Status 1.3',13,10,'$'
 identity:
         db      'System: CP/M Plus 3.1, native profile 1',13,10
         db      'Transport: NetDisk v3, 19200 baud, N4 services',13,10,'$'

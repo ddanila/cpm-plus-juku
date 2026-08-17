@@ -1,6 +1,6 @@
 # CP/M Plus 3.1 C5 desk release candidate
 
-Status: **DESK-QUALIFIED; COMPLETE C5 PHYSICAL ACCEPTANCE PENDING**
+Status: **BLIND C5 MATRIX PASSED; DISPLAY ACCEPTANCE PENDING**
 
 Date: **2026-08-17**
 
@@ -42,7 +42,7 @@ out/cpm-plus-3.1-juku-c5-desk.tar.sha256
 ```
 
 The current deterministic tar SHA-256 is
-`1797d9eb6168441bb0f7479325bbdba28e3a72368a5f769b1dcbedc752214334`.
+`b9ffd34ef6c87eebf019a29f543bfd75ecabbe04f1061c4c7911dce78d883b34`.
 
 `tests/release_candidate_test.py` builds the package twice in independent
 temporary paths and requires byte-identical tar files. It also rechecks every
@@ -59,28 +59,34 @@ path as `KEY hh`, adding the printable character when applicable. For example,
 Space is `KEY 20 ' '`, Enter is `KEY 0D`, and `A` is `KEY 41 'A'`. Escape or
 Ctrl-C is reported and then exits; a 128-key bound is the final escape hatch.
 
+`KEYTEST B` is the preferred continuous-typing test. It polls and stores up to
+64 local keys without emitting anything, then reports the complete batch after
+Enter. This avoids pausing the polled keyboard while N4 prints a report for the
+previous key. Each report starts with `BATCH hh`; Escape or Ctrl-C also flushes
+the pending batch and exits.
+
 `READY` is deliberately the final banner line. This prevents an automated
 host from injecting the first key while CP/M is still printing instructions;
 the simulator regression originally reproduced and then closed exactly that
-race. The regression sends `A`, Space, `1`, Enter, and Escape and requires all
-five exact reports plus `DONE` and the returned `A>` prompt.
+race. The regression runs buffered mode, sends `A`, Space, `1`, Enter, and
+Escape, and requires both batch lengths, all five exact reports, `DONE`, and
+the returned `A>` prompt.
 
 On a monitorless physical run, start the N4 PTY, wait until the host observes
-`Juku Keytest 1.0 READY`, and then press the local keys. Their codes appear in
-the host-side PTY/log even though the display is unavailable. Remote Escape
-can terminate the utility if a local Escape key is unavailable.
+`Juku Keytest 1.1 READY`, and then press the local keys. For a typing sequence,
+run `KEYTEST B`, type the sequence, and press Enter; its buffered codes then
+appear in the host-side PTY/log even though the display is unavailable. Remote
+Escape can terminate the utility if a local Escape key is unavailable.
 
 ## Promotion boundary
 
-The existing C4 physical evidence remains the safe automatic-ROM baseline:
-three cold boots, the complete blind command/disk matrix, and live host
-reconnect passed on CS00015. C5 adds real resident configuration, locale,
-remapping, bootstrap records, and independent A:/B: caches, so simulation
-alone cannot promote it.
+The C5 ROM now passes a blind CS00015 run: direct 19,200-baud autoboot, both
+drives, the full non-destructive diagnostic suite, sequential read,
+snapshot-backed erase, warm boot, local keyboard including Space, and live
+host replacement without RESET. See
+[`cs00015-c5-blind-qualification-20260817.md`](cs00015-c5-blind-qualification-20260817.md).
 
-When hardware work resumes, use the exact packaged D15/D16 halves and repeat
-the complete CS00015 matrix: cold and warm boot, sequential read, write/erase,
-host loss/live reconnect, all selected S21 modes, readable local display,
-blinking cursor, and local keyboard including Space. Record exact package and
-run hashes. Until that passes, C5 is a desk release candidate and C4 remains
-the physical fallback.
+Promotion now waits for a working display to confirm all selected S21 modes,
+readable glyphs, and the blinking cursor, plus a short physical check of Status
+1.3 and buffered Keytest 1.1. Until that passes, C5 remains a candidate and C4
+remains the immutable fallback.

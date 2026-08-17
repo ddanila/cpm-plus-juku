@@ -19,7 +19,7 @@
       "destination": "0:STATUS.COM",
       "provenance": {
         "source": "src/status.asm",
-        "version": "Juku Status 1.1",
+        "version": "Juku Status 1.3",
         "license": "LICENSE"
       }
     },
@@ -28,7 +28,7 @@
       "destination": "0:KEYTEST.COM",
       "provenance": {
         "source": "src/keytest.asm",
-        "version": "Juku Keytest 1.0",
+        "version": "Juku Keytest 1.1",
         "license": "LICENSE"
       }
     }

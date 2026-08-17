@@ -247,11 +247,13 @@ byte-identical to the C3 chips already installed in CS00015.
 A separately named ABI 1.1 C5 desk candidate keeps every 1.0 address intact
 and adds reset-latched S21/locale, a four-pair key-remap vector, and S21 bit-0
 automatic-versus-local-`N` boot policy. Its matching CP/M system consumes the
-latched byte and `STATUS.COM` 1.1 reports the selected locale. C4 remains the
-physical reference until C5 completes bench checks; simulation already proves
+latched byte and `STATUS.COM` 1.3 reports the selected locale and exact retained
+status fields. C5 has passed the monitorless CS00015 boot/disk/diagnostic/
+keyboard/reconnect matrix; C4 remains the immutable fallback until a working
+display confirms C5 geometry, glyphs, and cursor behavior. Simulation proves
 the matching ROM/CP/M selection for all four S21 video geometries.
 The finalized desk artifact set now has a distinct ABI 1.1 boot manifest,
 exact ROM halves, matching locale-native system/bootstrap, all published media
-and reports, license/notice files, and a byte-reproducible tar. Its contents
-and remaining full C5 physical promotion boundary are recorded in
+and reports, license/notice files, and a byte-reproducible tar. Its contents,
+blind hardware evidence, and remaining display promotion boundary are recorded in
 [`docs/cpm-plus-31-c5-release-candidate.md`](docs/cpm-plus-31-c5-release-candidate.md).

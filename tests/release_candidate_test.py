@@ -12,6 +12,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools/package_release_candidate.py"
+EXPECTED_STATUS = "blind hardware matrix passed; display acceptance pending"
 
 
 def digest(path: Path) -> str:
@@ -42,7 +43,7 @@ def main() -> int:
         manifest = json.loads((first / "manifest.json").read_text())
         if manifest.get("schema") != "cpm-plus-juku-release-candidate-v1" or \
                 manifest.get("rom_abi") != "1.1" or \
-                "pending" not in manifest.get("status", ""):
+                manifest.get("status") != EXPECTED_STATUS:
             raise AssertionError("release status or ABI differs")
         for file_name, record in manifest["files"].items():
             path = first / file_name

@@ -110,9 +110,10 @@ def build(output: Path, cosim: Path) -> tuple[Path, Path]:
             "This immutable set binds the ABI 1.1 C5 ROM, its D15/D16 halves,\n"
             "the matching locale-native CP/M Plus system and fastboot stage,\n"
             "and the published A:/B: media profiles. It passes the complete\n"
-            "desk/simulator gate. It is not yet a promoted physical release.\n"
-            "C5 still requires the complete CS00015 cold/warm boot, disk, host\n"
-            "reconnect, and monitor-assisted display/cursor/keyboard matrix.\n\n"
+            "desk/simulator gate and the monitorless CS00015 hardware matrix.\n"
+            "It is not yet a promoted physical release: C5 still requires a\n"
+            "monitor-assisted display/cursor check and a short physical check\n"
+            "of the corrected Status 1.3 and buffered Keytest 1.1 utilities.\n\n"
             "Program D15-low from juku-network-rom-abi1.1-c5-d15.bin and\n"
             "D16-high from juku-network-rom-abi1.1-c5-d16.bin. Verify every\n"
             "file against manifest.json before bench use.\n"
@@ -125,7 +126,7 @@ def build(output: Path, cosim: Path) -> tuple[Path, Path]:
         package_manifest = {
             "schema": SCHEMA,
             "candidate": CANDIDATE,
-            "status": "desk-qualified; complete C5 physical acceptance pending",
+            "status": "blind hardware matrix passed; display acceptance pending",
             "boot_manifest": boot_manifest_path.name,
             "build_identity": boot_manifest["build_identity"],
             "rom_abi": "1.1",
@@ -170,7 +171,7 @@ def main() -> int:
     print(f"  directory: {output}")
     print(f"  archive: {archive}")
     print(f"  sha256: {sha256(archive)}")
-    print("  status: desk-qualified; complete C5 physical acceptance pending")
+    print("  status: blind hardware matrix passed; display acceptance pending")
     return 0
 
 
