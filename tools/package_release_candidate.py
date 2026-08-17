@@ -59,6 +59,8 @@ def build(output: Path, cosim: Path) -> tuple[Path, Path]:
     rom_metadata = rom_dir / "juku-network-rom-abi1.1-c5.json"
     system = out / "cpm-plus-juku-network-rom-locale-native-system.bin"
     fast_stage = out / "cpm-plus-juku-network-rom-locale-native-fastboot-v15.bin"
+    fallback_system = out / "cpm-plus-juku-network-rom-system.bin"
+    fallback_fast_stage = out / "cpm-plus-juku-network-rom-fastboot-v15.bin"
     if d15.read_bytes() + d16.read_bytes() != rom.read_bytes():
         raise ValueError("D15 followed by D16 does not reproduce the C5 ROM")
     verify_record(boot_manifest.get("rom"), rom)
@@ -66,7 +68,8 @@ def build(output: Path, cosim: Path) -> tuple[Path, Path]:
     verify_record(boot_manifest.get("fast_stage"), fast_stage)
 
     sources = [
-        rom, d15, d16, rom_metadata, system, fast_stage, boot_manifest_path,
+        rom, d15, d16, rom_metadata, system, fast_stage,
+        fallback_system, fallback_fast_stage, boot_manifest_path,
         out / "cpm-plus-juku-native-recovery.img",
         out / "cpm-plus-juku-native-recovery.report.json",
         out / "cpm-plus-juku-full.img",

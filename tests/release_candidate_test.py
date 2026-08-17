@@ -48,6 +48,17 @@ def main() -> int:
             path = first / file_name
             if record != {"bytes": path.stat().st_size, "sha256": digest(path)}:
                 raise AssertionError(f"release file binding differs: {file_name}")
+        boot_manifest = json.loads(
+            (first / "cpm-plus-juku-c5-manifest.json").read_text()
+        )
+        for slot in boot_manifest["system_slots"]:
+            for artifact_name in ("system", "fast_stage"):
+                record = slot[artifact_name]
+                path = first / record["file"]
+                if not path.is_file() or record["sha256"] != digest(path):
+                    raise AssertionError(
+                        f"packaged slot differs: {slot['name']} {artifact_name}"
+                    )
         d15 = first / "juku-network-rom-abi1.1-c5-d15.bin"
         d16 = first / "juku-network-rom-abi1.1-c5-d16.bin"
         combined = first / "juku-network-rom-abi1.1-c5.bin"
