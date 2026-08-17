@@ -210,6 +210,15 @@ Cryptographic authentication is deferred until its EPROM, wire, and 8080
 decode costs are measured. Checksums and reproducible build identities remain
 mandatory.
 
+Initial manifest slice completed on 2026-08-17: the reproducible build now
+generates a host-visible manifest containing system load/entry/length/CRC,
+system and v15 hashes, ROM-ABI/NetDisk/baud requirements, build identity, and
+all named A:/B: profiles with geometry and media policy. The production host
+can reject stale artifacts before opening the serial device and records the
+manifest identity in timing evidence. This is station-identity independent.
+On-wire target capability query and last-known-good/two-slot recovery remain
+open. See [`boot-manifest.md`](boot-manifest.md).
+
 ## Completion order
 
 1. Freeze and publish the physical network-first baseline.

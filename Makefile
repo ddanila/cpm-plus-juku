@@ -35,14 +35,16 @@ NATIVE_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-native-recovery.report.json
 FULL_REPORT := $(OUT)/cpm-plus-juku-full.report.json
 APPS_REPORT := $(OUT)/cpm-plus-juku-apps.report.json
 DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
+BOOT_MANIFEST := $(OUT)/cpm-plus-juku-native-manifest.json
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
 	network-rom-cosim-check network-rom-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
-	regenerate-cpm3 regenerate-cpm3-rom
-all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) distribution
+	manifest-check regenerate-cpm3 regenerate-cpm3-rom
+all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
+	distribution $(BOOT_MANIFEST)
 
 distribution: $(RECOVERY_VOLUME) $(RECOVERY_REPORT) \
 	$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
@@ -62,7 +64,7 @@ rom-budget-check: tools $(BUILD)/fastboot-core.cim $(BUILD)/fastboot-extension.c
 	$(PYTHON) tools/rom_budget.py --check
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
-	distribution-check cpm3-system-check native-services-check
+	distribution-check manifest-check cpm3-system-check native-services-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
 distribution-input-check:
@@ -79,6 +81,9 @@ distribution-cosim-check: all
 	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
 	CPM_PLUS_JUKU_EXPECT_PROFILE=DIR \
 	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
+
+manifest-check: $(BOOT_MANIFEST)
+	$(PYTHON) tests/boot_manifest_test.py
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
@@ -362,6 +367,17 @@ $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/demo.json \
 		--output $(DEMO_VOLUME) --report $(DEMO_REPORT)
+
+$(BOOT_MANIFEST): $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
+		$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
+		$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
+	$(PYTHON) tools/build_boot_manifest.py \
+		--system $(NATIVE_ROM_SYSTEM) --fast-stage $(NATIVE_ROM_FASTBOOT) \
+		--volume $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
+		--volume $(FULL_VOLUME) $(FULL_REPORT) \
+		--volume $(APPS_VOLUME) $(APPS_REPORT) \
+		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
 
 cpm3-toolchain: $(ZXCC)
 

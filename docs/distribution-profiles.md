@@ -59,3 +59,11 @@ submits the profile, and then prints the stable interactive prompt. Automation
 must wait for that second prompt. The cosimulation asserts this sequence before
 typing any test command. Changing `volume/PROFILE.sub` creates a new, explicitly
 named demo image and never changes recovery A:.
+
+## Host-visible set
+
+`make manifest-check` also generates a single native boot/media manifest that
+binds the system and v15 bootstrap hashes to these volume reports. See
+[`boot-manifest.md`](boot-manifest.md). The host can validate a selected A:
+and B: before opening the serial link and recommends read-only B: plus
+snapshot-backed A: for museum sessions.
