@@ -75,9 +75,9 @@ checks the exact linked layout and deterministic image.
 | `E600h..E8FFh` | 768 | common diagnostic mechanisms | 655 |
 | `E900h..E9FFh` | 256 | sound and platform initialization | 114 |
 | `EA00h..EFFFh` | 1,536 | near-term implementation growth | 0 |
-| `F000h..F7FFh` | 2,048 | locale/font banks and future services | 0 |
+| `F000h..F7FFh` | 2,048 | console extensions, locale/font banks, and future services | 1,128 in the separately named ABI 1.1 C5 desk candidate |
 | `F800h..FEFFh` | 1,792 | unassigned reserve | 0 |
-| `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | ABI 1.0 implemented and range-fixed |
+| `FF00h..FFFFh` | 256 | ABI manifest, identity, feature bits, fixed vectors | immutable ABI 1.0 plus compatible ABI 1.1 appended vectors |
 | **total** | **10,240** | exact runtime window | **3,418 measured** |
 
 These are link fences, not permission to fill every service to its fence. The

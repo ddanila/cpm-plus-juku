@@ -3,6 +3,10 @@
 ; Developed with OpenAI GPT-5.6 Sol assistance.
 ; BSD-2-Clause; see ../LICENSE.
 
+.ifdef ROM_ABI_LOCALE
+        include "rom-abi.inc"
+.endif
+
         cseg
         public  NSCONOST
         public  NSAUXIST
@@ -243,6 +247,13 @@ NSUSERFBAD:
 ; Sample S21 using the drawing's scan positions 8..15. Closed switches are
 ; active low on PB5; bits are returned in the same raw order as RKCONFIG.
 NSSAMPLES21:
+.ifdef ROM_ABI_LOCALE
+        call    JCGCONFIGADDR
+        sta     NSRAWS21
+        mov     a,b
+        sta     NSVIDEOMODE
+        ret
+.else
         push    b
         push    d
         mvi     b,8
@@ -276,6 +287,7 @@ NSS21NEXT:
         pop     d
         pop     b
         ret
+.endif
 
 NSCHRTBL:
         db      'JUKU  ',3,0

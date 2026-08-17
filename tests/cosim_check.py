@@ -20,10 +20,11 @@ ROOT = Path(__file__).resolve().parents[1]
 COSIM = Path(os.environ.get("JUKU_COSIM_ROOT", ROOT.parent / "8080-cosim"))
 ROM_DIRECT = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4402.bin"
 ROM_STOCK = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4401.bin"
-ROM_NETWORK = (
+ROM_NETWORK = Path(os.environ.get(
+    "CPM_PLUS_JUKU_NETWORK_ROM",
     COSIM / "spinoffs" / "jukuravi" / "network-rom" /
-    "juku-network-rom-abi1.bin"
-)
+    "juku-network-rom-abi1.bin",
+)).resolve()
 SYSTEM = ROOT / "out" / "cpm-plus-juku-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-fastboot-v15.bin"
 ROM_SYSTEM = Path(os.environ.get(
@@ -304,6 +305,9 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     console_master, console_slave = pty.openpty()
     tty.setraw(console_slave)
     environment = os.environ.copy()
+    s21_raw = (video_mode << 1) | int(
+        os.environ.get("CPM_PLUS_JUKU_S21_EXTRA", "0"), 0,
+    )
     environment.update(
         JUKU_USART_PTY=os.ttyname(slave),
         JUKU_CONSOLE_PTY=os.ttyname(console_slave),
@@ -323,7 +327,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         JUKU_DISABLE_SETTLE="1",
         JUKU_KEY_HOLD_FRAMES="6",
         JUKU_KEY_GAP_FRAMES="8",
-        JUKU_S21_CONFIG=f"0x{video_mode << 1:02X}",
+        JUKU_S21_CONFIG=f"0x{s21_raw:02X}",
         JUKU_CHECKPOINT_PREFIX=str(case / "final"),
     )
     if network_rom:
@@ -721,7 +725,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         if expected_status_reports:
             require(
                 len(status_reports) == expected_status_reports
-                and status_reports[-1]["s21"] == video_mode << 1
+                and status_reports[-1]["s21"] == s21_raw
                 and status_reports[-1]["video_mode"] == video_mode
                 and status_reports[-1]["features"] == 0x0F
                 and status_reports[-1]["clock_status"] == 0,

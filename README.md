@@ -231,3 +231,10 @@ helper. The deterministic `8080-cosim` implementation proves overlay, stack,
 register, interrupt, live-serial, and recovery contracts; its generated D15/D16
 halves are the controlled C4 bench candidate, not a promoted release. They are
 byte-identical to the C3 chips already installed in CS00015.
+
+A separately named ABI 1.1 C5 desk candidate keeps every 1.0 address intact
+and adds reset-latched S21/locale, a four-pair key-remap vector, and S21 bit-0
+automatic-versus-local-`N` boot policy. Its matching CP/M system consumes the
+latched byte and `STATUS.COM` 1.1 reports the selected locale. C4 remains the
+physical reference until C5 completes bench checks; simulation already proves
+the matching ROM/CP/M selection for all four S21 video geometries.

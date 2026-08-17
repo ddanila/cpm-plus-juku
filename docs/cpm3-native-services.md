@@ -5,6 +5,8 @@ are built as separately named network-ROM artifacts:
 
 - `out/cpm-plus-juku-network-rom-native-system.bin`;
 - `out/cpm-plus-juku-network-rom-native-fastboot-v15.bin`;
+- `out/cpm-plus-juku-network-rom-locale-native-system.bin` and matching
+  fastboot-v15 bundle for the separately named ABI 1.1 C5 desk candidate;
 - `out/cpm-plus-juku-native-recovery.img` for post-C4 recovery use;
 - `out/cpm-plus-juku-native-test.img` for the target-side regression only.
 
@@ -55,8 +57,16 @@ S21 is sampled with the same drawing-derived scan order and active-low PB5
 polarity as `juku-common`'s `RKCONFIG`. Video mode is `(raw_s21 >> 1) & 3`, so
 ROM, CP/M console setup, and status reporting share one encoding.
 
+The ABI 1.1 build calls the appended `JCGCONFIG` vector instead, so CP/M uses
+the ROM's reset-latched byte rather than resampling live switches. Its system
+and fast-stage SHA-256 values are respectively
+`8bf159bcaae5570aec128667ee331eebfcf14e644bea1d03852f8dbdd1e4bb19`
+and `517ca6e61f9ab18fb6491a99562155cefd1d63b6693e20b9744e7132c4ffdcf8`.
+The C4/native ABI 1.0 artifact retains its bounded direct sampler and byte
+identity.
+
 `STATUS.COM` prints the system/protocol/ROM identities, resident memory map,
-raw and decoded S21/video selection, native feature flags, last MULTIO count,
+raw and decoded S21/video/locale selection, native feature flags, last MULTIO count,
 and clock result counters. Its USERF selector also emits NetDisk-v3 operation
 24h, so the host records the same S21, video, feature, and clock-status tuple.
 The operation is idempotent, bounded, and optional: an absent N4 host cannot

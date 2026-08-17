@@ -72,6 +72,26 @@ start:
         mov     d,m
         call    puts
 
+        lxi     d,localemsg
+        call    puts
+        lhld    infobase
+        lxi     d,8
+        dad     d
+        mov     a,m
+        rrc
+        rrc
+        rrc
+        ani     3
+        add     a
+        mov     e,a
+        mvi     d,0
+        lxi     h,localetable
+        dad     d
+        mov     e,m
+        inx     h
+        mov     d,m
+        call    puts
+
         lxi     d,featuresmsg
         call    puts
         lhld    infobase
@@ -242,7 +262,7 @@ bioscall:
         call    0000h
         ret
 
-title:  db      13,10,'Juku Status 1.0',13,10,'$'
+title:  db      13,10,'Juku Status 1.1',13,10,'$'
 identity:
         db      'System: CP/M Plus 3.1, native profile 1',13,10
         db      'Transport: NetDisk v3, 19200 baud, N4 services',13,10
@@ -254,6 +274,8 @@ mapmsg:
 s21msg: db      'S21 raw: $'
 videomsg:
         db      '  video: $'
+localemsg:
+        db      'Locale: $'
 featuresmsg:
         db      13,10,'Features: $'
 multiomsg:
@@ -298,6 +320,12 @@ mode2:  db      ' (64x20)',13,10,'$'
 mode3:  db      ' (80x24)',13,10,'$'
 modetable:
         dw      mode0,mode1,mode2,mode3
+locale0: db     'English',13,10,'$'
+locale1: db     'Estonian',13,10,'$'
+locale2: db     'Russian CP866',13,10,'$'
+locale3: db     'English/user remap',13,10,'$'
+localetable:
+        dw      locale0,locale1,locale2,locale3
 infobase:
         dw      0
 capsbase:

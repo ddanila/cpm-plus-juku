@@ -140,9 +140,13 @@ CP866 Russian font extensions selected by S21 bits 4:3 without duplicating the
 renderer, retains the connected CP437 UI range, and offers a bounded four-pair
 resident key remap. Their pinned MIT/public-domain sources and generated rows
 have independent oracles. Exact measurement rejects enabling them in the
-already 3,989-byte compatibility adapter; production integration belongs in
-the network ROM's reserved 2 KiB locale bank. ROM-ABI exposure and the final
-ROM bit-0 policy remain open.
+already 3,989-byte compatibility adapter. The separate ABI 1.1 C5 desk image
+now uses 1,128 bytes of the network ROM's reserved console/locale bank, exposes
+reset-latched configuration and four-pair remapping through appended vectors,
+and implements S21 bit 0 as immediate autoboot versus a concealed local-`N`
+recovery wait. Its matching CP/M image consumes the latched byte and reports
+the locale. The resident ROM and CP/M binding now share all four S21 video
+geometries; independent 9,600-byte framebuffer oracles pass for every mode.
 
 ## Priority 4: diagnostics and observability
 

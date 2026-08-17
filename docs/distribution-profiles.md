@@ -7,9 +7,9 @@ beside each one:
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
-| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS and Diag 0.5 | 374 KiB | `a09c155824a052928bed1f7cf7e90aa69aaacfa170ed6e3e90864eb540b3883a` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `c958c647a0b28732a911b6a82729379893168d4cb51d7f530036bfb3a7a00aa2` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `a8f41e6eb9038fc485e4710d2b643c89922fc920dd0a88ef31e15ebe4d5d9300` |
+| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus STATUS and Diag 0.5 | 374 KiB | `a95cbf30013b4ab0fd943eb382963ea121dffa0ec1135801ccc5dee0782a2c27` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 252 KiB | `00174fb6ee1f2fd7ff0520a168f4d0d8206e2e5c7bdf21c4319b38b93e57b1d6` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 250 KiB | `e7b74d51f8159e751afb32881f8a366370317941789b60b010f51ad83dffba26` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and

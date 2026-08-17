@@ -22,6 +22,8 @@ ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
 NATIVE_ROM_SYS := $(BUILD)/cpm3-network-rom-native.sys
 NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-native-system.bin
 NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-native-fastboot-v15.bin
+LOCALE_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-locale-native-system.bin
+LOCALE_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-locale-native-fastboot-v15.bin
 NATIVE_TEST_VOLUME := $(OUT)/cpm-plus-juku-native-test.img
 C4_DIAG := $(BUILD)/diag-c4.cim
 NATIVE_RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-native-recovery.img
@@ -42,8 +44,10 @@ BOOT_MANIFEST := $(OUT)/cpm-plus-juku-native-manifest.json
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
-	manifest-check regenerate-cpm3 regenerate-cpm3-rom
+	manifest-check regenerate-cpm3 regenerate-cpm3-rom \
+	network-rom-locale-cosim-check
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
+	$(LOCALE_NATIVE_ROM_SYSTEM) $(LOCALE_NATIVE_ROM_FASTBOOT) \
 	distribution $(BOOT_MANIFEST)
 
 distribution: $(RECOVERY_VOLUME) $(RECOVERY_REPORT) \
@@ -87,6 +91,19 @@ manifest-check: $(BOOT_MANIFEST)
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
+
+network-rom-locale-cosim-check: all
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke CPM_PLUS_JUKU_NETWORK_ROM=\
+	../8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.1-c5.bin \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(LOCALE_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(LOCALE_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(NATIVE_RECOVERY_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x09 CPM_PLUS_JUKU_EXTRA_COMMAND=STATUS \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Locale: Estonian' \
+	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
+	$(PYTHON) tests/cosim_check.py
 
 network-rom-soak-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network \
@@ -177,8 +194,20 @@ $(BUILD)/platform-adapter-romabi-native.rel: src/platform-adapter.asm \
 		-DNATIVE_SERVICES_BOOT -DNATIVE_SERVICES_DISK \
 		-I$(COMMON)/platform -o $@ $<
 
+$(BUILD)/platform-adapter-romabi-locale-native.rel: src/platform-adapter.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI -DROM_ABI_LOCALE \
+		-DNATIVE_SERVICES -DNATIVE_SERVICES_EXTRNS \
+		-DNATIVE_SERVICES_VECTORS -DNATIVE_SERVICES_BOOT \
+		-DNATIVE_SERVICES_DISK -I$(COMMON)/platform -o $@ $<
+
 $(BUILD)/cpm3-native-services.rel: src/cpm3-native-services.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
+
+$(BUILD)/cpm3-native-services-locale.rel: src/cpm3-native-services.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
+		-I$(COMMON)/platform -o $@ $<
 
 $(BUILD)/ram-keyboard.rel: $(COMMON)/platform/ram-keyboard.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
@@ -233,6 +262,20 @@ $(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
 	tail -c+49153 $< >$@
 	test $$(stat -c %s $@) -le 4096
 
+$(BUILD)/adapter-romabi-locale-native.all: \
+		$(BUILD)/platform-adapter-romabi-locale-native.rel \
+		$(BUILD)/netconsole-romabi-native.rel \
+		$(BUILD)/cpm3-native-services-locale.rel $(LD80)
+	$(LD80) -m -O bin -o $@ -s /dev/null \
+		-P0xc000 $(BUILD)/platform-adapter-romabi-locale-native.rel \
+		-P0xc280 $(BUILD)/netconsole-romabi-native.rel \
+		-P0xca00 $(BUILD)/cpm3-native-services-locale.rel
+
+$(BUILD)/adapter-romabi-locale-native.bin: \
+		$(BUILD)/adapter-romabi-locale-native.all
+	tail -c+49153 $< >$@
+	test $$(stat -c %s $@) -le 4096
+
 $(SYSTEM): $(BUILD)/adapter.bin third_party/cpm3/cpm3.sys \
 		tools/mksystem3.py | $(OUT)
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter.bin \
@@ -256,6 +299,13 @@ $(NATIVE_ROM_SYS): src/cpm3-bios.asm tools/regenerate_cpm3.py \
 $(NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-native.bin \
 		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-native.bin \
+		$(NATIVE_ROM_SYS) $@ --load-address 0x9000 \
+		--adapter-address 0xc000 --entry-address 0xbc00 \
+		--end-address 0xd600
+
+$(LOCALE_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-locale-native.bin \
+		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
+	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-locale-native.bin \
 		$(NATIVE_ROM_SYS) $@ --load-address 0x9000 \
 		--adapter-address 0xc000 --entry-address 0xbc00 \
 		--end-address 0xd600
@@ -297,6 +347,12 @@ $(NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
 		tools/build_fastboot.py | $(OUT)
 	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension-rom.cim $(NATIVE_ROM_SYSTEM) $(ZX0) $@
+
+$(LOCALE_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
+		$(BUILD)/fastboot-extension-rom.cim $(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) \
+		tools/build_fastboot.py | $(OUT)
+	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
+		$(BUILD)/fastboot-extension-rom.cim $(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) $@
 
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<

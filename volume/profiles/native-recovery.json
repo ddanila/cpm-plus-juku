@@ -19,7 +19,7 @@
       "destination": "0:STATUS.COM",
       "provenance": {
         "source": "src/status.asm",
-        "version": "Juku Status 1.0",
+        "version": "Juku Status 1.1",
         "license": "LICENSE"
       }
     }
