@@ -105,3 +105,20 @@ corrected CP/M BIOS framebuffer matches an independently rendered 875-byte
 transcript in all 9,600 bytes. C1 was never burned; `8080-cosim` commit
 `c2581698` names the corrected exact ROM C2 and reruns the C model and all
 three structural-HDL gates.
+
+By 2026-08-17 the byte-identical C3/C4 ROM baseline had completed three
+CS00015 automatic cold boots at 6.068--6.070 seconds. Each run produced the
+same remote-console transcript and completed directory, sequential-read,
+diagnostic, warm-boot, and write/erase checks. A live replacement host also
+delivered `DIR` without RESET after a recorder fix stopped raw-mode setup from
+flushing prequeued input. This leaves only exact resident display, cursor, and
+local-keyboard observation before C4 promotion.
+
+The post-baseline work then completed the separately named ABI 1.1 C5 desk
+candidate: reset-latched S21 video/locale/boot policy, key remapping, retained
+bootstrap diagnostics, native CP/M 3 services, independent eight-record A:/B:
+caches, explicit capabilities, reproducible distribution profiles, and bounded
+native/C4 system slots. `make release-candidate` now binds the exact C5 ROM
+halves to the matching locale-native CP/M Plus 3.1 system, media reports,
+licenses, and manifest in a byte-reproducible tar. C5 remains unpromoted until
+its complete physical acceptance matrix is recorded.

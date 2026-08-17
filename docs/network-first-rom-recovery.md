@@ -1,6 +1,6 @@
 # Network-first ROM recovery qualification
 
-Status: **COMPLETE IN SIMULATION; PHYSICAL QUALIFICATION PENDING**
+Status: **COMPLETE IN SIMULATION; C4 BLIND PHYSICAL MATRIX COMPLETE**
 
 Date: **2026-08-16**
 
@@ -68,15 +68,18 @@ make network-rom-soak-check
 make check
 ```
 
-The remaining boundary is physical qualification. The exact bytes are now
-packaged and hashed as `network-first-abi1-cs00015-c4`, but remain unpromoted
-until the complete CS00015 cold/warm boot, disk, keyboard, display, cursor,
-recovery, and repeated-timing matrix passes.
+The exact bytes are packaged and hashed as
+`network-first-abi1-cs00015-c4`. On 2026-08-17, three CS00015 cold boots passed
+the complete blind command/disk matrix at 6.068--6.070 seconds, and a corrected
+replacement host delivered `DIR` and returned to `A>` without RESET. Exact
+resident display, cursor, and local-keyboard observation remains the final C4
+promotion boundary; see
+[`cs00015-c4-blind-qualification-20260817.md`](cs00015-c4-blind-qualification-20260817.md).
 
 The shared resident recovery layer has separate physical evidence: on
 2026-08-16, all-RAM CP/M Plus loaded through the installed Ekta4402 ROM on
 CS00015 recovered after the original disk/N4 server was absent for about 23.19
 seconds and a fresh stateless `--resume-disk` process took over. Remote `DIR`
-and `DIAG CPU` then completed without target reset. This reduces the remaining
-physical boundary to the automatic C4 ROM's own cold-start and handoff path;
-it does not promote that still-unburned ROM image.
+and `DIAG CPU` then completed without target reset. This evidence predates and
+complements the later automatic C4 cold-start and handoff runs. It does not by
+itself promote either C4 or the separately named C5 desk candidate.

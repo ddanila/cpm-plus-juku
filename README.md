@@ -178,6 +178,7 @@ Place `cpm-plus-juku` and `8080-cosim` beside each other, or set
 make check
 make network-rom-cosim-check  # focused keyless reset-ROM path
 make bench-candidate          # full C-model matrix, structural HDL, package
+make release-candidate        # deterministic ABI 1.1 C5 CP/M 3.1 artifact set
 ```
 
 For the controlled CS00015 burn, `tools/physical_qualification.py` verifies
@@ -249,3 +250,8 @@ automatic-versus-local-`N` boot policy. Its matching CP/M system consumes the
 latched byte and `STATUS.COM` 1.1 reports the selected locale. C4 remains the
 physical reference until C5 completes bench checks; simulation already proves
 the matching ROM/CP/M selection for all four S21 video geometries.
+The finalized desk artifact set now has a distinct ABI 1.1 boot manifest,
+exact ROM halves, matching locale-native system/bootstrap, all published media
+and reports, license/notice files, and a byte-reproducible tar. Its contents
+and remaining full C5 physical promotion boundary are recorded in
+[`docs/cpm-plus-31-c5-release-candidate.md`](docs/cpm-plus-31-c5-release-candidate.md).

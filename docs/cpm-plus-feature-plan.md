@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **IN PROGRESS; FREEZING THE C4 PHYSICAL BASELINE**
+Status: **DESK IMPLEMENTATION COMPLETE; PHYSICAL PROMOTION PENDING**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -298,3 +298,11 @@ prevents performance or convenience work from obscuring hardware regressions.
 rebuilds the immutable C4 package and proves that incomplete or tampered
 physical evidence cannot pass the recorder audit. Passing those commands does
 not substitute for the Priority 0 hardware observations listed above.
+
+`make release-candidate` is the final desk packaging gate. It binds the ABI
+1.1 C5 ROM and exact D15/D16 halves to the matching locale-native CP/M Plus
+3.1 system, C4 fallback, published media/reports, license, and notice in a
+byte-reproducible tar. This completes every desk-executable item in this plan.
+It deliberately does not promote C5: the full C5 physical matrix remains the
+next hardware gate. See
+[`cpm-plus-31-c5-release-candidate.md`](cpm-plus-31-c5-release-candidate.md).

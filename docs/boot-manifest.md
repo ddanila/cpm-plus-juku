@@ -43,3 +43,12 @@ budget; exhaustion moves automatically to the other slot. A slot is promoted
 only when the running target sends its first valid disk request, not when the
 bootstrap bytes were merely accepted. State includes both system and fast-stage
 hashes and is ignored if either no longer matches the selected manifest.
+
+The ABI 1.1 C5 desk candidate has a separate generated manifest,
+`out/cpm-plus-juku-c5-manifest.json`. It binds the C5 ROM and its metadata to
+the matching locale-native system/fastboot pair, declares ROM ABI 1.1, names
+that primary slot `c5-native`, and retains the immutable C4 compatibility
+slot. Keeping this separate prevents the ordinary ABI 1.0 native manifest
+from silently becoming a C5 claim. The deterministic package and promotion
+boundary are described in
+[`cpm-plus-31-c5-release-candidate.md`](cpm-plus-31-c5-release-candidate.md).

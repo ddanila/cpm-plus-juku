@@ -38,13 +38,19 @@ FULL_REPORT := $(OUT)/cpm-plus-juku-full.report.json
 APPS_REPORT := $(OUT)/cpm-plus-juku-apps.report.json
 DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
 BOOT_MANIFEST := $(OUT)/cpm-plus-juku-native-manifest.json
+C5_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c5-manifest.json
+C5_ROM_DIR := ../8080-cosim/spinoffs/jukuravi/network-rom
+C5_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.1-c5.bin
+C5_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.1-c5.json
+C5_RELEASE := $(OUT)/cpm-plus-3.1-juku-c5-desk
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
 	network-rom-cosim-check network-rom-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
-	manifest-check regenerate-cpm3 regenerate-cpm3-rom \
+	manifest-check c5-manifest-check release-candidate \
+	release-candidate-check regenerate-cpm3 regenerate-cpm3-rom \
 	network-rom-locale-cosim-check bootstrap-observability-check
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
 	$(LOCALE_NATIVE_ROM_SYSTEM) $(LOCALE_NATIVE_ROM_FASTBOOT) \
@@ -69,7 +75,8 @@ rom-budget-check: tools $(BUILD)/fastboot-core.cim \
 	$(PYTHON) tools/rom_budget.py --check
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
-	distribution-check manifest-check cpm3-system-check native-services-check \
+	distribution-check manifest-check c5-manifest-check \
+	release-candidate-check cpm3-system-check native-services-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
@@ -90,6 +97,15 @@ distribution-cosim-check: all
 
 manifest-check: $(BOOT_MANIFEST)
 	$(PYTHON) tests/boot_manifest_test.py
+
+c5-manifest-check: $(C5_BOOT_MANIFEST)
+	$(PYTHON) tests/c5_boot_manifest_test.py
+
+release-candidate: check
+	$(PYTHON) tools/package_release_candidate.py --output $(C5_RELEASE)
+
+release-candidate-check: $(C5_BOOT_MANIFEST)
+	$(PYTHON) tests/release_candidate_test.py
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
@@ -478,6 +494,24 @@ $(BOOT_MANIFEST): $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	$(PYTHON) tools/build_boot_manifest.py \
 		--system $(NATIVE_ROM_SYSTEM) --fast-stage $(NATIVE_ROM_FASTBOOT) \
 		--fallback-system $(ROM_SYSTEM) --fallback-fast-stage $(ROM_FASTBOOT) \
+		--volume $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
+		--volume $(FULL_VOLUME) $(FULL_REPORT) \
+		--volume $(APPS_VOLUME) $(APPS_REPORT) \
+		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
+
+$(C5_BOOT_MANIFEST): $(LOCALE_NATIVE_ROM_SYSTEM) \
+		$(LOCALE_NATIVE_ROM_FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) \
+		$(C5_ROM) $(C5_ROM_METADATA) \
+		$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
+		$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
+	$(PYTHON) tools/build_boot_manifest.py \
+		--system $(LOCALE_NATIVE_ROM_SYSTEM) \
+		--fast-stage $(LOCALE_NATIVE_ROM_FASTBOOT) \
+		--fallback-system $(ROM_SYSTEM) --fallback-fast-stage $(ROM_FASTBOOT) \
+		--rom $(C5_ROM) --rom-metadata $(C5_ROM_METADATA) \
+		--rom-abi 1.1 --identity-prefix c5 \
+		--primary-slot-name c5-native \
 		--volume $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
 		--volume $(FULL_VOLUME) $(FULL_REPORT) \
 		--volume $(APPS_VOLUME) $(APPS_REPORT) \

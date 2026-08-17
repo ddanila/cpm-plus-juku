@@ -41,6 +41,11 @@ def main() -> int:
     parser.add_argument("--fast-stage", type=Path, required=True)
     parser.add_argument("--fallback-system", type=Path, required=True)
     parser.add_argument("--fallback-fast-stage", type=Path, required=True)
+    parser.add_argument("--rom", type=Path)
+    parser.add_argument("--rom-metadata", type=Path)
+    parser.add_argument("--rom-abi", default="1.0")
+    parser.add_argument("--identity-prefix", default="native")
+    parser.add_argument("--primary-slot-name", default="native")
     parser.add_argument(
         "--volume", action="append", nargs=2, type=Path,
         metavar=("IMAGE", "REPORT"), default=[],
@@ -113,14 +118,39 @@ def main() -> int:
         })
         volumes.append(image)
 
+    if (args.rom is None) != (args.rom_metadata is None):
+        raise ValueError("ROM image and metadata must be supplied together")
+    rom = None
+    if args.rom is not None and args.rom_metadata is not None:
+        rom, rom_data = image_record(args.rom)
+        rom_metadata_data = args.rom_metadata.read_bytes()
+        rom_metadata = json.loads(rom_metadata_data)
+        if rom_metadata.get("schema") != "juku-network-rom-abi1-v1" or \
+                rom_metadata.get("image_bytes") != len(rom_data) or \
+                rom_metadata.get("image_sha256") != rom["sha256"]:
+            raise ValueError("ROM metadata differs from the ROM image")
+        abi = rom_metadata.get("abi")
+        metadata_abi = None if not isinstance(abi, dict) else \
+            f"{abi.get('major')}.{abi.get('minor')}"
+        if metadata_abi != args.rom_abi:
+            raise ValueError("ROM metadata ABI differs from requested ABI")
+        rom.update({
+            "metadata_file": args.rom_metadata.name,
+            "metadata_bytes": len(rom_metadata_data),
+            "metadata_sha256": digest(rom_metadata_data),
+            "abi": args.rom_abi,
+            "candidate": rom_metadata.get("candidate"),
+            "status": rom_metadata.get("status"),
+        })
+
     manifest = {
         "schema": SCHEMA,
-        "build_identity": f"native-{system['sha256'][:16]}",
+        "build_identity": f"{args.identity_prefix}-{system['sha256'][:16]}",
         "system": system,
         "fast_stage": fast_stage,
         "system_slots": [
             {
-                "name": "native",
+                "name": args.primary_slot_name,
                 "system": system,
                 "fast_stage": fast_stage,
             },
@@ -132,7 +162,7 @@ def main() -> int:
         ],
         "requirements": {
             "cpu": "Intel 8080",
-            "rom_abi": "1.0",
+            "rom_abi": args.rom_abi,
             "fastboot": 15,
             "bootstrap_baud": 19200,
             "bootstrap_framing": "8N1",
@@ -148,6 +178,8 @@ def main() -> int:
             item["drive"], item["profile"], item["file"],
         )),
     }
+    if rom is not None:
+        manifest["rom"] = rom
     args.output.write_text(json.dumps(manifest, indent=2) + "\n")
     print(
         f"wrote {args.output} ({manifest['build_identity']}, "
