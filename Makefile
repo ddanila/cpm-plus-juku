@@ -225,12 +225,12 @@ $(BUILD)/adapter-romabi-native.all: \
 		$(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi-native.rel \
-		-P0xc270 $(BUILD)/netconsole-romabi-native.rel \
-		-P0xc500 $(BUILD)/cpm3-native-services.rel
+		-P0xc280 $(BUILD)/netconsole-romabi-native.rel \
+		-P0xca00 $(BUILD)/cpm3-native-services.rel
 
 $(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
 	tail -c+49153 $< >$@
-	test $$(stat -c %s $@) -le 1600
+	test $$(stat -c %s $@) -le 4096
 
 $(SYSTEM): $(BUILD)/adapter.bin third_party/cpm3/cpm3.sys \
 		tools/mksystem3.py | $(OUT)
@@ -396,6 +396,10 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_TEST_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=NATIVE \
 	CPM_PLUS_JUKU_EXTRA_MARKER='NATIVE: PASS' \
+	CPM_PLUS_JUKU_EXPECT_BOOT_READS=22 \
+	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
+	CPM_PLUS_JUKU_EXPECT_TYPE_READS=2 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
 	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
@@ -406,8 +410,11 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Status 1.0' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND2='DIAG IO' \
 	CPM_PLUS_JUKU_EXTRA_MARKER2='Keyboard/S21: PASS' \
+	CPM_PLUS_JUKU_EXPECT_BOOT_READS=22 \
+	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
+	CPM_PLUS_JUKU_EXPECT_TYPE_READS=2 \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
-	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
 	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=2 \
 	CPM_PLUS_JUKU_EXPECT_IO_DIAG=1 \
 	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \

@@ -9,6 +9,7 @@
         public  NSAUXOST
         public  NSDEVTBL
         public  NSDEVINI
+        public  NSCAPINIT
         public  NSMULTIO
         public  NSFLUSH
         public  NSMOVE
@@ -18,6 +19,7 @@
         extrn   NCPUBLISH
         extrn   NCDIAG
         extrn   NCCAPS
+        extrn   NCCFG
 
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
@@ -41,8 +43,31 @@ NSDEVTBL:
 NSDEVINI:
         mov     a,c
         ora     a                       ; device zero is the only valid entry
-        rz
+        jnz     NSDEVINIBAD
+        call    NSCAPINIT
+        ret
+NSDEVINIBAD:
         mvi     a,0ffh                  ; useful diagnostic result for USERF
+        ret
+
+; Negotiate runtime host features exactly once after resident serial setup.
+; The adapter calls this on cold boot; DEVINI also calls it defensively for a
+; CP/M implementation which invokes native device initialization later.
+NSCAPINIT:
+        lda     NSCAPDONE
+        ora     a
+        jnz     NSCAPINITOK
+        mvi     a,1
+        sta     NSCAPDONE               ; negotiate only once per cold image
+        call    NCCAPS
+        ora     a
+        jnz     NSCAPINITOK              ; legacy host keeps bounded reprobes
+        inx     h
+        inx     h
+        mov     a,m                     ; explicit host feature flags
+        call    NCCFG
+NSCAPINITOK:
+        xra     a
         ret
 
 NSCONOST:
@@ -290,5 +315,7 @@ NSCONFAIL:
 NSCONRECONNECT:
         db      0                       ; saturated successful reprobe count
 NSINFOEND:
+NSCAPDONE:
+        db      0
 
         end

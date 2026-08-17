@@ -14,7 +14,8 @@ memory is claimed. GENCPM relocates the SCB to BB9Ch (clock BBF4h); FE00h
 symbols in the DRI source are relocatable canonical addresses,
 not runtime addresses for an absolute adapter module. Running
 `make native-services-check` regenerates the native SYS,
-builds the adapter in C000h..C633h, keeps fixed state in C640h..C95Fh,
+builds core/transport code in C000h..C504h and native services in
+CA00h..CB55h, while keeping fixed state in C640h..C95Fh,
 boots it through the production network ROM, and runs both the normal CP/M
 command matrix, `NATIVE.COM`, and `STATUS.COM`.
 
@@ -73,6 +74,12 @@ bounded read-ahead limit, console/time/status/diagnostic/B:/writable-A feature
 bits, and advertised drive count. An older or absent server returns
 "unavailable" without affecting local display, disk, or boot.
 
+Cold boot also issues this query once after resident serial initialization.
+If the host explicitly clears the console feature, native CP/M disables N4
+reprobes for that session; if the query is rejected as an older-host extension,
+the bounded legacy reprobe policy remains. A console-advertising host retains
+normal N4 input/output and live reconnect. Cosimulation proves both branches.
+
 The fixed native status record retains reset POST status at cold boot, changes
 its cold/warm marker only on a real CP/M warm entry, records the last resident
 NetDisk status and remaining attempt count, and counts successful N4 reprobes
@@ -81,10 +88,13 @@ after bounded host loss. The status regression observes cold state through
 simulator checkpoint. C4 remains byte-identical because clock, publisher, and
 recording code are assembled only in the separately named native profile.
 
-The native fixed layout is deliberately non-overlapping: initialized service
-code ends at C633h, cold/warm and transport state occupy C640h..C65Fh, the
+The native fixed layout is deliberately non-overlapping: core and transport
+code end near C500h, cold/warm and transport state occupy C640h..C65Fh, the
 directory buffer and resident three-record cache occupy C680h..C909h, and the
-adapter's transient disk workspace begins at C920h. Address-watch tracing
+adapter's transient disk workspace begins at C920h. Native-only service code
+is linked separately at CA00h, inside the existing C000h..CFFFh adapter
+allocation; this leaves room for future measured native services without
+growing the TPA or colliding with mutable state. Address-watch tracing
 reproduced and eliminated two integration faults: placing the workspace at
 C600h overwrote native service code, while C780h overwrote the NetDisk cache.
 The regression now executes real reads, STATUS/capabilities, diagnostics,

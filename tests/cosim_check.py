@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import json
 import os
 from pathlib import Path
 import pty
@@ -335,6 +336,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     stats: dict[str, int] = {}
     status_reports: list[dict[str, int]] = []
     diag_reports: list[dict[str, int]] = []
+    command_metrics: dict[str, dict[str, int | float]] = {}
     fault_evidence: dict[str, int] = {}
     restart_armed = threading.Event()
     errors: list[BaseException] = []
@@ -350,6 +352,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         os.close(console_slave)
         try:
             print(f"COSIM {case.name}: bootstrap", flush=True)
+            boot_started_at = time.monotonic()
             boot = serve_fast(
                 master, fastboot.read_bytes(), container,
                 stock_timeout=120, reply_timeout=8, verbose=False,
@@ -451,6 +454,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         console_master, b"A>", prompt_timeout,
                     )
                 print(f"COSIM {case.name}: prompt", flush=True)
+                command_metrics["boot"] = {
+                    "read_requests": stats.get("reads", 0),
+                    "read_records": stats.get("read_records", 0),
+                    "request_wire_bytes": stats.get("request_wire_bytes", 0),
+                    "reply_wire_bytes": stats.get("reply_wire_bytes", 0),
+                    "elapsed_seconds": round(
+                        time.monotonic() - boot_started_at, 3,
+                    ),
+                }
                 if network_rom and remote_console:
                     # Let the emulated target enter its idle CONIN path before
                     # the first N4 key arrives.  Without this bench-faithful
@@ -481,13 +493,45 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     )
                 if disk_fault == "mid-session-restart":
                     restart_armed.set()
+                command_started_at = time.monotonic()
                 send_console(b"DIR\r")
                 second = read_until(b"A>", command_timeout)
+                command_metrics["dir"] = {
+                    "read_requests": stats.get("reads", 0)
+                    - command_metrics["boot"]["read_requests"],
+                    "read_records": stats.get("read_records", 0)
+                    - command_metrics["boot"]["read_records"],
+                    "request_wire_bytes": stats.get("request_wire_bytes", 0)
+                    - command_metrics["boot"]["request_wire_bytes"],
+                    "reply_wire_bytes": stats.get("reply_wire_bytes", 0)
+                    - command_metrics["boot"]["reply_wire_bytes"],
+                    "elapsed_seconds": round(
+                        time.monotonic() - command_started_at, 3,
+                    ),
+                }
                 print(f"COSIM {case.name}: DIR", flush=True)
+                command_started_at = time.monotonic()
                 send_console(b"TYPE README.TXT\r")
                 third = remote.read_paged(300 if network_rom else 120) \
                     if remote_console else \
                     read_console_paged(console_master, 120)
+                command_metrics["type"] = {
+                    "read_requests": stats.get("reads", 0)
+                    - command_metrics["boot"]["read_requests"]
+                    - command_metrics["dir"]["read_requests"],
+                    "read_records": stats.get("read_records", 0)
+                    - command_metrics["boot"]["read_records"]
+                    - command_metrics["dir"]["read_records"],
+                    "request_wire_bytes": stats.get("request_wire_bytes", 0)
+                    - command_metrics["boot"]["request_wire_bytes"]
+                    - command_metrics["dir"]["request_wire_bytes"],
+                    "reply_wire_bytes": stats.get("reply_wire_bytes", 0)
+                    - command_metrics["boot"]["reply_wire_bytes"]
+                    - command_metrics["dir"]["reply_wire_bytes"],
+                    "elapsed_seconds": round(
+                        time.monotonic() - command_started_at, 3,
+                    ),
+                }
                 print(f"COSIM {case.name}: TYPE", flush=True)
                 send_console(b"DIAG CPU\r")
                 fourth = read_until(b"A>", command_timeout)
@@ -537,10 +581,42 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 sixth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: ERA", flush=True)
                 if drive_b is not None:
+                    before = {
+                        key: stats.get(key, 0) for key in (
+                            "reads", "read_records", "request_wire_bytes",
+                            "reply_wire_bytes",
+                        )
+                    }
+                    command_started_at = time.monotonic()
                     send_console(b"B:\r")
                     selected_b = read_until(b"B>", command_timeout)
+                    command_metrics["b_login"] = {
+                        "read_requests": stats.get("reads", 0)
+                        - before["reads"],
+                        "read_records": stats.get("read_records", 0)
+                        - before["read_records"],
+                        "request_wire_bytes": stats.get(
+                            "request_wire_bytes", 0,
+                        ) - before["request_wire_bytes"],
+                        "reply_wire_bytes": stats.get("reply_wire_bytes", 0)
+                        - before["reply_wire_bytes"],
+                        "elapsed_seconds": round(
+                            time.monotonic() - command_started_at, 3,
+                        ),
+                    }
+                    before_reads = stats.get("reads", 0)
+                    before_records = stats.get("read_records", 0)
+                    command_started_at = time.monotonic()
                     send_console(b"DIR\r")
                     listed_b = read_until(b"B>", command_timeout)
+                    command_metrics["b_dir"] = {
+                        "read_requests": stats.get("reads", 0) - before_reads,
+                        "read_records": stats.get("read_records", 0)
+                        - before_records,
+                        "elapsed_seconds": round(
+                            time.monotonic() - command_started_at, 3,
+                        ),
+                    }
                     send_console(b"DIAG CPU\r")
                     diagnosed_b = read_until(b"B>", command_timeout)
                     send_console(b"A:\r")
@@ -617,6 +693,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 f"CP/M Plus issued no NetDisk reads: {stats}")
         require(stats.get("writes", 0) >= 1,
                 f"CP/M Plus issued no NetDisk writes: {stats}")
+        for name in ("boot", "dir", "type"):
+            expected = os.environ.get(
+                f"CPM_PLUS_JUKU_EXPECT_{name.upper()}_READS",
+            )
+            if expected is not None:
+                require(
+                    command_metrics[name]["read_requests"] == int(expected),
+                    f"{name.upper()} read-request baseline differs: "
+                    f"expected={expected} metrics={command_metrics}",
+                )
         if remote_console:
             require(
                 stats.get("console_polls", 0) > 0
@@ -811,6 +897,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     else:
         require(resident_overruns == 0,
                 f"fixed NetDisk path still overran the resident 8251: {state}")
+    if command_metrics:
+        (case / "disk-metrics.json").write_text(
+            json.dumps(command_metrics, indent=2) + "\n",
+        )
     print(
         "JUKU CP/M PLUS 3.1: PASS "
         f"({boot_label} "
@@ -819,6 +909,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         f"ERA README.TXT, reads={stats['reads']}, "
         f"writes={stats['writes']}, retries={stats['retries']}, "
         f"native-B-reads={stats.get('reads_b', 0)}, "
+        f"command-reads={command_metrics}, "
         f"resident-overruns={resident_overruns}, "
         f"bootstrap-overruns={overruns - resident_overruns}"
         f"{', soak-cycles=' + str(fault_evidence.get('soak_cycles', 0)) if fault_evidence.get('soak_cycles', 0) else ''}"

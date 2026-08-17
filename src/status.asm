@@ -249,7 +249,7 @@ identity:
         db      'ROM: Juku ABI 1.0 network-first baseline',13,10,'$'
 mapmsg:
         db      'Map: TPA 0100-9CFF, BDOS 9D00-BB9B, SCB BB9C-BBFF',13,10
-        db      '     BIOS BC00-BFFF, adapter C000-C63F, state C640-C95F',13,10
+        db      '     Core C000-C504, state C640-C95F, native CA00-CB55',13,10
         db      '     ROM gate/work D600-D7FF, framebuffer D800-FFFF',13,10,'$'
 s21msg: db      'S21 raw: $'
 videomsg:

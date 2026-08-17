@@ -55,6 +55,7 @@ BBASE:
         extrn   NSAUXOST
         extrn   NSDEVTBL
         extrn   NSDEVINI
+        extrn   NSCAPINIT
         extrn   NSMULTIO
         extrn   NSFLUSH
         extrn   NSMOVE
@@ -349,6 +350,9 @@ BOOT:
         sta     ROMABISTATUS
         ora     a
         jnz     ROMABIFAIL
+.ifdef NATIVE_SERVICES
+        call    NSCAPINIT
+.endif
 .else
         call    NETCAP
         call    RAMCONINIT

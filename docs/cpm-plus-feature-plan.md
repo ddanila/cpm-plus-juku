@@ -201,6 +201,14 @@ maximum read-ahead, feature flags, and drive count; `STATUS.COM` displays it.
 Directory caching, independent per-drive read-ahead, and measured MULTIO
 coalescing remain open performance work.
 
+The first measured performance pass is now pinned by
+[`netdisk-performance.md`](netdisk-performance.md). On recovery A:, login costs
+22 three-record turns, the first interactive `DIR` costs zero further wire
+turns, and `TYPE README.TXT` costs two. Explicit operation-26h negotiation also
+eliminates 186 rejected N4 discovery polls from a representative disk-only
+session. The next disk experiment must therefore target initial login or
+first/alternating drive selection; steady-state `DIR` is already local.
+
 ## Priority 6: manifests and recovery policy
 
 - add a host-visible boot manifest containing length, load and entry address,
