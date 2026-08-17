@@ -88,6 +88,12 @@ D600h..D7FFh  fixed ROM call gate/state and framebuffer helper
 D800h..FFFFh  resident runtime ROM
 ```
 
+The separately named C5/ABI 1.1 binding retains A:'s three-record buffer at
+`C780h..C909h` and adds B:'s at `CB80h..CD08h`; neither changes the TPA.
+Alternating B: and A: in cosimulation leaves both resident validity records
+live. An ABI 1.0 consumer may still share one buffer and triggers C5's safe
+alias-invalidating fallback.
+
 The exact transient span is 8,192 bytes larger than the frozen baseline. The
 cosimulator validates the live page-zero loader/BDOS chain as well as `A>`,
 `DIR`, paginated `TYPE README.TXT`, `DIAG CPU`, explicit `WBOOT`,

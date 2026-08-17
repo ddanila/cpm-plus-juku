@@ -625,6 +625,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     diagnosed_b = read_until(b"B>", command_timeout)
                     send_console(b"A:\r")
                     selected_a = read_until(b"A>", command_timeout)
+                    per_drive_cache = os.environ.get(
+                        "CPM_PLUS_JUKU_EXPECT_PER_DRIVE_CACHE",
+                    ) == "1"
+                    if per_drive_cache:
+                        send_console(b"DIAG CPU\r")
+                        diagnosed_a = read_until(b"A>", command_timeout)
+                        require(
+                            b"CPU: PASS" in diagnosed_a,
+                            "A: diagnostic did not refill its resident cache",
+                        )
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
@@ -859,6 +869,14 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 ram[0xC640] == 1 and ram[0xC641] == 0,
                 "native cold/warm or reset-POST record differs: "
                 f"boot={ram[0xC640]:02X} post={ram[0xC641]:02X}",
+            )
+        if os.environ.get("CPM_PLUS_JUKU_EXPECT_PER_DRIVE_CACHE") == "1":
+            require(
+                ram[0xD7DA] > 0 and ram[0xD7DB] > 0
+                and ram[0xD7DC:0xD7DE] == bytes((0x80, 0xC7))
+                and ram[0xD7DE:0xD7E0] == bytes((0x80, 0xCB)),
+                "C5 did not retain independent A:/B: read-ahead state: "
+                f"{ram[0xD7DA:0xD7E0].hex()}",
             )
         if ram_console_reference is not None:
             require(

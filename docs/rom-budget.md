@@ -144,6 +144,10 @@ least one resident write with no retry or resident
 overrun, and proves the final 9,600-byte framebuffer equal to the frozen RAM
 oracle.
 
+The separately named C5 consumer adds a B: cache at `CB80h..CD08h`, in an
+otherwise unused part of the same `C000h..D5FFh` container. A: remains at
+`C780h..C909h`, the TPA remains `0100h..99FFh`, and C4 stays byte-exact.
+
 ## Decisions entering resident-service migration
 
 - Keep the whole current implementation inside each initial envelope; do not

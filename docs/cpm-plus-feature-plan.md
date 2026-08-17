@@ -208,8 +208,12 @@ copy, and sparse snapshot modes with atomic persistence and base-image hash
 validation. B: remains read-only. NetDisk-v3 operation 26h now provides an
 explicit, bounded, duplicate-safe capability reply containing protocol,
 maximum read-ahead, feature flags, and drive count; `STATUS.COM` displays it.
-Directory caching, independent per-drive read-ahead, and measured MULTIO
-coalescing remain open performance work.
+The C5 slice now retains independent A:/B: read-ahead buffers and validity
+metadata, with an alias-safe fallback for ABI 1.0 consumers. Its alternating
+B: -> A: regression leaves both entries live after loading a transient from
+each drive. Directory caching and measured MULTIO coalescing remain open; the
+pinned zero-turn steady `DIR` means any larger transfer experiment must reduce
+the 22-turn initial login rather than optimize an artificial loop.
 
 The first measured performance pass is now pinned by
 [`netdisk-performance.md`](netdisk-performance.md). On recovery A:, login costs

@@ -71,10 +71,14 @@ sessions.
 - A: defaults to read-only at the host; copy, snapshot, and explicit
   write-through policies remain unchanged.
 - B: remains read-only.
-- A later larger cache must have independent per-drive validity and must not
-  overlap C640h..C95Fh native state or the C780h..C909h resident cache.
+- C5 uses independent A: (`C780h..C909h`) and B: (`CB80h..CD08h`) buffers and
+  resident validity/pointer metadata. An alias guard preserves safe behavior
+  for an older consumer that supplies one shared pointer.
 
-Per-drive cache expansion and MULTIO-aware coalescing remain candidates for a
-later ROM-ABI revision, but only initial-login or alternating-drive evidence
-can justify their extra resident RAM/code. Steady-state `DIR` and short
-sequential reads do not.
+The per-drive slice is now executable rather than speculative: the C5 test
+selects and lists B:, loads its diagnostic transient, returns to A:, loads the
+A: copy, then validates that both three-record entries remain live. It costs no
+TPA and does not change the request count of a first login. MULTIO-aware larger
+coalescing remains a candidate for a later ROM-ABI/protocol revision, but only
+an initial-login measurement can justify its extra target buffer and wire
+contract. Steady-state `DIR` and short sequential reads do not.

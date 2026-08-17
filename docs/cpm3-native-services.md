@@ -60,8 +60,8 @@ ROM, CP/M console setup, and status reporting share one encoding.
 The ABI 1.1 build calls the appended `JCGCONFIG` vector instead, so CP/M uses
 the ROM's reset-latched byte rather than resampling live switches. Its system
 and fast-stage SHA-256 values are respectively
-`8bf159bcaae5570aec128667ee331eebfcf14e644bea1d03852f8dbdd1e4bb19`
-and `517ca6e61f9ab18fb6491a99562155cefd1d63b6693e20b9744e7132c4ffdcf8`.
+`d99d18589730af017b4dbcf3a378d0a0430bc3bcec07b6a3fddbc64486f6ebdf`
+and `6ce3c6931b041d006ba36aa645ec06b3f96f01feaba2fc0d434a678e33ae0414`.
 The C4/native ABI 1.0 artifact retains its bounded direct sampler and byte
 identity.
 
@@ -109,6 +109,12 @@ reproduced and eliminated two integration faults: placing the workspace at
 C600h overwrote native service code, while C780h overwrote the NetDisk cache.
 The regression now executes real reads, STATUS/capabilities, diagnostics,
 warm boot, and write/erase through this map.
+
+The C5-only binding adds a second three-record buffer at CB80h..CD08h. The
+resident ROM stores independent A:/B: counts and pointers at D7DAh..D7DFh;
+the alternating-drive regression loads B:, returns to A:, reloads an A:
+transient, and proves both counts remain nonzero with the expected distinct
+pointers. The immutable C4/native binding and memory map remain unchanged.
 
 `NATIVE.COM` calls the actual high-memory BIOS vectors on the emulated 8080.
 It verifies the device table, FLUSH, A-register MULTIO convention, USERF

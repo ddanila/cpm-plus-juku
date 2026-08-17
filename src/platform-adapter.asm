@@ -106,7 +106,8 @@ CONCW          equ     0ffb4h
 ; Runtime workspace.  The normal CP/M 2 build keeps the established RomBios
 ; addresses. The frozen CP/M Plus baseline limits its TPA below A000h; its
 ; compatibility adapter lives at A000h and owns B000h..B409h. The resident-ROM
-; build relinks this binding at C000h and keeps its state at C5ECh..C909h.
+; build relinks this binding at C000h and keeps its baseline state at
+; C5ECh..C909h. The ABI 1.1 consumer adds a B: cache at CB80h..CD08h.
 .ifdef CPM3ADAPTER
 .ifdef ROMABI
 .ifdef NATIVE_SERVICES
@@ -702,10 +703,26 @@ ROMRWDISK:
         sta     ROMNETREQUEST+6
         lda     MEMADR+1
         sta     ROMNETREQUEST+7
+.ifdef ROM_ABI_LOCALE
+        ; C5 keeps independent three-record A:/B: read-ahead buffers. The
+        ; resident alias guard still degrades safely for older consumers that
+        ; pass one shared buffer for both drives.
+        lda     SEKDSK
+        ora     a
+        lxi     h,0c780h
+        jz      ROMCACHESET
+        lxi     h,0cb80h
+ROMCACHESET:
+        mov     a,l
+        sta     ROMNETREQUEST+8
+        mov     a,h
+        sta     ROMNETREQUEST+9
+.else
         mvi     a,080h
         sta     ROMNETREQUEST+8
         mvi     a,0c7h
         sta     ROMNETREQUEST+9
+.endif
         lxi     h,ROMNETREQUEST
         call    JCGNETDISKADDR
 .ifdef NATIVE_SERVICES_DISK
