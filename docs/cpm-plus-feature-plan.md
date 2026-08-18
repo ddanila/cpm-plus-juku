@@ -639,6 +639,17 @@ reproduced the same prompt timeout in the production simulator. The existing
 admission case copied only the smaller one-record `PROFILE.SUB`, so it did not
 cover this boundary.
 
+The retained simulator failure narrows this further. NetDisk completed every
+read, write, and directory acknowledgement without a USART overrun, then the
+8080 entered the default DMA buffer at `0080h`. It eventually fetched the
+README text byte `76h` at `00C8h` as an 8080 `HLT` and stopped with
+`PC=00C9h`, `SP=BFF6h`, interrupts disabled, and the zero-page WBOOT/BDOS
+vectors still intact. Therefore the observed stop is not a wire timeout or a
+successful copy followed by a missing prompt: some CP/M, BDOS, or native-BIOS
+return state has redirected execution into DMA data. This state is the current
+root-cause boundary; do not hide it with a longer host timeout or an automatic
+reset.
+
 The correction is complete only when:
 
 - a reduced simulator matrix identifies the first failing record count and
@@ -655,6 +666,30 @@ The correction is complete only when:
 This is expected to require a newly network-loaded CP/M system rather than an
 EPROM burn. Preserve the two failed copy-backed images and host transcripts as
 diagnostic evidence until the cause and regression are closed.
+
+### Execution ledger
+
+Work proceeds in this order. A later item may be prototyped at the desk, but it
+must not displace an earlier correctness gate or be described as accepted
+before its own evidence exists.
+
+| Stage | Goal | Desk completion gate | Next physical evidence |
+|---|---|---|---|
+| M1 | Fix multi-record PIP | Reproduce the first failing record count; capture the control transfer into `0080h`; fix it; make four-record copy/CRC, repetitions, warm boot, reconnect, and all release tests pass. | One C6/N4 load on CS00015: copy `README.TXT`, CRC `4613`, prompt returns. No EPROM burn expected. |
+| M2 | Automate physical acceptance | A paging-aware runner records commands, target replies, timeouts, volume mutations, host lifecycle, and artifact hashes without optimistic inference from disk traffic. | One full and one development-profile run; the operator supplies only power/reset and requested keys. |
+| M3 | Close display acceptance | `VIDTEST.COM` and exact framebuffer oracles cover boundaries, glyph banks, joined box drawing, and both cursor phases in all four S21 modes. | Observe 40x24, 53x24, 64x20, and 80x24 on a working display; record any monitor-specific cropping separately. |
+| M4 | Improve NetDisk responsiveness | Measure cold login, first A:, first B:, alternating A:/B:, sequential reads, and writes; change only behavior with a demonstrated end-to-end benefit and unchanged recovery/data-safety tests. | A short CS00015 timing comparison only after simulator fault injection and replay pass. |
+| M5 | Improve the distribution | Prototype strict-8080 history and text-interface tools, retain reproducible source/license/size/runtime admission, and keep the recovery profile small. | Hardware smoke only for programs admitted by the exact-C6 simulator; no manual catalogue trawl on the bench. |
+| M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 USART and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
+
+The immediate desk sequence for M1 is: run one- through four-record copy
+variants; retain a bounded instruction/BDOS/BIOS history around the first jump
+below `0100h`; compare the native `MOVE`, `MULTIO`, `FLUSH`, DMA, and CCP-return
+paths with the CP/M Plus contract; add the exact four-record workload to normal
+admission; then run the complete simulator and package regression. The next
+useful CS00015 experiment is only the final copy-and-CRC confirmation after
+those gates pass. Repeating the currently known failing command on unchanged
+software would add no evidence.
 
 ### Follow-on work, in priority order
 
