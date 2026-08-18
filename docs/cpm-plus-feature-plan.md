@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **C0--C6 BASELINE IMPLEMENTED; PRIORITY 7 CURATION IN PROGRESS**
+Status: **C0--C6 BASELINE IMPLEMENTED; PRIORITY 7 FINAL CURATION IN PROGRESS**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -320,11 +320,10 @@ cases without making every binary inside it redistributable or 8080-safe.
 - Audit DRI `DUMP.COM` next. Prefer it over a new hexdump until a measured gap
   is found; its binary, assembly source, and help topic are also present in the
   pinned archives.
-- Audit an exact, source-available `LS` candidate only after identifying its
-  repository and license. `cpm-ls` is currently an ambiguous project name, so
-  it is a research candidate rather than an approved dependency. Compare its
-  value against CP/M `DIR`, `DIRSYS`, and any legally available `SDIR` before
-  shipping overlapping commands.
+- Audit Kevin Boone's exact GPLv3 `cpm-ls` source and compare its value against
+  CP/M `DIR`, `DIRSYS`, and any legally available `SDIR` before shipping an
+  overlapping command. A successful 8080 build alone does not establish that
+  its TPA and NetDisk costs belong in a default profile.
 - Evaluate `HIST` as an optional CP/M 3 RSX. Acceptance requires strict-8080
   code, a traceable license, measured resident-memory/TPA cost, clean removal,
   and correct interaction with both local and N4 console input across warm
@@ -390,6 +389,19 @@ maintained diagnostic suites remain the hardware-port allow-list, so no
 unrestricted or duplicate `PORT` command was added. See
 [`project-utilities.md`](project-utilities.md).
 
+External-software slice completed on 2026-08-18: Kevin Boone's exact GPLv3
+`cpm-ls` 0.1b source is identified, patched reproducibly for pinned z88dk, and
+passes strict-8080 CP/M 3 execution. It remains out of generated profiles by a
+measured decision: ordinary `LS` takes 55 NetDisk reads and 23.550 seconds on
+the representative full disk versus three reads and 6.222 seconds for `DIR`;
+`LS -L` takes 188 reads and 69.955 seconds, while the ported executable itself
+uses 14,913 bytes. The z80pack `HIST` behavior-reference binaries are rejected
+because matching source, license, CPU contract, and build recipe are absent.
+The FIG-Forth core listing builds, starts, accepts `BYE`, and returns to CCP
+under strict simulation, but its optional package remains deferred because the
+editor, assembler, documentation, and a clear complete-package notice are
+missing. See [`external-software-audit.md`](external-software-audit.md).
+
 ### Optional development media
 
 - Audit the CP/M 8080 FIG-Forth 1.1 source and its complete notice. If it
@@ -427,6 +439,18 @@ existing DRI PL/M-80 utilities from their pinned sources. Its current backend
 describes Z80 output, so it must pass the same strict-8080 opcode gate before
 it can become a production tool; its ability to consume the original CP/M 3
 PL/M sources makes it worth a focused experiment.
+
+Compiler experiment completed on 2026-08-18: pinned Millfork v0.3.30 and
+z88dk v2.4 reproducibly build matching standalone `hello`, `cat`, and `wc`
+fixtures, and all six binaries pass strict-8080 CP/M 3 execution. Millfork
+produces the smallest images and clearest generated Intel assembly, so it is
+the preferred future high-level experiment; z88dk remains the C portability
+probe. Hand-written 8080 assembly remains the production baseline, and neither
+compiler is a mandatory distribution dependency. Exact DRI `SETDEF.PLM`
+compilation rejects `uplm80` as a production path: `-O2` emits 200 `JR`
+instructions, while `-O0` still emits Z80-only `SRL` and `RR`. The pinned
+fixtures, sizes, hashes, TPA accounting, rebuild command, strict simulator
+results, and negative gates are recorded under `experiments/compiler-comparison/`.
 
 ### Explicit exclusions
 
@@ -506,7 +530,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
-| 7. Curated software/development | **In progress** | The 23-program DRI catalogue, every shipped DRI executable, reproducible HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST` decisions, FIG-Forth audit, and compiler comparisons remain. |
+| 7. Curated software/development | **In progress** | The 23-program DRI catalogue, every shipped DRI executable, reproducible HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. The exact `cpm-ls`/`HIST`/FIG-Forth decisions and Millfork/z88dk/uplm80 experiments are complete and fail-closed; the individual DRI `ASM`/`LOAD`/`ED`/`RMAC` disposition and final plan-wide gate remain. |
 
 `make check` is the complete ordinary desk gate. `make bench-candidate` additionally
 rebuilds the immutable C4 package and proves that incomplete or tampered

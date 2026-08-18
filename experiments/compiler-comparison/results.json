@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "measured_at": "2026-08-18",
+  "target": {
+    "cpu": "Intel 8080",
+    "operating_system": "Juku CP/M Plus 3.1 C6 native BIOS",
+    "tpa_bytes": 39168,
+    "file_workload": "README.TXT",
+    "file_workload_counts": {
+      "lines_hex": "0014",
+      "words_hex": "003B",
+      "bytes_hex": "01FA"
+    }
+  },
+  "toolchains": {
+    "millfork": {
+      "upstream": "https://github.com/KarolS/millfork",
+      "release": "v0.3.30",
+      "revision": "3b3ee1bc55d0c6c7d982e283627d0699e78f9060",
+      "release_asset": "millfork-0.3.30-linux-x64.tar.gz",
+      "release_asset_sha256": "810ff9821318d8c38b03c88cec7149b0dc97d22c37e4605efd8993bb1f0697fd",
+      "compiler_license": "GPL-3.0-only",
+      "target_include_license": "Zlib",
+      "build_arguments": [
+        "-t",
+        "cpm",
+        "-O4"
+      ],
+      "diagnostics": "Precise source line and expression; readable Intel-syntax assembly with -s",
+      "programs": {
+        "hello": {
+          "source": "millfork/hello.mfk",
+          "source_sha256": "7b9e2e18e04d500e5ce50737c9a98ee7ea78392dec9a1f211d971799c102c38d",
+          "output_bytes": 69,
+          "output_sha256": "f43ff5db4b1c40b5e6c253280f24209889ecf229ce7db2ef921a5b6a0b0adb30",
+          "tpa_bytes_after_static_image": 39099,
+          "cosim_read_requests": 14,
+          "cosim_elapsed_seconds_observed": 10.143
+        },
+        "cat": {
+          "source": "millfork/cat.mfk",
+          "source_sha256": "e74ca3944b5f83e0e2549e60547f9b0b2ce0237cddd842c0fd3e370a3babc554",
+          "output_bytes": 143,
+          "output_sha256": "2b89279dcde589ce1cb6be9dbbf2dd0f38ae397c824cb822509416b21bc5a5aa",
+          "tpa_bytes_after_static_image": 39025,
+          "cosim_read_requests": 17,
+          "cosim_elapsed_seconds_observed": 27.439
+        },
+        "wc": {
+          "source": "millfork/wc.mfk",
+          "source_sha256": "de860889aece3d7d781440ded504c2540db0152d0bf5670d920b43e5d3e9f4e6",
+          "output_bytes": 362,
+          "output_sha256": "c08436d4276012a3ea7b84cd872a61c8299d93453034c22dce44b4aecbb319d2",
+          "tpa_bytes_after_static_image": 38806,
+          "cosim_read_requests": 17,
+          "cosim_elapsed_seconds_observed": 17.72
+        }
+      }
+    },
+    "z88dk": {
+      "upstream": "https://github.com/z88dk/z88dk",
+      "release": "v2.4",
+      "revision": "4d530b6eb779ad0f2a1d13c0bb670cf717477501",
+      "release_asset": "z88dk-src-2.4.tgz",
+      "release_asset_sha256": "96a57a01d44ff1d65d84e38b04aebb0a4e10eccb4845cb71f5a26f10abe7c5ac",
+      "compiler_license": "Clarified Artistic License",
+      "target_include_license": "Clarified Artistic License; generated output remains the source author's work under section 6",
+      "build_arguments": [
+        "+cpm",
+        "-clib=8080",
+        "-O3",
+        "-pragma-define:CRT_ENABLE_COMMANDLINE=0",
+        "-pragma-define:CLIB_OPEN_MAX=0",
+        "-pragma-define:noprotectmsdos=1"
+      ],
+      "diagnostics": "Familiar C workflow and detailed map output, but legacy sccz80 diagnostics and a costly default CP/M startup",
+      "programs": {
+        "hello": {
+          "source": "z88dk/hello.c",
+          "source_sha256": "09431a5a05ebfd972c8fa5465fa277ca7c09800c39608a50728c74d36fb94a8f",
+          "output_bytes": 363,
+          "output_sha256": "b9e26f9084d335c485d43a913620dd460988a7cc68ac83645ac6d6824ebdc21c",
+          "tpa_bytes_after_static_image": 38805,
+          "cosim_read_requests": 14,
+          "cosim_elapsed_seconds_observed": 9.412
+        },
+        "cat": {
+          "source": "z88dk/cat.c",
+          "source_sha256": "5129db344d01a6ed8f4d13be8ac9a86b26acd6711705acf80f9b501618f82b17",
+          "output_bytes": 565,
+          "output_sha256": "d9e433999b3a88d8814030b717a607e69ddd433a9d2f4f5f1f663dc21b2ba8e3",
+          "tpa_bytes_after_static_image": 38603,
+          "cosim_read_requests": 18,
+          "cosim_elapsed_seconds_observed": 27.088
+        },
+        "wc": {
+          "source": "z88dk/wc.c",
+          "source_sha256": "cb1192688bfd44eb964c4a27e7d8e896452df3241bd6d3f69f80a4d3aaf3c51f",
+          "output_bytes": 970,
+          "output_sha256": "0002617a21a3a59923da16174e3d4bb8ba27475f008e839b749c60c510bb4a54",
+          "tpa_bytes_after_static_image": 38198,
+          "cosim_read_requests": 19,
+          "cosim_elapsed_seconds_observed": 17.64
+        }
+      }
+    }
+  },
+  "strict_8080_cosim": {
+    "passed": true,
+    "tpa_z80_prefix_fetches": 0,
+    "tpa_undocumented_opcode_fetches": 0,
+    "commands": [
+      "MFHELLO",
+      "MFCAT README.TXT",
+      "MFWC README.TXT",
+      "ZHELLO",
+      "ZCAT README.TXT",
+      "ZWC README.TXT"
+    ]
+  },
+  "decision": {
+    "production_baseline": "hand-written 8080 assembly",
+    "preferred_high_level_experiment": "Millfork",
+    "reason": "Millfork produced the smallest standalone binaries and the clearest generated Intel assembly. z88dk remains the preferred C portability probe. Neither toolchain is a mandatory distribution build dependency yet."
+  }
+}

@@ -18,5 +18,13 @@ The following components retain their own provenance and terms:
 - the ZX0 Intel 8080 decoder embedded in the shared fastboot extension is by
   Ivan Gorodetsky and based on Einar Saukas's decoder.
 
+Audit-only patches under `experiments/external-software/` do not place their
+targets in a generated CP/M image. `cpm-ls-z88dk.patch` modifies Kevin Boone's
+GPLv3 `cpm-ls` and is GPLv3; its added console shim is Copyright (c) 2026 Danila
+Sukharev under the same terms. `fig-forth-zmac.patch` records mechanical build
+changes against the credited John Cassady/Kim Harris FIG-Forth 1.1 listing;
+the source notice and the reason it is not packaged are preserved in
+`docs/external-software-audit.md`.
+
 The simulator is not copied here. Tests use a sibling `8080-cosim` checkout or
 the path selected by `JUKU_COSIM_ROOT`.

@@ -108,6 +108,8 @@ make network-rom-extended-cosim-check
 make network-rom-long-soak-check
 make distribution-check distribution-cosim-check
 make native-services-check
+make utility-catalogue-check external-software-audit-check
+make compiler-comparison-check
 ```
 
 ## Generated outputs
@@ -174,5 +176,6 @@ The authoritative current documents are:
 - [`docs/cpm-plus-31-c6-simulator.md`](docs/cpm-plus-31-c6-simulator.md)
 - [`docs/distribution-profiles.md`](docs/distribution-profiles.md)
 - [`docs/project-utilities.md`](docs/project-utilities.md)
+- [`docs/external-software-audit.md`](docs/external-software-audit.md)
 - [`docs/cpm3-native-services.md`](docs/cpm3-native-services.md)
 - [`docs/netdisk-performance.md`](docs/netdisk-performance.md)

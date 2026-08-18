@@ -1,0 +1,81 @@
+// Copyright (c) 2026 Danila Sukharev. BSD-2-Clause.
+import cpm_bdos
+
+inline asm byte open_default_fcb() {
+    ? lxi d,$005c
+    ? mvi c,15
+    call 5
+    ? ret
+}
+
+inline asm byte read_default_fcb() {
+    ? lxi d,$005c
+    ? mvi c,20
+    call 5
+    ? ret
+}
+
+void putsz(pointer p) {
+    while p[0] != 0 {
+        putchar(p[0])
+        p += 1
+    }
+}
+
+void put_nibble(byte value) {
+    value &= $0f
+    if value < 10 { putchar(value + '0') }
+    else { putchar(value - 10 + 'A') }
+}
+
+void put_word(word value) {
+    put_nibble(value.hi >> 4)
+    put_nibble(value.hi)
+    put_nibble(value.lo >> 4)
+    put_nibble(value.lo)
+}
+
+void main() {
+    pointer dma
+    byte i
+    byte c
+    bool in_word
+    word lines
+    word words
+    word bytes
+    dma = $0080
+    lines = 0
+    words = 0
+    bytes = 0
+    in_word = false
+    if open_default_fcb() == $ff {
+        putsz("WC: not found"z)
+        new_line()
+        return
+    }
+    while read_default_fcb() == 0 {
+        i = 0
+        while i != 128 {
+            c = dma[i]
+            if c == $1a {
+                putsz("lines="z)
+                put_word(lines)
+                putsz(" words="z)
+                put_word(words)
+                putsz(" bytes="z)
+                put_word(bytes)
+                new_line()
+                return
+            }
+            bytes += 1
+            if c == 10 { lines += 1 }
+            if c == ' ' || c == 9 || c == 10 || c == 13 {
+                in_word = false
+            } else {
+                if not(in_word) { words += 1 }
+                in_word = true
+            }
+            i += 1
+        }
+    }
+}

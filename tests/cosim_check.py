@@ -542,9 +542,20 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     ready_name = \
                         f"CPM_PLUS_JUKU_EXTRA_READY_MARKER{suffix}"
                     input_name = f"CPM_PLUS_JUKU_EXTRA_INPUT_HEX{suffix}"
+                    input_delay_name = \
+                        f"CPM_PLUS_JUKU_EXTRA_INPUT_DELAY{suffix}"
                     command = os.environ.get(command_name)
                     if not command:
                         return b""
+                    metric_name = f"extra{suffix}"
+                    metric_started_at = time.monotonic()
+                    metric_before = {
+                        name: stats.get(name, 0)
+                        for name in (
+                            "reads", "read_records", "request_wire_bytes",
+                            "reply_wire_bytes",
+                        )
+                    }
                     send_console(command.encode("ascii") + b"\r")
                     ready_marker = os.environ.get(ready_name)
                     input_hex = os.environ.get(input_name)
@@ -557,6 +568,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         response += read_until(
                             ready_marker.encode("ascii"), command_timeout,
                         )
+                        input_delay = float(os.environ.get(
+                            input_delay_name, "0",
+                        ))
+                        if input_delay:
+                            time.sleep(input_delay)
                         send_console(bytes.fromhex(input_hex))
                     response += read_until(b"A>", command_timeout)
                     marker = os.environ.get(
@@ -575,6 +591,20 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                 f"extra command lacks {encoded!r}: "
                                 f"{response!r}",
                             )
+                    command_metrics[metric_name] = {
+                        "read_requests": stats.get("reads", 0)
+                        - metric_before["reads"],
+                        "read_records": stats.get("read_records", 0)
+                        - metric_before["read_records"],
+                        "request_wire_bytes":
+                        stats.get("request_wire_bytes", 0)
+                        - metric_before["request_wire_bytes"],
+                        "reply_wire_bytes": stats.get("reply_wire_bytes", 0)
+                        - metric_before["reply_wire_bytes"],
+                        "elapsed_seconds": round(
+                            time.monotonic() - metric_started_at, 3,
+                        ),
+                    }
                     print(f"COSIM {case.name}: {command}", flush=True)
                     return response
 

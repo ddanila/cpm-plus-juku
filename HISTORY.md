@@ -122,3 +122,14 @@ native/C4 system slots. `make release-candidate` now binds the exact C5 ROM
 halves to the matching locale-native CP/M Plus 3.1 system, media reports,
 licenses, and manifest in a byte-reproducible tar. C5 remains unpromoted until
 its complete physical acceptance matrix is recorded.
+
+On 2026-08-18 the Priority 7 external-software and host-compiler audit replaced
+candidate-name guesses with exact, executable evidence. Kevin Boone's GPLv3
+`cpm-ls` now has a reproducible z88dk port and passes strict-8080 execution,
+but measured 55/188-read normal/long listings keep it out of default profiles.
+The core FIG-Forth 1.1 listing likewise builds and returns cleanly to CCP but
+lacks the complete editor/assembler/documentation package required for
+admission. Unexplained z80pack `HIST` binaries and Z80-generating `uplm80` are
+rejected. Matching Millfork and z88dk `hello`, `cat`, and `wc` fixtures rebuild
+byte-for-byte and pass strict execution, while hand-written 8080 assembly
+remains the production baseline.

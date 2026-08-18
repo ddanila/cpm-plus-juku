@@ -1,0 +1,14 @@
+// Copyright (c) 2026 Danila Sukharev. BSD-2-Clause.
+import cpm_bdos
+
+array message = "Hello from Millfork"z
+
+void main() {
+    pointer p
+    p = message.addr
+    while p[0] != 0 {
+        putchar(p[0])
+        p += 1
+    }
+    new_line()
+}

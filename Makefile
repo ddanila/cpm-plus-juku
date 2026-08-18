@@ -59,6 +59,8 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 	network-rom-long-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check utility-catalogue-check \
+	compiler-comparison-check compiler-comparison-rebuild-check \
+	external-software-audit-check external-software-rebuild-check \
 	dev-utility-rebuild-check development-cosim-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check release-candidate \
@@ -94,6 +96,7 @@ rom-budget-check: tools $(BUILD)/fastboot-core.cim \
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
 	utility-catalogue-check dev-utility-rebuild-check \
+	compiler-comparison-check external-software-audit-check \
 	distribution-check manifest-check c5-manifest-check \
 	c6-manifest-check c6-release-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
@@ -110,6 +113,28 @@ distribution-input-check:
 utility-catalogue-check:
 	$(PYTHON) tools/audit_cpm3_candidates.py --check
 	$(PYTHON) tests/cpm3_candidate_audit_test.py
+
+compiler-comparison-check:
+	$(PYTHON) tools/compiler_comparison.py
+	$(PYTHON) tests/compiler_comparison_test.py
+
+compiler-comparison-rebuild-check:
+	@test -n "$(MILLFORK)" -a -n "$(Z88DK_ROOT)" || \
+		{ echo 'set MILLFORK and Z88DK_ROOT'; exit 2; }
+	$(PYTHON) tools/compiler_comparison.py --millfork "$(MILLFORK)" \
+		--z88dk-root "$(Z88DK_ROOT)" --strict-cosim
+
+external-software-audit-check:
+	$(PYTHON) tools/external_software_audit.py --check
+	$(PYTHON) tests/external_software_audit_test.py
+
+external-software-rebuild-check: $(ZMAC)
+	@test -n "$(CPM_LS_TREE)" -a -n "$(Z88DK_ROOT)" \
+		-a -n "$(FIG_FORTH_SOURCE)" || \
+		{ echo 'set CPM_LS_TREE, Z88DK_ROOT, and FIG_FORTH_SOURCE'; exit 2; }
+	$(PYTHON) tools/external_software_audit.py --check \
+		--cpm-ls-tree "$(CPM_LS_TREE)" --z88dk-root "$(Z88DK_ROOT)" \
+		--fig-source "$(FIG_FORTH_SOURCE)" --zmac "$(abspath $(ZMAC))"
 
 dev-utility-rebuild-check: $(ZXCC)
 	$(PYTHON) tools/rebuild_cpm3_dev_utilities.py

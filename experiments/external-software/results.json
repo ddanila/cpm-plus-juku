@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "audited_at": "2026-08-18",
+  "target": {
+    "cpu": "Intel 8080",
+    "operating_system": "Juku CP/M Plus 3.1 C6 native BIOS",
+    "tpa_bytes": 39168,
+    "admission_rule": "An audit result is not permission to ship; only decision=admit may enter a generated profile."
+  },
+  "candidates": {
+    "cpm-ls": {
+      "kind": "target utility",
+      "decision": "defer",
+      "profile": "none",
+      "reason": "The exact GPLv3 8080 source is now identified and passes strict execution, but ordinary LS costs 55 NetDisk reads and 23.550 s versus DIR's 3 reads and 6.222 s; LS -L costs 188 reads and 69.955 s. Its sorting and long-list features do not yet justify a 14,913-byte overlapping default utility.",
+      "upstream": "https://github.com/kevinboone/cpm-ls",
+      "revision": "27bfbb29b0a4e4e0f4037b0d7745fce6a98b99f6",
+      "version": "0.1b",
+      "authors": [
+        "Kevin Boone"
+      ],
+      "license": "GPL-3.0-only",
+      "license_evidence": "README.md Legal and copyright section",
+      "cpu_claim": "Z80 or 8080",
+      "source_language": "K&R C plus original console assembly; audited port uses a C BDOS console shim",
+      "upstream_binary": {
+        "path": "ls.com",
+        "bytes": 9984,
+        "sha256": "7288247b74f4d5aaa75daac5860646ced07baf81aeee150b2be753037b56cab2"
+      },
+      "audited_port": {
+        "patch": "cpm-ls-z88dk.patch",
+        "patch_sha256": "3349ef4eef6833f873f0deb7ef4f451237f4ce62dafd9b35170b6fd1946fbf89",
+        "toolchain": "z88dk v2.4 source build pinned by ../compiler-comparison/results.json",
+        "build_arguments": [
+          "+cpm",
+          "-clib=8080",
+          "-O3",
+          "-SO3",
+          "-DZ88DK",
+          "-DCPM",
+          "-pragma-define:nofileio=1",
+          "-pragma-define:nostreams=1",
+          "-pragma-define:noprotectmsdos=1"
+        ],
+        "source_files": [
+          "main.c",
+          "dir.c",
+          "fcb.c",
+          "string.c",
+          "getopt.c",
+          "conio_z88dk.c"
+        ],
+        "output_bytes": 14913,
+        "output_sha256": "7533669ae10fef8049153d66118c635d1fb0b60e343b971dae0ca82aa6adfd84",
+        "tpa_bytes_after_static_image": 24255,
+        "port_fixes": [
+          "Mask byte-valued BDOS returns because z88dk sign-extends FFh to -1.",
+          "Terminate the eleven-byte FCB name at index 11 instead of writing past the array at index 12.",
+          "Provide explicit declarations and a direct BDOS console shim for the modern cross-compiler."
+        ]
+      },
+      "strict_8080_cosim": {
+        "passed": true,
+        "tpa_z80_prefix_fetches": 0,
+        "tpa_undocumented_opcode_fetches": 0,
+        "normal": {
+          "command": "LS",
+          "read_requests": 55,
+          "read_records": 165,
+          "reply_wire_bytes": 12489,
+          "elapsed_seconds_observed": 23.55
+        },
+        "long": {
+          "command": "LS -L",
+          "read_requests": 188,
+          "read_records": 564,
+          "reply_wire_bytes": 57306,
+          "elapsed_seconds_observed": 69.955
+        },
+        "baseline_dir": {
+          "command": "DIR",
+          "read_requests": 3,
+          "read_records": 9,
+          "elapsed_seconds_observed": 6.222
+        }
+      }
+    },
+    "hist-rsx": {
+      "kind": "CP/M Plus command-history RSX",
+      "decision": "reject",
+      "profile": "none",
+      "reason": "z80pack provides behavior-reference binaries but no matching source, independent license, CPU contract, build recipe, or defensible resident-memory measurement. HIST.UTL is a separate Digital Research SID histogram utility and is not source for the RSX.",
+      "upstream": "https://github.com/udo-munk/z80pack",
+      "revision": "91fd28eb04e675c2127df88ed3f40675e15282e2",
+      "authors": [],
+      "license": "unresolved for these binaries",
+      "container": {
+        "path": "cpmsim/disks/library/cpm3-1.dsk",
+        "bytes": 256256,
+        "sha256": "598af02b496eaf5a7119b26876a53038df08589ea118863f3bf1e0a06942fb44"
+      },
+      "artifacts": [
+        {
+          "name": "HIST.COM",
+          "bytes": 1792,
+          "sha256": "2b99d463c7b7b2dc9949dc64736aa4309f2fe7fa872772f72fcbadf7ebff0024"
+        },
+        {
+          "name": "HISTCL.COM",
+          "bytes": 128,
+          "sha256": "ec8a36625d9f40a3b99489800b814c0caeb9758d3ac95d3a1547c6bfb0871aea"
+        }
+      ],
+      "source_present": false,
+      "independent_license_present": false,
+      "strict_8080_cosim": {
+        "passed": false,
+        "reason": "Admission stops before executing an unlicensed, unexplained binary."
+      }
+    },
+    "fig-forth-1.1": {
+      "kind": "optional development language",
+      "decision": "defer",
+      "profile": "none",
+      "reason": "The core 8080 CP/M listing now builds and exits cleanly under strict simulation, but the requested optional package also requires its editor, assembler, source, documentation, and a clear complete-package notice. Those pieces are not present in the audited gist.",
+      "upstream": "https://gist.github.com/tschak909/c45014672024b15b5244576783d011c1",
+      "revision": "780a214ce9d96edc704fcff405d5b0776c66cc67",
+      "version": "1.1 A0, 1979-09-17",
+      "authors": [
+        "John Cassady",
+        "Kim Harris"
+      ],
+      "source_language": "8080 assembly",
+      "source_bytes": 59177,
+      "source_sha256": "8c69c5c6f0c5791d86170445b243753c8d75999be3bbc804d6c0a08c2fd6e2fb",
+      "notice": "The listing calls FIG publications public domain with attribution, then carries several copyright/trademark notices and an all-rights-reserved qualification. It does not establish terms for the absent editor, assembler, or manual.",
+      "audited_build": {
+        "patch": "fig-forth-zmac.patch",
+        "patch_sha256": "a0c3b9e7c64646b96f4f7ec3551d727ff83d5fb965bb66b6b68293f6d0a57a25",
+        "patched_source_bytes": 59189,
+        "patched_source_sha256": "30eeedfc695761a4bc929aaf5f66b6d0ab6eb422848c81f5f7cf91d5071e3e0c",
+        "build_arguments": [
+          "--nmnv",
+          "--zmac",
+          "-m",
+          "-8"
+        ],
+        "output_bytes": 6536,
+        "output_sha256": "aa7558d95d24ca9d3cf26f7d3637889cbcdbd880adcc5e0656aa62d62caecd55",
+        "tpa_bytes_after_static_image": 32632
+      },
+      "strict_8080_cosim": {
+        "passed": true,
+        "command": "FIG then BYE",
+        "startup_marker": "fig-FORTH 1.1",
+        "read_requests": 31,
+        "read_records": 93,
+        "reply_wire_bytes": 11399,
+        "elapsed_seconds_observed": 14.768,
+        "tpa_z80_prefix_fetches": 0,
+        "tpa_undocumented_opcode_fetches": 0,
+        "returned_to_ccp": true
+      },
+      "missing_package_parts": [
+        "editor",
+        "assembler",
+        "user documentation",
+        "unambiguous complete-package license"
+      ]
+    },
+    "uplm80": {
+      "kind": "host PL/M-80 compiler experiment",
+      "decision": "reject",
+      "profile": "none",
+      "reason": "The compiler explicitly targets Z80 assembly. Compiling the pinned DRI SETDEF.PLM emits 200 JR instructions at -O2; disabling optimization removes JR but still emits SRL and RR. It therefore cannot reproduce strict-8080 CP/M utilities without a real 8080 backend.",
+      "upstream": "https://github.com/avwohl/uplm80",
+      "revision": "5546c476c291acdbd2d8a3c80501218f13f1608c",
+      "version": "0.3.1 development revision",
+      "license": "GPL-3.0-only",
+      "declared_target": "Zilog Z80 assembly",
+      "fixture": {
+        "name": "SETDEF.PLM",
+        "source_sha256": "195e01f4aecc2cfb9f1af37e1d2b9ca2bfc9b789e334018f9ad9455d8a5a33ff",
+        "optimized_output_sha256": "9d7bbe7559d694d49a1900df422a471d3b741417d81107c94e04b553f8f6a7e6",
+        "optimized_jr_instructions": 200,
+        "unoptimized_output_sha256": "381f47cee4504dc42ca4b64883b3511be3e02c06e04c75cb7402f695ac0224c2",
+        "unoptimized_srl_instructions": 3,
+        "unoptimized_rr_instructions": 3
+      }
+    }
+  }
+}

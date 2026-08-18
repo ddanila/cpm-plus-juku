@@ -3,3 +3,5 @@ prebuilt/** -text -diff
 third_party/ld80/** -text -diff
 third_party/zmac/** -text -diff
 third_party/zx0/** -text -diff
+# Unified diffs must retain the source tree's literal whitespace.
+experiments/external-software/*.patch -whitespace

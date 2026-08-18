@@ -1,0 +1,186 @@
+diff --git a/compat.h b/compat.h
+index 11e3609..4038d31 100644
+--- a/compat.h
++++ b/compat.h
+@@ -10,6 +10,11 @@
+ 
+ #define MAX_ARGC  10
+ 
++#ifdef Z88DK
++#include <cpm.h>
++void exit(int status);
++#endif
++
+ #ifdef CPM
+ #define CONST
+ #else
+diff --git a/config.h b/config.h
+index 6b653ac..8368aa2 100644
+--- a/config.h
++++ b/config.h
+@@ -21,5 +21,8 @@
+ /* The terminal character to interpret as a "kill" interrupt; usually ctrl+c */ 
+ #define INTR            3	
+ 
++#ifndef NAME
++#define NAME            "ls"
+ #endif
+ 
++#endif
+diff --git a/conio_z88dk.c b/conio_z88dk.c
+new file mode 100644
+index 0000000..c35cdd6
+--- /dev/null
++++ b/conio_z88dk.c
+@@ -0,0 +1,44 @@
++/* z88dk console adapter for cpm-ls.
++ * Copyright (c) 2026 Danila Sukharev
++ * SPDX-License-Identifier: GPL-3.0-only
++ */
++
++#include "compat.h"
++
++void putch(c)
++char c;
++{
++    bdos(2, c);
++}
++
++void puts2(s)
++char *s;
++{
++    while (*s)
++        putch(*s++);
++}
++
++void puteol()
++{
++    putch(13);
++    putch(10);
++}
++
++void puthex(n)
++unsigned n;
++{
++    int shift;
++    for (shift = 12; shift >= 0; shift -= 4) {
++        int digit = (n >> shift) & 15;
++        putch(digit < 10 ? digit + '0' : digit - 10 + 'A');
++    }
++}
++
++int getchne()
++{
++    int c;
++    do {
++        c = bdos(6, 0xff);
++    } while (c == 0);
++    return c;
++}
+diff --git a/dir.c b/dir.c
+index 78df12d..797c63f 100644
+--- a/dir.c
++++ b/dir.c
+@@ -10,6 +10,7 @@
+ #include "compat.h"
+ #include "string.h"
+ #include "dir.h"
++#include "fcb.h"
+ #include "conio.h"
+ 
+ /* BDOS constants */
+@@ -72,7 +73,7 @@ BOOL page;
+     puts2 ("                           ");
+     putch (13);
+     if (c == INTR)
+-      exit(); 
++      exit(0);
+     else if (c == 10 || c == 13)
+       lines--;
+     else
+@@ -256,7 +257,7 @@ int flags;
+     }
+ 
+   /* Loop around the directory, filling in the files structure as we go */
+-  n = bdos (BDOS_DFIRST, FCB);
++  n = bdos (BDOS_DFIRST, FCB) & 0xff;
+   while (n != 255 && (num_files < LS_MAX_F))
+     {
+     /*struct File *file = files + num_files * sizeof (struct File);*/
+@@ -273,7 +274,7 @@ int flags;
+ 
+     namelen = dir_san (fcbbuf + 1, file->name);
+     memcpy (file->cpmname, fcbbuf + 1, 11);
+-    cpmname[12] = 0;
++    cpmname[11] = 0;
+     if (cpmname[8] & BD_ATT_MASK)
+       file->attr |= ATT_RO;
+     if (cpmname[9] & BD_ATT_MASK)
+@@ -286,7 +287,7 @@ int flags;
+ 
+     file->nlen = namelen;
+     num_files++;
+-    n = bdos (BDOS_DNEXT, FCB);
++    n = bdos (BDOS_DNEXT, FCB) & 0xff;
+     }
+ 
+   if (num_files == 0)
+@@ -312,7 +313,7 @@ int flags;
+       for (j = 0; j < sizeof (tempfcb); j++) tempfcb[j] = 0;
+       tempfcb[0] = fcb[0];
+       memcpy (tempfcb + 1, file->cpmname, 11);
+-      if (bdos (BDOS_OPEN, tempfcb) <= 3)
++      if ((bdos (BDOS_OPEN, tempfcb) & 0xff) <= 3)
+ 	{
+ 	bdos (BDOS_FSIZE, tempfcb);
+ 	file->recs = tempfcb[33] + 256 * tempfcb[34];
+diff --git a/fcb.c b/fcb.c
+index 74b931a..474380f 100644
+--- a/fcb.c
++++ b/fcb.c
+@@ -8,6 +8,8 @@
+ 
+ #include "compat.h"
+ #include "fcb.h"
++#include "conio.h"
++#include "string.h"
+ 
+ /*==========================================================================
+ 
+diff --git a/fcb.h b/fcb.h
+index ef51487..45b8f16 100644
+--- a/fcb.h
++++ b/fcb.h
+@@ -11,6 +11,8 @@
+ #ifndef __FCB_H
+ #define __FCB_H
+ 
++int fcb_fill_ptn();
++
+ #include "compat.h"
+ 
+ /*
+diff --git a/main.c b/main.c
+index 6cbb4f4..9d030be 100644
+--- a/main.c
++++ b/main.c
+@@ -7,6 +7,7 @@
+ ==========================================================================*/
+ 
+ #include "compat.h"
++#include "config.h"
+ #include "dir.h"
+ #include "getopt.h"
+ #include "conio.h"
+diff --git a/string.h b/string.h
+index 9e48266..90c6a8b 100644
+--- a/string.h
++++ b/string.h
+@@ -20,6 +20,7 @@ void strlwr();
+ 
+ int strlen();
+ int strcmp();
++void *memcpy();
+ 
+ /*
+  * void utoa (unsigned n, char *s, int base)
