@@ -33,6 +33,19 @@ CASES = {
         },
         409600,
     ),
+    "dev": (
+        ROOT / "volume/profiles/dev.json",
+        ROOT / "out/cpm-plus-juku-dev.img",
+        ROOT / "out/cpm-plus-juku-dev.report.json",
+        {
+            "CCP.COM", "DIAG.COM", "WBOOT.COM", "README.TXT", "PIP.COM",
+            "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
+            "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP", "STATUS.COM",
+            "KEYTEST.COM", "HEXCOM.COM", "PATCH.COM", "SID.COM",
+            "HELLO.ASM", "HELLO.HEX",
+        },
+        409600,
+    ),
     "native-recovery": (
         ROOT / "volume/profiles/native-recovery.json",
         ROOT / "out/cpm-plus-juku-native-recovery.img",
@@ -224,7 +237,10 @@ def malformed_profiles_fail_closed() -> None:
 def main() -> int:
     generated_profiles_are_stable()
     malformed_profiles_fail_closed()
-    print("DISTRIBUTION: PASS (recovery/full/native-B profiles and reports)")
+    print(
+        "DISTRIBUTION: PASS "
+        "(recovery/full/dev/native-B profiles and reports)"
+    )
     return 0
 
 

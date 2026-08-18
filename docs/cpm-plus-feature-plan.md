@@ -344,6 +344,16 @@ test harness now includes extra-command output in its independent framebuffer
 oracle; previously those commands could run without contributing to the final
 visual comparison.
 
+Development slice completed on 2026-08-18: a separately named `development-a`
+profile extends `full-a` with HEXCOM, PATCH, SID, `HELLO.ASM`, and its
+reproducible Intel HEX output while leaving recovery/full/demo bytes
+unchanged. The three Digital Research executables rebuild byte-for-byte from
+their pinned assembly sources with archived MAC/RMAC/DRLINK under pinned ZXCC.
+The strict-8080 simulator converts HELLO on target and executes it, then enters
+and exits SID and exercises PATCH's installed-patch listing. The image has
+224 KiB free and is advertised in every generated boot manifest and included
+in the reproducible C5/C6 packages.
+
 Do not duplicate established CP/M commands merely to give them Unix names:
 `TYPE` already covers the ordinary `cat` case, `PIP` copies files, `REN`
 renames them, and `ERA` removes them. After the first slice, prioritize actual
@@ -486,7 +496,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
-| 7. Curated software/development | **In progress** | The 23-program source/binary catalogue and strict executable admission of every currently shipped DRI utility pass. Exact `cpm-ls`/`HIST` provenance, selected gap-filling tools, optional development media, and compiler comparisons remain. |
+| 7. Curated software/development | **In progress** | The 23-program source/binary catalogue, strict executable admission of every shipped DRI utility, and reproducible HEXCOM/PATCH/SID development image pass. Exact `cpm-ls`/`HIST` provenance, selected gap-filling tools, FIG-Forth audit, and compiler comparisons remain. |
 
 `make check` is the complete ordinary desk gate. `make bench-candidate` additionally
 rebuilds the immutable C4 package and proves that incomplete or tampered

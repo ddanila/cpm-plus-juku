@@ -30,8 +30,12 @@ def load_provenance() -> dict[str, object]:
 def expected_files() -> tuple[dict[str, object], dict[str, bytes]]:
     provenance = load_provenance()
     archives = provenance.get("archives")
-    selected = provenance.get("selected_distribution_files")
-    if not isinstance(archives, dict) or not isinstance(selected, dict):
+    selected_groups = (
+        provenance.get("selected_distribution_files"),
+        provenance.get("selected_development_files"),
+    )
+    if not isinstance(archives, dict) or \
+            not all(isinstance(group, dict) for group in selected_groups):
         raise TypeError("CP/M 3 provenance lacks archives or selected files")
     opened: dict[str, zipfile.ZipFile] = {}
     try:
@@ -48,24 +52,32 @@ def expected_files() -> tuple[dict[str, object], dict[str, bytes]]:
         binary = opened["cpm3bin_unix-20260607.zip"]
         source_names = set(source.namelist())
         result: dict[str, bytes] = {}
-        for output_name, record in selected.items():
-            if not isinstance(output_name, str) or not isinstance(record, dict):
-                raise TypeError("CP/M 3 selected-file provenance differs")
-            member = record.get("archive_member")
-            sources = record.get("source_members")
-            if not isinstance(member, str) or not isinstance(sources, list) or \
-                    not all(isinstance(name, str) for name in sources):
-                raise TypeError(f"source mapping differs for {output_name}")
-            missing = sorted(set(sources) - source_names)
-            if missing:
-                raise ValueError(
-                    f"source members for {output_name} are absent: {missing}"
-                )
-            data = binary.read(member)
-            if len(data) != record.get("bytes") or \
-                    digest(data) != record.get("sha256"):
-                raise ValueError(f"pinned CP/M 3 member differs: {member}")
-            result[output_name] = data
+        for selected in selected_groups:
+            assert isinstance(selected, dict)
+            for output_name, record in selected.items():
+                if not isinstance(output_name, str) or \
+                        not isinstance(record, dict):
+                    raise TypeError("CP/M 3 selected-file provenance differs")
+                if output_name in result:
+                    raise ValueError(
+                        f"duplicate selected CP/M 3 file: {output_name}"
+                    )
+                member = record.get("archive_member")
+                sources = record.get("source_members")
+                if not isinstance(member, str) or \
+                        not isinstance(sources, list) or \
+                        not all(isinstance(name, str) for name in sources):
+                    raise TypeError(f"source mapping differs for {output_name}")
+                missing = sorted(set(sources) - source_names)
+                if missing:
+                    raise ValueError(
+                        f"source members for {output_name} are absent: {missing}"
+                    )
+                data = binary.read(member)
+                if len(data) != record.get("bytes") or \
+                        digest(data) != record.get("sha256"):
+                    raise ValueError(f"pinned CP/M 3 member differs: {member}")
+                result[output_name] = data
         return provenance, result
     finally:
         for archive in opened.values():

@@ -1,6 +1,6 @@
 # CP/M 3.1 utility provenance
 
-Status: **PINNED AND STRICT-8080 VERIFIED IN FULL/DEMO; C4 UNCHANGED**
+Status: **PINNED AND STRICT-8080 VERIFIED IN FULL/DEMO/DEV; C4 UNCHANGED**
 
 Priority 1 requires a useful distribution without importing unexplained
 binaries. The selected source is John Elliott's 2026-06-07 Unix build of the
@@ -31,8 +31,10 @@ top-level `.plm` file would not constitute the corresponding source.
 selected file, its archive member, source members, version description, size,
 and SHA-256. The approved set is `PIP.COM`, `SHOW.COM`, `SET.COM`,
 `DEVICE.COM`, `DATE.COM`, `SUBMIT.COM`, `SETDEF.COM`, `DUMP.COM`, `HELP.COM`,
-and `HELP.HLP`. The HELP source mapping includes `setdef.help` and `dump.help`;
-the pinned database exposes both topics.
+and `HELP.HLP`. The optional development selection additionally admits
+`HEXCOM.COM`, `PATCH.COM`, and `SID.COM`. The HELP source mapping includes
+their topics as well as `setdef.help` and `dump.help`; the pinned database
+exposes all five.
 
 The broader 23-program source/binary corpus, including deferred duplicates and
 development candidates, is independently rendered and negative-tested in
@@ -54,10 +56,17 @@ extracts only the approved names into `build/cpm3-utilities`, and compares a
 deterministic extraction manifest. Its negative regression mutates the pinned
 binary archive and requires rejection.
 
+`make dev-utility-rebuild-check` independently builds archived host helpers,
+runs the archived MAC/RMAC/DRLINK tools through the pinned ZXCC environment,
+and reconstructs HEXCOM, PATCH, and SID from their mapped assembly sources.
+All three results must equal both the pinned release bytes and catalogue
+digests. This is a stronger admission condition than merely extracting the
+matching release binaries.
+
 This gate deliberately does not alter `out/cpm-plus-juku.img`. C4 remains the
-immutable Priority 0 qualification volume. The separately named full and demo
-profiles consume the staged files with generated contents, provenance,
-free-space, and hash reports. The distribution cosimulation executes a useful
+immutable Priority 0 qualification volume. The separately named full, demo,
+and development profiles consume the staged files with generated contents,
+provenance, free-space, and hash reports. The distribution cosimulation executes a useful
 path through every admitted program: `SETDEF`; exact `DUMP`; interactive
 `HELP`; a `PIP` file creation proved by a second exact dump; `SHOW` space;
 `SET` read-only/read-write transitions; rejected `DATE` input; and a
@@ -72,3 +81,9 @@ a fixed whole-session deadline: the former 180-second limit could expire in a
 healthy interactive run and mimic directory/CCP corruption. Active simulator
 sessions are now unbounded and stop on transport EOF; the exact served image
 is retained on failure for filesystem inspection.
+
+The development cosimulation starts from `HELLO.ASM` assembled to Intel HEX
+by the pinned host toolchain, converts it to `HELLO.COM` using target
+`HEXCOM`, and executes the result. It then enters and exits `SID HELLO.COM`
+and makes PATCH report SID's patch state. Actual fetched TPA opcodes across
+the sequence remain subject to the strict Intel 8080 execution gate.

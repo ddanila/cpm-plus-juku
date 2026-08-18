@@ -75,6 +75,12 @@ def main() -> int:
                           "lacks executable 8080 proof")
 
         changed = json.loads(json.dumps(original))
+        sid = next(item for item in changed["candidates"]
+                   if item["name"] == "SID.COM")
+        sid["profile"] = "full"
+        require_rejection(module, candidate_path, changed, "profile differs")
+
+        changed = json.loads(json.dumps(original))
         changed["candidates"] = changed["candidates"][:19]
         require_rejection(module, candidate_path, changed,
                           "outside planned range")

@@ -28,6 +28,7 @@ def main() -> int:
     required = {
         "PIP.COM", "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM",
         "SUBMIT.COM", "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP",
+        "HEXCOM.COM", "PATCH.COM", "SID.COM",
     }
     if set(files) != required:
         raise AssertionError(f"selected CP/M 3 utility set differs: {set(files)}")
@@ -35,7 +36,8 @@ def main() -> int:
             provenance.get("license") != "../LICENSE.md":
         raise AssertionError("CP/M 3 utility license record differs")
     for name, data in files.items():
-        record = provenance["selected_distribution_files"][name]
+        record = provenance["selected_distribution_files"].get(name) or \
+            provenance["selected_development_files"][name]
         if len(data) != record["bytes"] or module.digest(data) != record["sha256"]:
             raise AssertionError(f"selected CP/M 3 utility differs: {name}")
 
@@ -55,7 +57,7 @@ def main() -> int:
                 raise AssertionError(f"wrong archive rejection: {error}")
         else:
             raise AssertionError("changed CP/M 3 binary archive was accepted")
-    print("CPM3-UTILITY-INPUTS-TEST: PASS (10 files and source mappings)")
+    print("CPM3-UTILITY-INPUTS-TEST: PASS (13 files and source mappings)")
     return 0
 
 

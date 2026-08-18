@@ -50,8 +50,12 @@ def audit() -> tuple[dict[str, object], list[dict[str, object]]]:
             f"candidate count is outside planned range: {len(candidates)}")
     tpa_bytes = catalogue.get("tpa_bytes")
     require(tpa_bytes == 39168, "catalogue TPA differs from C6 evidence")
-    selected = provenance.get("selected_distribution_files")
-    require(isinstance(selected, dict), "selected distribution files absent")
+    selected_full = provenance.get("selected_distribution_files")
+    selected_dev = provenance.get("selected_development_files")
+    require(isinstance(selected_full, dict),
+            "selected distribution files absent")
+    require(isinstance(selected_dev, dict),
+            "selected development files absent")
     archives = provenance.get("archives")
     require(isinstance(archives, dict), "pinned archive records absent")
     for path in (SOURCE_ARCHIVE, BINARY_ARCHIVE):
@@ -62,7 +66,11 @@ def audit() -> tuple[dict[str, object], list[dict[str, object]]]:
         require(record.get("bytes") == len(data)
                 and record.get("sha256") == digest(data),
                 f"pinned archive differs: {path.name}")
-    selected_com = {name for name in selected if name.endswith(".COM")}
+    selected_by_profile = {
+        "full": {name for name in selected_full if name.endswith(".COM")},
+        "dev": {name for name in selected_dev if name.endswith(".COM")},
+    }
+    selected_com = set().union(*selected_by_profile.values())
     names: set[str] = set()
     members: set[str] = set()
     audited: list[dict[str, object]] = []
@@ -105,8 +113,8 @@ def audit() -> tuple[dict[str, object], list[dict[str, object]]]:
             if item["status"] == "shipped":
                 require(name in selected_com,
                         f"shipped candidate is not admission-pinned: {name}")
-                require(item["profile"] == "full",
-                        f"shipped candidate is outside full profile: {name}")
+                require(name in selected_by_profile[item["profile"]],
+                        f"shipped candidate profile differs: {name}")
                 require(item["cpm3_test"] == "strict-8080-cosim",
                         f"shipped candidate lacks executable 8080 proof: {name}")
             elif name in selected_com:

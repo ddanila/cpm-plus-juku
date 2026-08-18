@@ -82,10 +82,33 @@
     },
     "HELP.HLP": {
       "archive_member": "help.hlp",
-      "source_members": ["help.dat", "commands.help", "date.help", "device.help", "dump.help", "help.help", "pip.help", "set.help", "setdef.help", "show.help", "submit.help"],
+      "source_members": ["help.dat", "commands.help", "date.help", "device.help", "dump.help", "help.help", "hexcom.help", "patch.help", "pip.help", "set.help", "setdef.help", "show.help", "sid.help", "submit.help"],
       "version": "HELP database, 2026-06-07",
       "bytes": 63616,
       "sha256": "0ba002b32e659c19ccec18f13ab3231d403a41911c5b753d42853243b01ed8a6"
+    }
+  },
+  "selected_development_files": {
+    "HEXCOM.COM": {
+      "archive_member": "hexcom.com",
+      "source_members": ["hexcom.asm"],
+      "version": "CP/M 3 HEXCOM",
+      "bytes": 1131,
+      "sha256": "0f458585377284053fb3c8441cdcea75b62dd6a2a4594fe5097b8ca33691964c"
+    },
+    "PATCH.COM": {
+      "archive_member": "patch.com",
+      "source_members": ["patch.asm"],
+      "version": "CP/M 3 PATCH",
+      "bytes": 2369,
+      "sha256": "6259b16eee943ab5ca717477a9f473825be21aba8e535866aa6a1a550c7c14ac"
+    },
+    "SID.COM": {
+      "archive_member": "sid.com",
+      "source_members": ["prs0mov.asm", "prs1asm.asm", "prs2mon.asm", "makedate.lib"],
+      "version": "CP/M 3 SID symbolic debugger",
+      "bytes": 7936,
+      "sha256": "7c7419d95107bdba5ea1c537e1a316ed9a45229111a9fdd13267f3df65931af7"
     }
   }
 }

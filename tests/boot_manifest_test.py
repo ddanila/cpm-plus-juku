@@ -42,7 +42,8 @@ def main() -> int:
         raise AssertionError("manifest system-slot set differs")
     profiles = {item["profile"]: item for item in manifest["volumes"]}
     if set(profiles) != {
-        "native-recovery-a", "full-a", "museum-demo-a", "approved-apps-b",
+        "native-recovery-a", "full-a", "development-a", "museum-demo-a",
+        "approved-apps-b",
     }:
         raise AssertionError(f"manifest volume set differs: {set(profiles)}")
     if profiles["approved-apps-b"]["drive"] != "B" or \

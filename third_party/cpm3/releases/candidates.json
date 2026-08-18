@@ -49,7 +49,7 @@
       "source_members": ["hexcom.asm"],
       "source_language": "8080 assembly", "bytes": 1131,
       "sha256": "0f458585377284053fb3c8441cdcea75b62dd6a2a4594fe5097b8ca33691964c",
-      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+      "status": "shipped", "profile": "dev", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "RENAME.COM", "archive_member": "rename.com",
@@ -84,7 +84,7 @@
       "source_members": ["patch.asm"],
       "source_language": "8080 assembly", "bytes": 2369,
       "sha256": "6259b16eee943ab5ca717477a9f473825be21aba8e535866aa6a1a550c7c14ac",
-      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+      "status": "shipped", "profile": "dev", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "SUBMIT.COM", "archive_member": "submit.com",
@@ -168,7 +168,7 @@
       "source_members": ["prs0mov.asm", "prs1asm.asm", "prs2mon.asm", "makedate.lib"],
       "source_language": "8080 assembly", "bytes": 7936,
       "sha256": "7c7419d95107bdba5ea1c537e1a316ed9a45229111a9fdd13267f3df65931af7",
-      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+      "status": "shipped", "profile": "dev", "cpm3_test": "strict-8080-cosim"
     }
   ]
 }

@@ -122,6 +122,8 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
         out / f"{config['recovery']}.report.json",
         out / "cpm-plus-juku-full.img",
         out / "cpm-plus-juku-full.report.json",
+        out / "cpm-plus-juku-dev.img",
+        out / "cpm-plus-juku-dev.report.json",
         out / "cpm-plus-juku-museum-demo.img",
         out / "cpm-plus-juku-museum-demo.report.json",
         out / "cpm-plus-juku-apps.juk",
@@ -138,6 +140,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
     for image in [
             out / f"{config['recovery']}.img",
             out / "cpm-plus-juku-full.img",
+            out / "cpm-plus-juku-dev.img",
             out / "cpm-plus-juku-museum-demo.img",
             out / "cpm-plus-juku-apps.juk"]:
         verify_record(manifest_volumes.get(image.name), image)

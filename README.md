@@ -113,7 +113,7 @@ make native-services-check
 ## Generated outputs
 
 The normal build creates the frozen RAM-BIOS and C4 systems, native and C5/C6
-systems/fastboot stages, six declarative media profiles and their reports, and
+systems/fastboot stages, seven declarative media profiles and their reports, and
 ABI-specific boot manifests. The C6-specific files include:
 
 ```text

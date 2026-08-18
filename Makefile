@@ -32,11 +32,13 @@ NATIVE_RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-native-recovery.img
 VOLUME := $(OUT)/cpm-plus-juku.img
 RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-recovery.img
 FULL_VOLUME := $(OUT)/cpm-plus-juku-full.img
+DEV_VOLUME := $(OUT)/cpm-plus-juku-dev.img
 APPS_VOLUME := $(OUT)/cpm-plus-juku-apps.juk
 DEMO_VOLUME := $(OUT)/cpm-plus-juku-museum-demo.img
 RECOVERY_REPORT := $(OUT)/cpm-plus-juku-recovery.report.json
 NATIVE_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-native-recovery.report.json
 FULL_REPORT := $(OUT)/cpm-plus-juku-full.report.json
+DEV_REPORT := $(OUT)/cpm-plus-juku-dev.report.json
 APPS_REPORT := $(OUT)/cpm-plus-juku-apps.report.json
 DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
 BOOT_MANIFEST := $(OUT)/cpm-plus-juku-native-manifest.json
@@ -57,6 +59,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 	network-rom-long-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check utility-catalogue-check \
+	dev-utility-rebuild-check development-cosim-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check release-candidate \
 	release-candidate-check c6-release-candidate c6-release-candidate-check \
@@ -71,7 +74,8 @@ all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
 
 distribution: $(RECOVERY_VOLUME) $(RECOVERY_REPORT) \
 	$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
-	$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+	$(FULL_VOLUME) $(FULL_REPORT) $(DEV_VOLUME) $(DEV_REPORT) \
+	$(APPS_VOLUME) $(APPS_REPORT) \
 	$(DEMO_VOLUME) $(DEMO_REPORT)
 
 tools: $(ZMAC) $(LD80) $(ZX0)
@@ -89,10 +93,11 @@ rom-budget-check: tools $(BUILD)/fastboot-core.cim \
 	$(PYTHON) tools/rom_budget.py --check
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
-	utility-catalogue-check \
+	utility-catalogue-check dev-utility-rebuild-check \
 	distribution-check manifest-check c5-manifest-check \
 	c6-manifest-check c6-release-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
+	development-cosim-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
@@ -105,6 +110,9 @@ distribution-input-check:
 utility-catalogue-check:
 	$(PYTHON) tools/audit_cpm3_candidates.py --check
 	$(PYTHON) tests/cpm3_candidate_audit_test.py
+
+dev-utility-rebuild-check: $(ZXCC)
+	$(PYTHON) tools/rebuild_cpm3_dev_utilities.py
 
 distribution-check: distribution
 	$(PYTHON) tests/distribution_test.py
@@ -136,6 +144,20 @@ distribution-cosim-check: all
 	CPM_PLUS_JUKU_EXTRA_MARKER9='Illegal time/date specification' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND10='SUBMIT MISSING' \
 	CPM_PLUS_JUKU_EXTRA_MARKER10="No 'SUB' File Found" \
+	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
+	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
+
+development-cosim-check: all
+	CPM_PLUS_JUKU_VOLUME=$(DEV_VOLUME) \
+	CPM_PLUS_JUKU_EXTRA_COMMAND='HEXCOM HELLO' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND2=HELLO \
+	CPM_PLUS_JUKU_EXTRA_MARKER2='Juku dev profile' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND3='SID HELLO.COM' \
+	CPM_PLUS_JUKU_EXTRA_READY_MARKER3='#' \
+	CPM_PLUS_JUKU_EXTRA_INPUT_HEX3='51 0d' \
+	CPM_PLUS_JUKU_EXTRA_MARKER3='#' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND4='PATCH SID' \
+	CPM_PLUS_JUKU_EXTRA_MARKER4='Current patches for' \
 	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
 
@@ -655,6 +677,10 @@ $(BUILD)/cpm3-utilities/manifest.json: \
 		tools/extract_cpm3_utilities.py | $(BUILD)
 	$(PYTHON) tools/extract_cpm3_utilities.py
 
+$(BUILD)/HELLO.hex: volume/HELLO.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -8 --od $(BUILD) --oo hex $<
+	test -f $@
+
 $(RECOVERY_VOLUME) $(RECOVERY_REPORT) &: third_party/cpm3/ccp.com \
 		$(C4_DIAG) $(BUILD)/wboot.cim volume/README.txt \
 		volume/profiles/recovery.json tools/build_volume.py diskdefs | $(OUT)
@@ -693,6 +719,13 @@ $(FULL_VOLUME) $(FULL_REPORT) &: third_party/cpm3/ccp.com \
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/full.json \
 		--output $(FULL_VOLUME) --report $(FULL_REPORT)
 
+$(DEV_VOLUME) $(DEV_REPORT) &: $(FULL_VOLUME) \
+		$(BUILD)/cpm3-utilities/manifest.json $(BUILD)/HELLO.hex \
+		volume/HELLO.asm volume/profiles/full.json volume/profiles/dev.json \
+		tools/build_volume.py diskdefs | $(OUT)
+	$(PYTHON) tools/build_volume.py --profile volume/profiles/dev.json \
+		--output $(DEV_VOLUME) --report $(DEV_REPORT)
+
 $(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
 		volume/profiles/apps.json tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/apps.json \
@@ -710,13 +743,15 @@ $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
 $(BOOT_MANIFEST): $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 		$(ROM_SYSTEM) $(ROM_FASTBOOT) \
 		$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
-		$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+		$(FULL_VOLUME) $(FULL_REPORT) $(DEV_VOLUME) $(DEV_REPORT) \
+		$(APPS_VOLUME) $(APPS_REPORT) \
 		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
 	$(PYTHON) tools/build_boot_manifest.py \
 		--system $(NATIVE_ROM_SYSTEM) --fast-stage $(NATIVE_ROM_FASTBOOT) \
 		--fallback-system $(ROM_SYSTEM) --fallback-fast-stage $(ROM_FASTBOOT) \
 		--volume $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
 		--volume $(FULL_VOLUME) $(FULL_REPORT) \
+		--volume $(DEV_VOLUME) $(DEV_REPORT) \
 		--volume $(APPS_VOLUME) $(APPS_REPORT) \
 		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
 
@@ -724,7 +759,8 @@ $(C5_BOOT_MANIFEST): $(LOCALE_NATIVE_ROM_SYSTEM) \
 		$(LOCALE_NATIVE_ROM_FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) \
 		$(C5_ROM) $(C5_ROM_METADATA) \
 		$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
-		$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+		$(FULL_VOLUME) $(FULL_REPORT) $(DEV_VOLUME) $(DEV_REPORT) \
+		$(APPS_VOLUME) $(APPS_REPORT) \
 		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
 	$(PYTHON) tools/build_boot_manifest.py \
 		--system $(LOCALE_NATIVE_ROM_SYSTEM) \
@@ -735,6 +771,7 @@ $(C5_BOOT_MANIFEST): $(LOCALE_NATIVE_ROM_SYSTEM) \
 		--primary-slot-name c5-native \
 		--volume $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
 		--volume $(FULL_VOLUME) $(FULL_REPORT) \
+		--volume $(DEV_VOLUME) $(DEV_REPORT) \
 		--volume $(APPS_VOLUME) $(APPS_REPORT) \
 		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
 
@@ -742,7 +779,8 @@ $(C6_BOOT_MANIFEST): $(EXTENDED_NATIVE_ROM_SYSTEM) \
 		$(EXTENDED_NATIVE_ROM_FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) \
 		$(C6_ROM) $(C6_ROM_METADATA) \
 		$(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
-		$(FULL_VOLUME) $(FULL_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+		$(FULL_VOLUME) $(FULL_REPORT) $(DEV_VOLUME) $(DEV_REPORT) \
+		$(APPS_VOLUME) $(APPS_REPORT) \
 		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
 	$(PYTHON) tools/build_boot_manifest.py \
 		--system $(EXTENDED_NATIVE_ROM_SYSTEM) \
@@ -753,6 +791,7 @@ $(C6_BOOT_MANIFEST): $(EXTENDED_NATIVE_ROM_SYSTEM) \
 		--primary-slot-name c6-native \
 		--volume $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
 		--volume $(FULL_VOLUME) $(FULL_REPORT) \
+		--volume $(DEV_VOLUME) $(DEV_REPORT) \
 		--volume $(APPS_VOLUME) $(APPS_REPORT) \
 		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
 

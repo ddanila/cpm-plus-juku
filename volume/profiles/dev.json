@@ -1,0 +1,58 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "full.json",
+  "name": "development-a",
+  "description": "Strict-8080 CP/M Plus development A: volume",
+  "files": [
+    {
+      "source": "build/cpm3-utilities/HEXCOM.COM",
+      "destination": "0:HEXCOM.COM",
+      "sha256": "0f458585377284053fb3c8441cdcea75b62dd6a2a4594fe5097b8ca33691964c",
+      "provenance": {
+        "source": "third_party/cpm3/releases/provenance.json; rebuilt exactly from hexcom.asm and hexcom.c",
+        "version": "Digital Research CP/M 3 HEXCOM",
+        "license": "third_party/cpm3/LICENSE.md"
+      }
+    },
+    {
+      "source": "build/cpm3-utilities/PATCH.COM",
+      "destination": "0:PATCH.COM",
+      "sha256": "6259b16eee943ab5ca717477a9f473825be21aba8e535866aa6a1a550c7c14ac",
+      "provenance": {
+        "source": "third_party/cpm3/releases/provenance.json; rebuilt exactly from patch.asm and hexcom.c",
+        "version": "Digital Research CP/M 3 PATCH",
+        "license": "third_party/cpm3/LICENSE.md"
+      }
+    },
+    {
+      "source": "build/cpm3-utilities/SID.COM",
+      "destination": "0:SID.COM",
+      "sha256": "7c7419d95107bdba5ea1c537e1a316ed9a45229111a9fdd13267f3df65931af7",
+      "provenance": {
+        "source": "third_party/cpm3/releases/provenance.json; rebuilt exactly from prs0mov.asm, prs1asm.asm, and prs2mon.asm",
+        "version": "Digital Research CP/M 3 SID",
+        "license": "third_party/cpm3/LICENSE.md"
+      }
+    },
+    {
+      "source": "volume/HELLO.asm",
+      "destination": "0:HELLO.ASM",
+      "mode": "text",
+      "provenance": {
+        "source": "volume/HELLO.asm",
+        "version": "cpm-plus-juku development example",
+        "license": "LICENSE"
+      }
+    },
+    {
+      "source": "build/HELLO.hex",
+      "destination": "0:HELLO.HEX",
+      "mode": "text",
+      "provenance": {
+        "source": "volume/HELLO.asm assembled by the pinned zmac toolchain",
+        "version": "cpm-plus-juku development example",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}
