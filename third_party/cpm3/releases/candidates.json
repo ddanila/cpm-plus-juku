@@ -1,0 +1,174 @@
+{
+  "schema": "cpm-plus-juku-cpm3-candidates-v1",
+  "release": "Digital Research CP/M 3.1, John Elliott Unix build 2026-06-07",
+  "upstream": "https://www.seasip.info/Cpm/software/dri.html",
+  "revision": "2026-06-07",
+  "author": "Digital Research; maintained Unix build by John Elliott",
+  "license": "third_party/cpm3/LICENSE.md",
+  "build_method": "Pinned upstream Makefile using DRI PL/M-80, MAC/RMAC/LINK, Thames, and zxcc",
+  "cpu_requirement": "Intel 8080",
+  "tpa_bytes": 39168,
+  "candidates": [
+    {
+      "name": "DATE.COM", "archive_member": "date.com",
+      "source_members": ["date.plm", "mcd80a.asm", "makedate.lib"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 3247,
+      "sha256": "a413859648e340a424de7e8a709aabcee502516122d157b25d5d663d4e771004",
+      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+    },
+    {
+      "name": "ERASE.COM", "archive_member": "erase.com",
+      "source_members": ["erase.plm", "parse.asm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 3725,
+      "sha256": "c11bec2d7522e00a1bb20b7efc5ae0f6912c1bf78b4f4083f4ba10cc61b995aa",
+      "status": "deferred-duplicate", "profile": "none", "cpm3_test": "not-run"
+    },
+    {
+      "name": "SETDEF.COM", "archive_member": "setdef.com",
+      "source_members": ["setdef.plm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 4244,
+      "sha256": "03e5ef141bfc9da39dbde435f7ad7ab264ce7b22caa5b1d3297065abe437cf08",
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
+    },
+    {
+      "name": "DEVICE.COM", "archive_member": "device.com",
+      "source_members": ["device.plm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 7268,
+      "sha256": "1a8dd4c17523f36a297d13556948178e0672f2e67bb9b516771b27bf9722444c",
+      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+    },
+    {
+      "name": "GENCOM.COM", "archive_member": "gencom.com",
+      "source_members": ["gencom.plm", "parse.asm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 14602,
+      "sha256": "c4dede84a7a1d9793dce9546d907dd4c106ed75c207fb7729953c852b33ff4ad",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    },
+    {
+      "name": "HEXCOM.COM", "archive_member": "hexcom.com",
+      "source_members": ["hexcom.asm"],
+      "source_language": "8080 assembly", "bytes": 1131,
+      "sha256": "0f458585377284053fb3c8441cdcea75b62dd6a2a4594fe5097b8ca33691964c",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    },
+    {
+      "name": "RENAME.COM", "archive_member": "rename.com",
+      "source_members": ["rename.plm", "parse.asm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 2866,
+      "sha256": "01b1d5567c43cf43ccc6f65ea6512fa7bbcaca4cfa5c054bc813450435285842",
+      "status": "deferred-duplicate", "profile": "none", "cpm3_test": "not-run"
+    },
+    {
+      "name": "SHOW.COM", "archive_member": "show.com",
+      "source_members": ["show.plm", "scan.plm", "search.plm", "disp.plm", "dpb80.plm", "util.plm", "timest.plm"],
+      "source_language": "PL/M-80", "bytes": 8376,
+      "sha256": "17a8561c18d1b9dc4d747f0a1ecd36ceb98ade6be2c2133d5ec1774769a4bcee",
+      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+    },
+    {
+      "name": "DIR.COM", "archive_member": "dir.com",
+      "source_members": ["main80.plm", "scan.plm", "search.plm", "sort.plm", "disp.plm", "util.plm", "dpb80.plm", "timest.plm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 14559,
+      "sha256": "142f9d22a80893236c4c6166b4ecf409057048a1323cdea74c2ed10dcbb2791b",
+      "status": "deferred-duplicate", "profile": "none", "cpm3_test": "not-run"
+    },
+    {
+      "name": "GENCPM.COM", "archive_member": "gencpm.com",
+      "source_members": ["gencpm.plm", "setbuf.plm", "getdef.plm", "crdef.plm", "ldrlwr.asm", "mcd80f.asm", "datmod.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 21155,
+      "sha256": "3a71036c6a6571f62dcb93f9434c140354d3601d17cabc0d38702811b2a33d87",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    },
+    {
+      "name": "PATCH.COM", "archive_member": "patch.com",
+      "source_members": ["patch.asm"],
+      "source_language": "8080 assembly", "bytes": 2369,
+      "sha256": "6259b16eee943ab5ca717477a9f473825be21aba8e535866aa6a1a550c7c14ac",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    },
+    {
+      "name": "SUBMIT.COM", "archive_member": "submit.com",
+      "source_members": ["submit.plm", "subrsx.asm", "parse.asm", "getf.asm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 5376,
+      "sha256": "8c641d7383d48e14a60fe72df0f4af926a970b0aba40765770f3034da80a1f24",
+      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+    },
+    {
+      "name": "COPYSYS.COM", "archive_member": "copysys.com",
+      "source_members": ["copysys.asm"],
+      "source_language": "8080 assembly", "bytes": 1831,
+      "sha256": "33a5a82735529bcaec58f27115e3e945e18bf2aacdbcfa65467064d0bfe9b936",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    },
+    {
+      "name": "DUMP.COM", "archive_member": "dump.com",
+      "source_members": ["dump.asm"],
+      "source_language": "8080 assembly", "bytes": 960,
+      "sha256": "4acabe3feaaf03622adaaaaea3bb25d37cdc32e07901343b532974be2c783a64",
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
+    },
+    {
+      "name": "GET.COM", "archive_member": "get.com",
+      "source_members": ["get.plm", "parse.asm", "getf.asm", "getrsx.asm", "getrsx.lib", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 6656,
+      "sha256": "8a619ac87b1ddf9eae4a3b187f32e5e28522f64484ef8c06218073c849605f77",
+      "status": "candidate", "profile": "full", "cpm3_test": "not-run"
+    },
+    {
+      "name": "PIP.COM", "archive_member": "pip.com",
+      "source_members": ["pip.plm", "mcd80f.asm", "inpout.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 8632,
+      "sha256": "b0b40eada6cebd512333989fdc65f8fa9e2321e2565a633063ae7cac9b02005d",
+      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+    },
+    {
+      "name": "SAVE.COM", "archive_member": "save.com",
+      "source_members": ["save.asm"],
+      "source_language": "8080 assembly", "bytes": 1792,
+      "sha256": "77d232ad77a53743fd04a7e185a7da753f8fb233ffb55f5c4356ec9467dfc25c",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    },
+    {
+      "name": "TYPE.COM", "archive_member": "type.com",
+      "source_members": ["type.plm", "parse.asm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 3012,
+      "sha256": "330a9f25f4bce084a98f5c767a8bdd9edd8edcdcca95e430f90ef95912c9d707",
+      "status": "deferred-duplicate", "profile": "none", "cpm3_test": "not-run"
+    },
+    {
+      "name": "ED.COM", "archive_member": "ed.com",
+      "source_members": ["ed.plm", "mcd80a.asm", "makedate.lib"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 9254,
+      "sha256": "043732665d295ed86f96007bb76fa319145df85d384385b30bd5605b6774f56d",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    },
+    {
+      "name": "HELP.COM", "archive_member": "help.com",
+      "source_members": ["help.plm", "minhlp.plm", "mcd80a.asm", "help.dat"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 6967,
+      "sha256": "d47256286eb6b05d290ba33c539f8acf79ed0fb18893a4f25f7a588538f343f8",
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
+    },
+    {
+      "name": "PUT.COM", "archive_member": "put.com",
+      "source_members": ["put.plm", "parse.asm", "putf.asm", "putrsx.asm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 7040,
+      "sha256": "e7195c1039cf55e722b4f2d1c11ea1cf0cdfef0b5917a3471c789e40ffffdf78",
+      "status": "candidate", "profile": "full", "cpm3_test": "not-run"
+    },
+    {
+      "name": "SET.COM", "archive_member": "set.com",
+      "source_members": ["set.plm", "parse.asm", "dirlbl.asm", "mcd80a.asm"],
+      "source_language": "PL/M-80 and 8080 assembly", "bytes": 10368,
+      "sha256": "213fa9a4617372d5b4518863a41adcbbca63ea535aae94632052ebb6ad026709",
+      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+    },
+    {
+      "name": "SID.COM", "archive_member": "sid.com",
+      "source_members": ["prs0mov.asm", "prs1asm.asm", "prs2mon.asm", "makedate.lib"],
+      "source_language": "8080 assembly", "bytes": 7936,
+      "sha256": "7c7419d95107bdba5ea1c537e1a316ed9a45229111a9fdd13267f3df65931af7",
+      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+    }
+  ]
+}

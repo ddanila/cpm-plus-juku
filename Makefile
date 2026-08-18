@@ -56,7 +56,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 	network-rom-cosim-check network-rom-soak-check \
 	network-rom-long-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
-	distribution-input-check \
+	distribution-input-check utility-catalogue-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check release-candidate \
 	release-candidate-check c6-release-candidate c6-release-candidate-check \
@@ -89,6 +89,7 @@ rom-budget-check: tools $(BUILD)/fastboot-core.cim \
 	$(PYTHON) tools/rom_budget.py --check
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
+	utility-catalogue-check \
 	distribution-check manifest-check c5-manifest-check \
 	c6-manifest-check c6-release-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
@@ -100,6 +101,10 @@ distribution-input-check:
 	$(PYTHON) tools/extract_cpm3_utilities.py
 	$(PYTHON) tools/extract_cpm3_utilities.py --check
 	$(PYTHON) tests/cpm3_utility_inputs_test.py
+
+utility-catalogue-check:
+	$(PYTHON) tools/audit_cpm3_candidates.py --check
+	$(PYTHON) tests/cpm3_candidate_audit_test.py
 
 distribution-check: distribution
 	$(PYTHON) tests/distribution_test.py
@@ -117,6 +122,7 @@ distribution-cosim-check: all
 	CPM_PLUS_JUKU_EXTRA_MARKER3='DUMP displays' \
 	CPM_PLUS_JUKU_EXTRA_READY_MARKER3='HELP>' \
 	CPM_PLUS_JUKU_EXTRA_INPUT_HEX3=0d \
+	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
 
 manifest-check: $(BOOT_MANIFEST)

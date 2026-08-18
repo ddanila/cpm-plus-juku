@@ -934,6 +934,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         for line in (case / "final.state").read_text().splitlines()
         if "=" in line
     )
+    if os.environ.get("CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES") == "1":
+        require(
+            int(state.get("tpa_opcode_fetches", "0")) > 0
+            and state.get("tpa_z80_prefix_fetches") == "0"
+            and state.get("tpa_undocumented_opcode_fetches") == "0",
+            "TPA executed a Z80-prefix or undocumented 8080 opcode: "
+            f"fetches={state.get('tpa_opcode_fetches')} "
+            f"z80={state.get('tpa_z80_prefix_fetches')} "
+            f"undocumented={state.get('tpa_undocumented_opcode_fetches')}",
+        )
     expected_mode = "1" if network_rom else "3"
     # The deliberately unmasked-PIC fixture proves live stale interrupts and
     # ensuing disk/console corruption. Where its random interrupt vector lands

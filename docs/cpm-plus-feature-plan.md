@@ -427,6 +427,21 @@ The catalogue drives selection; it does not authorize all candidates for
 redistribution. Add automated opcode, manifest, build-reproducibility, and
 strict-8080 smoke gates before expanding the generated full/dev images.
 
+Catalogue slice completed on 2026-08-18: 23 exact DRI CP/M 3.1 `.COM`
+candidates now have pinned source-member lists, source language, upstream
+build method, binary size/hash, static C6 TPA span, test state, and proposed
+profile in a generated catalogue. Its validator checks both complete archive
+hashes, every source member and binary, the 20--30 entry bound, profile/status
+consistency, and the admitted full-profile set; mutations to each boundary are
+required to fail. `make utility-catalogue-check` is part of `make check`.
+
+The shared C simulator now records actual instruction fetches, not byte-pattern
+guesses, over `0100h..99FFh`. The distribution regression requires nonzero TPA
+execution with zero fetched Z80 prefixes and zero undocumented 8080 aliases
+while running `SETDEF`, `DUMP`, and `HELP`. The remaining already-shipped DRI
+utilities still need individual executable command paths before the admission
+gate can be called complete.
+
 Research starting points: [z80pack](https://github.com/udo-munk/z80pack),
 [z88dk](https://github.com/z88dk/z88dk),
 [Millfork](https://github.com/KarolS/millfork),

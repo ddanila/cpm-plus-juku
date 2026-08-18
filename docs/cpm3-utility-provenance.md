@@ -34,6 +34,12 @@ and SHA-256. The approved set is `PIP.COM`, `SHOW.COM`, `SET.COM`,
 and `HELP.HLP`. The HELP source mapping includes `setdef.help` and `dump.help`;
 the pinned database exposes both topics.
 
+The broader 23-program source/binary corpus, including deferred duplicates and
+development candidates, is independently rendered and negative-tested in
+[`cpm3-utility-catalogue.md`](cpm3-utility-catalogue.md). A catalogue row is
+not permission to ship it; only entries admitted by this file and a generated
+volume profile are distributed.
+
 ## Reproducible extraction gate
 
 Run:
