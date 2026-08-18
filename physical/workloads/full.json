@@ -1,0 +1,55 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "full",
+  "volume_profile": "full-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": [
+    "CRC.COM", "CMP.COM", "DATE.COM", "DEVICE.COM", "DIAG.COM",
+    "DUMP.COM", "FIND.COM", "HELP.COM", "KEYTEST.COM", "MEM.COM",
+    "PIP.COM", "SET.COM", "SETDEF.COM", "SHOW.COM", "STATUS.COM",
+    "STRINGS.COM", "SUBMIT.COM", "WBOOT.COM", "WC.COM"
+  ],
+  "commands": [
+    {"name": "dir-a", "command": "DIR", "expect": ["DIAG", "PIP"]},
+    {"name": "type-readme", "command": "TYPE README.TXT", "expect": ["host-backed NetDisk-v3", "Project:"]},
+    {"name": "diag-cpu", "command": "DIAG CPU", "expect": ["CPU: PASS"], "coverage": ["DIAG.COM"]},
+    {"name": "status", "command": "STATUS", "expect": ["Juku Status 1.3", "NetDisk v03"], "coverage": ["STATUS.COM"]},
+    {
+      "name": "keytest-remote",
+      "command": "KEYTEST B",
+      "steps": [{"wait": "Juku Keytest 1.1 READY", "send_hex": "41 20 31 0d 1b"}],
+      "expect": ["BATCH 04", "KEY 20 ' '", "KEY 1B", "Juku Keytest 1.1 DONE"],
+      "coverage": ["KEYTEST.COM"]
+    },
+    {"name": "setdef", "command": "SETDEF", "expect": ["Drive Search Path"], "coverage": ["SETDEF.COM"]},
+    {"name": "dump", "command": "DUMP README.TXT", "expect": ["0000", "43 50 2F 4D"], "coverage": ["DUMP.COM"]},
+    {
+      "name": "help",
+      "command": "HELP DUMP",
+      "steps": [{"wait": "HELP>", "send_hex": "0d"}],
+      "expect": ["DUMP displays"],
+      "coverage": ["HELP.COM"]
+    },
+    {"name": "pip-copy", "command": "PIP COPY.TXT=README.TXT", "coverage": ["PIP.COM"]},
+    {"name": "crc-copy", "command": "CRC COPY.TXT", "expect": ["CRC16-CCITT: 4613  records: 0004"], "coverage": ["CRC.COM"]},
+    {"name": "show-space", "command": "SHOW A:[SPACE]", "expect": ["Space:"], "coverage": ["SHOW.COM"]},
+    {"name": "set-read-only", "command": "SET COPY.TXT [RO]", "expect": ["Read Only"], "coverage": ["SET.COM"]},
+    {"name": "set-read-write", "command": "SET COPY.TXT [RW]", "expect": ["Read Write"]},
+    {"name": "date-error", "command": "DATE BAD", "expect": ["Illegal time/date specification"], "coverage": ["DATE.COM"]},
+    {"name": "submit-error", "command": "SUBMIT MISSING", "expect": ["No 'SUB' File Found"], "coverage": ["SUBMIT.COM"]},
+    {"name": "crc-source", "command": "CRC README.TXT", "expect": ["CRC16-CCITT: 4613  records: 0004"]},
+    {"name": "cmp-equal", "command": "CMP CRC.COM CRC.COM", "expect": ["files are identical"], "coverage": ["CMP.COM"]},
+    {"name": "cmp-different", "command": "CMP CRC.COM README.TXT", "expect": ["difference at record 0000 offset 00"]},
+    {"name": "mem", "command": "MEM 0100 10", "expect": ["0100:"], "coverage": ["MEM.COM"]},
+    {"name": "wc", "command": "WC README.TXT", "expect": ["lines 000014", "bytes 0001FA"], "coverage": ["WC.COM"]},
+    {"name": "find", "command": "FIND README.TXT Juku", "expect": ["FIND: 04", "host-backed NetDisk-v3"], "coverage": ["FIND.COM"]},
+    {"name": "strings", "command": "STRINGS README.TXT", "expect": ["host-backed NetDisk-v3"], "coverage": ["STRINGS.COM"]},
+    {"name": "device", "command": "DEVICE NAMES", "expect": ["Physical Devices:", "JUKU"], "coverage": ["DEVICE.COM"]},
+    {"name": "pip-copy-repeat", "command": "PIP COPY2.TXT=README.TXT"},
+    {"name": "crc-copy-repeat", "command": "CRC COPY2.TXT", "expect": ["CRC16-CCITT: 4613  records: 0004"]},
+    {"name": "warm-boot-user-1", "command": "WBOOT", "coverage": ["WBOOT.COM"]},
+    {"name": "select-b", "command": "B:", "prompt": "B>"},
+    {"name": "dir-b", "command": "DIR", "prompt": "B>", "expect": ["TETRIS"]},
+    {"name": "select-a", "command": "A:", "prompt": "A>"}
+  ]
+}

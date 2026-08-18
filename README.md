@@ -124,6 +124,7 @@ make native-services-check
 make utility-catalogue-check development-tool-audit-check
 make external-software-audit-check
 make compiler-comparison-check
+make physical-acceptance-check
 ```
 
 ## Generated outputs
@@ -194,4 +195,5 @@ The authoritative current documents are:
 - [`docs/external-software-audit.md`](docs/external-software-audit.md)
 - [`docs/cpm3-native-services.md`](docs/cpm3-native-services.md)
 - [`docs/cpm3-pip-warm-boot-fix.md`](docs/cpm3-pip-warm-boot-fix.md)
+- [`docs/cpm3-physical-acceptance.md`](docs/cpm3-physical-acceptance.md)
 - [`docs/netdisk-performance.md`](docs/netdisk-performance.md)

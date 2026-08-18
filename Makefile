@@ -66,6 +66,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 	compiler-comparison-check compiler-comparison-rebuild-check \
 	external-software-audit-check external-software-rebuild-check \
 	dev-utility-rebuild-check development-cosim-check \
+	physical-acceptance-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check release-candidate \
 	release-candidate-check c6-release-candidate c6-release-candidate-check \
@@ -114,6 +115,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	c6-manifest-check c6-release-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
 	distribution-cosim-check development-cosim-check \
+	physical-acceptance-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
@@ -132,6 +134,9 @@ utility-catalogue-check:
 development-tool-audit-check:
 	$(PYTHON) tools/audit_cpm3_development_tools.py --check
 	$(PYTHON) tests/cpm3_development_tool_audit_test.py
+
+physical-acceptance-check: $(C6_BOOT_MANIFEST)
+	$(PYTHON) tests/physical_acceptance_test.py
 
 compiler-comparison-check:
 	$(PYTHON) tests/audit_8080_com_test.py

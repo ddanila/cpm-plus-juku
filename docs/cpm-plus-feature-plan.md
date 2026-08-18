@@ -620,6 +620,30 @@ This roadmap begins after the completed C0--C6 and Priority-7 implementation
 audit. It does not rewrite the immutable C4/C5 references or require a new ROM
 ABI merely because a loaded CP/M system or its tests need maintenance.
 
+### Goal and completion definition
+
+The immediate goal is to turn the working C6/Priority-7 system into a
+repeatably qualified physical baseline: a fresh operator must be able to run
+the complete full and development workloads on CS00015, retain independently
+auditable evidence, and obtain the same result without relying on remembered
+blind keystrokes or optimistic interpretation of host disk traffic.
+
+Two physical gates remain for that baseline:
+
+1. retain passing full and development M2 evidence bundles; the full run must
+   include the corrected multi-record `PIP` copy and CRC `4613` required by M1;
+2. when a working display is available, run the four-mode M3 visual test and
+   distinguish genuine framebuffer faults from monitor-specific cropping.
+
+M4--M6 are subsequent improvements, not hidden release blockers. Their goals
+are measured NetDisk responsiveness, a more useful strict-8080 distribution,
+and reproducible per-machine diagnosis. Each must preserve the immutable
+C4/C5 recovery references, the accepted C6 ABI and ROM, synchronous write
+safety, 19,200-baud reference transport, and strict-8080 compatibility. Higher
+baud rates, write-back caching, authenticated boot, and banked CP/M Plus remain
+separately named research projects rather than implicit extensions of this
+baseline.
+
 The repository-wide M1 regression also made the C4 build boundary explicit:
 the stock-ROM/RAM-BIOS and network-ROM C4 system/V15 pairs are consumed from
 their hash-checked prebuilt files, whose source boundary is cpm-plus-juku
@@ -721,9 +745,11 @@ Status on 2026-08-19:
 - M1's root cause and software fix are complete. Its repository-wide
   simulator, recovery, package, legacy-timing, and repeated copy/CRC gates
   pass; only one CS00015 `PIP`/`CRC` confirmation remains.
-- M2 is the next implementation goal. Its purpose is to replace long,
-  error-prone blind command sessions with one reproducible run and an
-  auditable result bundle.
+- M2's desk implementation is complete. The manifest-bound full/development
+  runner handles paging and interactive inputs, isolates writable media,
+  records byte-addressed target replies and host lifecycle evidence, preserves
+  timeout diagnostics, shuts the host down cleanly, and independently audits
+  retained results. One full and one development CS00015 run remain.
 - M3 is the next display-dependent goal. It is desk-testable first, but final
   acceptance waits for a working external display.
 - M4 and M5 are measured improvements, not correctness work. They start only
@@ -746,13 +772,12 @@ repeating the old failing image would add no evidence.
 
 ### Follow-on work, in priority order
 
-1. **Physical-test automation.** Turn the full/development N4 smoke into a
-   paging-aware, machine-readable runner with durable console and host logs.
-   Cover the complete admitted workload, writable-copy isolation, target
-   timeout diagnostics, and clean host shutdown. Add a bench-friendly waiting
-   policy so the host does not exhaust its short V16 header-attempt window
-   while a human is still powering or resetting the target; retain bounded
-   production recovery semantics.
+1. **Physical-test automation.** The full/development N4 runner, declarative
+   workloads, private writable copies, target timeout diagnostics, durable
+   evidence, clean host shutdown, bench-friendly wait, and independent audit
+   are implemented and regression-tested. Complete one full and one
+   development run on CS00015; retain both passing result directories. The
+   full run also supplies M1's remaining PIP/CRC physical evidence.
 2. **Physical display acceptance.** Add a compact `VIDTEST.COM` that renders
    screen boundaries, representative ASCII and locale banks, connected CP437
    pseudographics, and an observable underline cursor. With the unchanged C6
