@@ -118,6 +118,16 @@ if native$services
 endif
 load$ccp:
         call    set$jumps
+        ; A transient may leave BDOS function 44's multi-sector count above
+        ; one.  This loader advances its DMA destination by exactly one
+        ; 128-byte record after each sequential read, so restore that contract
+        ; before fetching CCP.COM.  Without this reset a fast PIP copy can
+        ; leave (for example) a count of four or twelve; the following reads
+        ; then overlap CCP chunks and warm boot eventually executes corrupted
+        ; low memory.
+        mvi     e,1
+        mvi     c,44
+        call    bdos
         lxi     h,default$fcb
         mvi     b,36
 clear$fcb:

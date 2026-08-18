@@ -68,7 +68,7 @@ passes this physical image through the production host's inverse conversion,
 selects B:, lists it, loads B:`DIAG.COM`, returns to A:, and retains the
 framebuffer oracle with zero NetDisk retries. On A: it also executes the
 shipped DRI file/system utilities: `SETDEF`, exact `DUMP`, the `HELP DUMP`
-topic, `PIP` create/copy, `SHOW`, `SET`, `DATE`, `SUBMIT`, and native `DEVICE
+topic, two four-record `PIP` copies with exact CRCs, `SHOW`, `SET`, `DATE`, `SUBMIT`, and native `DEVICE
 NAMES` with the fixed `JUKU` character table. Interactive HELP exit is driven
 explicitly; copied bytes and attributes are verified by subsequent commands;
 and every extra-command byte is included in the independent framebuffer

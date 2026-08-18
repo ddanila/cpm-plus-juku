@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **COMPLETE THROUGH PRIORITY 7; POST-BASELINE PIP CORRECTNESS WORK ACTIVE**
+Status: **COMPLETE THROUGH PRIORITY 7; PIP FIX SIMULATOR-ADMITTED, PHYSICAL CONFIRMATION PENDING**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -649,6 +649,24 @@ successful copy followed by a missing prompt: some CP/M, BDOS, or native-BIOS
 return state has redirected execution into DMA data. This state is the current
 root-cause boundary; do not hide it with a longer host timeout or an automatic
 reset.
+
+Root cause identified on 2026-08-18: PIP's fast-copy path legitimately uses
+BDOS function 44 and leaves the process-wide multi-sector count above one.
+The project-owned CCP reload loop advanced DMA by one 128-byte record after
+each BDOS sequential read but did not first restore that count to one. Warm
+boot consequently loaded overlapping CCP chunks; execution of the corrupted
+CCP eventually fell through low memory and the DMA buffer. `load$ccp` now sets
+the BDOS multi-sector count to one before opening `CCP.COM`, matching its
+single-record loop.
+
+The exact immutable C6 ROM plus corrected network-loaded system now passes two
+independent `README.TXT` copies, CRC `4613` after each, every full-profile
+utility, explicit warm boot, A: writes/erase, native B:, zero retries, and
+strict-8080 opcode admission in the production simulator. The structural gate
+also requires the reset in the CCP loader. The HEXCOM/SID/PATCH/ED development
+profile, clean/compound/server-restart/mid-session-restart matrix, manifest,
+package reproducibility, and runtime catalogue gates pass as well. The
+repository-wide check and one CS00015 copy/CRC run remain before M1 is closed.
 
 The correction is complete only when:
 

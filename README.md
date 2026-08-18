@@ -4,9 +4,10 @@ This repository contains a strict-Intel-8080, non-banked CP/M Plus 3.1 port for
 the Juku E5101/E5104. It uses Digital Research's CP/M 3 CCP, BDOS, SCB, and
 BIOS conventions; it is not CP/Mish 3.
 
-Status: **ABI 1.2 C6 and the Priority-7 strict-8080 distribution are complete;
-the blind physical matrix passes on CS00015, with display/cursor observation
-still pending.**
+Status: **The immutable ABI 1.2 C6 ROM and Priority-7 strict-8080 distribution
+are complete. A post-C6 loaded-system fix for multi-record PIP/CCP warm boot
+passes the full simulator and recovery matrices; one CS00015 confirmation and
+display/cursor observation remain pending.**
 
 Danila Sukharev owns the project-written code. OpenAI GPT-5.6 Sol was used as a
 development assistant. Third-party authors and licenses are retained in
@@ -183,4 +184,5 @@ The authoritative current documents are:
 - [`docs/cpm3-development-tools.md`](docs/cpm3-development-tools.md)
 - [`docs/external-software-audit.md`](docs/external-software-audit.md)
 - [`docs/cpm3-native-services.md`](docs/cpm3-native-services.md)
+- [`docs/cpm3-pip-warm-boot-fix.md`](docs/cpm3-pip-warm-boot-fix.md)
 - [`docs/netdisk-performance.md`](docs/netdisk-performance.md)

@@ -1,6 +1,6 @@
 {
   "schema": "cpm-plus-juku-cpm3-runtime-memory-v1",
-  "platform": "C6 network-first ROM with native CP/M 3 BIOS",
+  "platform": "C6 network-first ROM with post-C6 native CP/M 3 BIOS",
   "artifacts": {
     "network_rom": {
       "name": "juku-network-rom-abi1.2-c6.bin",
@@ -10,12 +10,12 @@
     "system": {
       "name": "cpm-plus-juku-network-rom-extended-native-system.bin",
       "bytes": 18432,
-      "sha256": "6dbe02421fb88cc964b9536f0f5c51f0e31a652a6017cb4a8d3178394849b70b"
+      "sha256": "f3dbd9c8c161a2dd13e562fe3e8824273815f3f0fbbd2f9ef4c4a79aa2217cce"
     },
     "fastboot": {
       "name": "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin",
-      "bytes": 8031,
-      "sha256": "40c1560348b2615064cf8d2f216c5c85a020f9b1384707ec83e93d94a94a3706"
+      "bytes": 8035,
+      "sha256": "20bc372f890346fe1643ac8a38b01f68251fcf97a8a082416faa27dde70b7e1a"
     }
   },
   "tpa": {
@@ -149,7 +149,7 @@
     "PIP.COM": {
       "profile": "full",
       "metric": "extra4",
-      "command": "PIP COPY.TXT=PROFILE.SUB",
+      "command": "PIP COPY.TXT=README.TXT",
       "runtime": {
         "entry_sp": "9CFE",
         "anchor_sp": "22B7",

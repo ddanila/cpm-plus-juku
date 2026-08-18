@@ -10,6 +10,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src" / "cpm3-native-services.asm"
 ADAPTER = ROOT / "src" / "platform-adapter.asm"
+BIOS = ROOT / "src" / "cpm3-bios.asm"
 SYSTEM = ROOT / "out" / "cpm-plus-juku-network-rom-native-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-network-rom-native-fastboot-v15.bin"
 
@@ -54,6 +55,13 @@ def main() -> int:
         raise AssertionError("native adapter bootstrap confirmation is missing")
     if not re.search(r"NSFLUSH:\s+xra\s+a\s+ret", source):
         raise AssertionError("FLUSH is not explicitly successful")
+    bios = BIOS.read_text()
+    ccp_loader = bios.split("load$ccp:", 1)[1].split("clear$fcb:", 1)[0]
+    if not re.search(
+            r"mvi\s+e,1\s+mvi\s+c,44\s+call\s+bdos", ccp_loader):
+        raise AssertionError(
+            "CCP loader does not restore single-record BDOS reads",
+        )
 
     fixture = bytes(range(32))
     cases = ((0, 8, 8), (8, 0, 8), (0, 4, 16), (4, 0, 16),
@@ -72,7 +80,8 @@ def main() -> int:
         raise AssertionError("native V15 bootstrap header is missing")
     print(
         "CPM3-NATIVE-SERVICES: PASS "
-        "(device, MULTIO, FLUSH, MOVE, TIME, USERF, status/diag publish)"
+        "(CCP reload, device, MULTIO, FLUSH, MOVE, TIME, USERF, "
+        "status/diag publish)"
     )
     return 0
 

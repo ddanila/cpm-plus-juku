@@ -74,14 +74,22 @@ identity.
 
 The ABI 1.2 C6 binding additionally links the bounded N4 block sender and
 requires the ROM's appended console-span, multi-request NetDisk, raw-keyboard,
-and sound features. Its system and fast-stage SHA-256 values are respectively
-`6dbe02421fb88cc964b9536f0f5c51f0e31a652a6017cb4a8d3178394849b70b`
-and `40c1560348b2615064cf8d2f216c5c85a020f9b1384707ec83e93d94a94a3706`.
+and sound features. The post-C6 system revision that restores a one-record
+BDOS count before reloading CCP has system and fast-stage SHA-256 values
+`f3dbd9c8c161a2dd13e562fe3e8824273815f3f0fbbd2f9ef4c4a79aa2217cce`
+and `20bc372f890346fe1643ac8a38b01f68251fcf97a8a082416faa27dde70b7e1a`.
+It remains compatible with the immutable C6 ROM and requires no EPROM change.
 The latter is a Fastboot V16 stream descriptor plus checked compressed system;
 its receive/decompress code is the exact 361-byte image embedded in the C6
 ROM rather than a downloaded executable extension.
 The packed adapter occupies `C000h..CB6Bh` (2,924 bytes), still within the
 existing allocation and without changing the 39,168-byte TPA.
+
+The CCP loader itself is single-record code: it advances DMA by 128 bytes
+after every BDOS sequential read. It therefore calls BDOS function 44 with a
+count of one before opening `CCP.COM`. This is required because a fast PIP
+copy legitimately leaves the process-wide multi-sector count above one; using
+that retained count made successive CCP chunks overlap during warm boot.
 
 `STATUS.COM` prints the system/protocol/ROM identities, resident memory map,
 raw and decoded S21/video/locale selection, native feature flags, last MULTIO count,

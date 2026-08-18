@@ -71,8 +71,9 @@ immutable Priority 0 qualification volume. The separately named full, demo,
 and development profiles consume the staged files with generated contents,
 provenance, free-space, and hash reports. The distribution cosimulation uses
 the C6 network-first ROM and native BIOS for a useful path through every
-admitted full-profile program: `SETDEF`; exact `DUMP`; interactive `HELP`; a
-`PIP` file creation proved by a second exact dump; `SHOW` space; `SET`
+admitted full-profile program: `SETDEF`; exact `DUMP`; interactive `HELP`; two
+independent four-record `PIP` copies of `README.TXT`, each proved by CRC16-CCITT
+`4613`; `SHOW` space; `SET`
 read-only/read-write transitions; rejected `DATE` input; missing-file
 `SUBMIT`; and `DEVICE NAMES` with the real `JUKU` input/output entry. The
 development matrix uses the same 39,168-byte C6 TPA. Both retain normal

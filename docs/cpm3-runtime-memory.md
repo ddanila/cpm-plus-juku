@@ -10,7 +10,7 @@ freeze its own command-scoped stack measurement, pass strict Intel
 
 The transient area is `0100h..99FFh` (39,168 bytes). The initial CCP stack at `9CFEh` is in the loader workspace above the TPA and is recorded for attribution, not charged to a program's TPA footprint.
 
-The measured platform is bound by SHA-256 to the exact C6 ROM, extended native system, and V16 Fastboot artifacts; a matching memory map alone is not accepted as C6 evidence.
+The measured platform is bound by SHA-256 to the exact immutable C6 ROM and the named post-C6 extended system and V16 Fastboot artifacts; a matching memory map alone is not accepted as evidence.
 
 | Program | Profile and workload | Disk bytes / allocated | Loaded transient / resident | Observed stack | Runtime top / TPA left |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -22,7 +22,7 @@ The measured platform is bound by SHA-256 to the exact C6 ROM, extended native s
 | `PATCH.COM` | dev: `PATCH SID` | 2,369 / 4,096 B | 2,369 B / none | `0A51h`→`0A47h`, 10 B | `0A51h` / 36,783 B |
 | `SUBMIT.COM` | full: `SUBMIT MISSING` | 5,376 / 6,144 B | 3,840 B / 1,088 B RSX | `0EDFh`→`0ED7h`, 8 B | `1000h` / 35,328 B |
 | `DUMP.COM` | full: `DUMP PROFILE.SUB` | 960 / 2,048 B | 960 B / none | `04D2h`→`04BEh`, 20 B | `04D2h` / 38,190 B |
-| `PIP.COM` | full: `PIP COPY.TXT=PROFILE.SUB` | 8,632 / 10,240 B | 8,632 B / none | `22B7h`→`22A7h`, 16 B | `22B8h` / 30,536 B |
+| `PIP.COM` | full: `PIP COPY.TXT=README.TXT` | 8,632 / 10,240 B | 8,632 B / none | `22B7h`→`22A7h`, 16 B | `22B8h` / 30,536 B |
 | `ED.COM` | dev: `ED EDTEST.TXT` | 9,254 / 10,240 B | 9,254 B / none | `2249h`→`2237h`, 18 B | `2526h` / 29,914 B |
 | `HELP.COM` | full: `HELP DUMP` | 6,967 / 8,192 B | 6,967 B / none | `1A8Bh`→`1A81h`, 10 B | `1C37h` / 32,201 B |
 | `SET.COM` | full: `SET COPY.TXT [RO]` | 10,368 / 12,288 B | 8,832 B / 1,090 B RSX | `21A8h`→`219Ah`, 14 B | `2380h` / 30,336 B |

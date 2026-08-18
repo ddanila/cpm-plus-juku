@@ -19,7 +19,7 @@ EXPECTED_ARTIFACTS = {
     "network_rom": ("juku-network-rom-abi1.2-c6.bin", 16384),
     "system": ("cpm-plus-juku-network-rom-extended-native-system.bin", 18432),
     "fastboot": (
-        "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin", 8031,
+        "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin", 8035,
     ),
 }
 ADDRESS_FIELDS = (
@@ -70,7 +70,7 @@ def audit() -> dict:
     static = load_json(STATIC_AUDIT)
     require(data.get("schema") == SCHEMA, "runtime-memory schema differs")
     require(data.get("platform") ==
-            "C6 network-first ROM with native CP/M 3 BIOS",
+            "C6 network-first ROM with post-C6 native CP/M 3 BIOS",
             "runtime-memory platform differs")
     artifacts = data.get("artifacts")
     require(isinstance(artifacts, dict)
@@ -292,9 +292,10 @@ def render(data: dict) -> str:
          "and is recorded for attribution, not charged to a program's TPA "
          "footprint."),
         "",
-        ("The measured platform is bound by SHA-256 to the exact C6 ROM, "
-         "extended native system, and V16 Fastboot artifacts; a matching "
-         "memory map alone is not accepted as C6 evidence."),
+        ("The measured platform is bound by SHA-256 to the exact immutable "
+         "C6 ROM and the named post-C6 extended system and V16 Fastboot "
+         "artifacts; a matching memory map alone is not accepted as "
+         "evidence."),
         "",
         "| Program | Profile and workload | Disk bytes / allocated | Loaded transient / resident | Observed stack | Runtime top / TPA left |",
         "| --- | --- | ---: | ---: | ---: | ---: |",
