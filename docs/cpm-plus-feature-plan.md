@@ -657,8 +657,9 @@ and `VIDTEST.COM` are network-loaded. Proceed in this order:
 3. when a working display is available, run the M3 display workload once in
    each of the four S21 video modes and record geometry, cursor behavior,
    cropping, monitor identity, and photographs;
-4. only then start M4 with a fresh measured baseline for cold login, first A:,
-   first B:, alternating drives, sequential reads, and synchronous writes;
+4. complete M4's already-started desk qualification: retain the fresh measured
+   baseline for cold login, first A:, first B:, alternating drives, sequential
+   reads, and synchronous writes, then run one short CS00015 comparison;
 5. start M5 with a strict-8080 command-history prototype and a concrete
    pseudographic text-interface tool, admitting either only after the same
    source, license, size, memory, and exact-C6 execution gates as current
@@ -765,7 +766,7 @@ before its own evidence exists.
 | M1 | Fix multi-record PIP | Reproduce the first failing record count; capture the control transfer into `0080h`; fix it; make four-record copy/CRC, repetitions, warm boot, reconnect, and all release tests pass. | One C6/N4 load on CS00015: copy `README.TXT`, CRC `4613`, prompt returns. No EPROM burn expected. |
 | M2 | Automate physical acceptance | A paging-aware runner records commands, target replies, timeouts, volume mutations, host lifecycle, and artifact hashes without optimistic inference from disk traffic. | One full and one development-profile run; the operator supplies only power/reset and requested keys. |
 | M3 | Close display acceptance | `VIDTEST.COM` and exact framebuffer oracles cover boundaries, glyph banks, joined box drawing, and both cursor phases in all four S21 modes. | Observe 40x24, 53x24, 64x20, and 80x24 on a working display; record any monitor-specific cropping separately. |
-| M4 | Improve NetDisk responsiveness | Measure cold login, first A:, first B:, alternating A:/B:, sequential reads, and writes; change only behavior with a demonstrated end-to-end benefit and unchanged recovery/data-safety tests. | A short CS00015 timing comparison only after simulator fault injection and replay pass. |
+| M4 | Improve NetDisk responsiveness | The measured three-record hot-directory cache reduces exact-C6 cold boot from 10 to 8 wire requests and first B: `DIR` from 1 to 0, while retaining synchronous invalidating writes. Complete the recovery, replay, package, and long-soak gates. | One short CS00015 before/after timing comparison; the change is network-loaded and requires no EPROM burn. |
 | M5 | Improve the distribution | Prototype strict-8080 history and text-interface tools, retain reproducible source/license/size/runtime admission, and keep the recovery profile small. | Hardware smoke only for programs admitted by the exact-C6 simulator; no manual catalogue trawl on the bench. |
 | M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 USART and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
 
@@ -783,8 +784,19 @@ Status on 2026-08-19:
   full/dev/demo media, all sixteen oracle surfaces are deterministic, and the
   exact C6 executable passes seven live geometry/locale cases with both cursor
   phases. Four physical display observations still wait for a working monitor.
-- M4 and M5 are measured improvements, not correctness work. They start only
-  after M1/M2 make performance and distribution changes cheap to qualify.
+- M4 desk implementation is in progress. BIOS-call tracing identified the
+  exact repeated records rather than guessing at general protocol overhead.
+  The loaded-system cache retains track 2 translated sectors 1--3 only. In the
+  exact delayed/missed-ready C6 simulator, cold boot falls from 10 to 8 host
+  read requests (80 to 64 records and 4,414 to 3,798 reply bytes), steady-state
+  `DIR` remains zero, `TYPE` remains one, B: login remains four, and first B:
+  `DIR` falls from one to zero. Writes invalidate before the synchronous wire
+  operation, failed writes leave the cache invalid, the ROM/ABI/TPA are
+  unchanged, and a dedicated count gate passes. Recovery, replay, package,
+  long-soak, and physical timing evidence remain before M4 is accepted.
+- M5 is a measured improvement, not correctness work. It starts only after the
+  exact-C6 simulator admits each program and M2 makes physical smoke tests
+  cheap to qualify.
 - M6 is an evidence ledger rather than a shared-machine workaround: CS00015
   remains the reference while CS00000 and CS00024 keep independent diagnoses.
 
@@ -816,11 +828,15 @@ repeating the old failing image would add no evidence.
    64x20, and 80x24 respectively. This is the only outstanding C6 physical
    promotion boundary; framebuffer oracles remain the software authority and
    monitor cropping must be recorded separately.
-3. **Measured NetDisk performance.** Optimize initial A: login and first or
-   alternating drive selection, retaining separate wire, target, console, and
-   host timings. Steady-state `DIR` is already served from CP/M state and is
-   not a useful optimization target. Preserve independent eight-record A:/B:
-   read-ahead and synchronous invalidating writes. Do not add write-back
+3. **Measured NetDisk performance.** Finish qualifying the three-record
+   loaded-system hot-directory cache. Preserve separate wire, target, console,
+   and host timings, independent eight-record resident A:/B: read-ahead, and
+   synchronous invalidating writes. Its desk target is the measured 8/0/1
+   cold-boot/`DIR`/`TYPE` request sequence plus B: 4/0 login/`DIR`, with zero
+   retries and overruns. Then compare the same image once on CS00015. After
+   that, profile alternating drives and longer sequential workloads before
+   considering request coalescing or host prediction. Steady-state `DIR` is
+   already local and is not an optimization target. Do not add write-back
    caching without explicit flush, warm-boot, retry, disconnect, and power-loss
    contracts.
 4. **Distribution usability.** Consider a project-owned, source-available
@@ -837,6 +853,58 @@ repeating the old failing image would add no evidence.
    CS00000's suspected USART fault and CS00024's RAM/refresh/D57 evidence as
    separate per-machine investigations, preserving their machine profiles
    rather than generalizing either fault into the production model.
+
+### Remaining improvement backlog and end goals
+
+This is the durable backlog after the C6/Priority-7 baseline. “Done” below
+means the named evidence exists; an attractive prototype alone is not enough.
+
+1. **Close the physical baseline (M1--M3).** Retain audited full and
+   development runner bundles from CS00015, including the fixed multi-record
+   PIP copy with CRC `4613`. When a working display is available, photograph
+   and record all four S21 modes and both cursor phases. End goal: a fresh
+   operator can repeat the qualification without inferred or blind results.
+2. **Accept the NetDisk cache (M4).** Pass exact-C6 local and N4 execution,
+   server-loss/reconnect and missed-ready replay, 64-cycle read/write soak,
+   reproducible-package, manifest, memory-map, and data-integrity gates. Record
+   one hardware before/after timing comparison. End goal: a demonstrably more
+   responsive network disk with identical recovery and write semantics.
+3. **Improve everyday CP/M use (M5).** First candidates are strict-8080
+   command history and a small project-owned text-interface toolkit using the
+   connected pseudographic glyphs. `SYSINFO` and the ROM diagnostic suites
+   should expose machine/build/console/serial/media state through shared code
+   where that saves bytes. Every shipped tool needs reproducible source,
+   license, binary hash, disk/TPA/stack accounting, and exact-C6 execution.
+   `cpm-ls` remains measured but deferred because ordinary `LS` costs 55 reads;
+   XMODEM remains excluded because N4/NetDisk already provides the stronger
+   transport.
+4. **Keep recovery and reference paths (M1--M6).** Preserve immutable C4/C5,
+   the RomBios path, the C6 ABI/ROM, 19,200-baud transport, the compact recovery
+   profile, and strict Intel 8080 compatibility. New conveniences must not
+   consume the reference fallback or reduce the 39,168-byte TPA unnoticed.
+5. **Improve observability (M6).** Keep host logs, target status, artifact
+   identities, disk-call traces, and physical evidence machine-readable.
+   Extend `DIAG` from the shared ROM diagnostic implementation when useful,
+   but keep CS00000 USART and CS00024 RAM/refresh/D57 work in separate machine
+   records. End goal: failures identify a machine, layer, and last good stage
+   instead of merely appearing as a stalled boot.
+6. **Consider a future ROM only when justified.** A C7 candidate may add a
+   resident service only when measurement proves that host, loaded BIOS, or a
+   transient cannot supply it safely. Automatic network-first boot, resident
+   console/keyboard/sound/diagnostics, and 19,200-baud Fastboot already exist
+   in C6, so they are not reasons by themselves for another EPROM burn.
+7. **Keep research separate.** Higher baud rates or intermediate PIT divisors,
+   a lower-overhead protocol, predictive host reads, and compression may be
+   explored in simulator-first branches with end-to-end timing. RLE or another
+   codec is accepted only if saved wire time exceeds 8080 decode cost on real
+   workloads. Write-back caching, authenticated boot, and banked CP/M Plus
+   require their own designs and failure contracts; they are not baseline
+   cleanup tasks.
+
+The practical order is therefore: close M1/M2 evidence when hardware is
+available, finish and checkpoint M4 at the desk, perform its one short timing
+run, then work through M5 utilities. M3 waits only for a usable display; M6
+advances when the corresponding non-reference machine is on the bench.
 
 ### Explicitly separate future projects
 
