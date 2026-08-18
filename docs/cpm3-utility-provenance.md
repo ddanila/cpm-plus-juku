@@ -29,8 +29,10 @@ top-level `.plm` file would not constitute the corresponding source.
 
 `third_party/cpm3/releases/provenance.json` additionally records, for every
 selected file, its archive member, source members, version description, size,
-and SHA-256. The initially approved set is `PIP.COM`, `SHOW.COM`, `SET.COM`,
-`DEVICE.COM`, `DATE.COM`, `SUBMIT.COM`, `HELP.COM`, and `HELP.HLP`.
+and SHA-256. The approved set is `PIP.COM`, `SHOW.COM`, `SET.COM`,
+`DEVICE.COM`, `DATE.COM`, `SUBMIT.COM`, `SETDEF.COM`, `DUMP.COM`, `HELP.COM`,
+and `HELP.HLP`. The HELP source mapping includes `setdef.help` and `dump.help`;
+the pinned database exposes both topics.
 
 ## Reproducible extraction gate
 
@@ -47,7 +49,8 @@ deterministic extraction manifest. Its negative regression mutates the pinned
 binary archive and requires rejection.
 
 This gate deliberately does not alter `out/cpm-plus-juku.img`. C4 remains the
-immutable Priority 0 qualification volume until its physical acceptance record
-passes. Priority 1 will consume the staged files only in a separately named
-distribution profile with generated contents, provenance, free-space, and hash
-reports.
+immutable Priority 0 qualification volume. The separately named full and demo
+profiles consume the staged files with generated contents, provenance,
+free-space, and hash reports. The distribution cosimulation executes `SETDEF`,
+`DUMP PROFILE.SUB`, and `HELP DUMP` through the production CP/M/NetDisk path,
+then retains the normal warm-boot, write/erase, and B:-drive regression.

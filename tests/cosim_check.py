@@ -536,7 +536,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 command_timeout = 600 if network_rom and remote_console \
                     else 120
 
-                def run_extra_command(suffix: str = "") -> None:
+                def run_extra_command(suffix: str = "") -> bytes:
                     command_name = f"CPM_PLUS_JUKU_EXTRA_COMMAND{suffix}"
                     marker_name = f"CPM_PLUS_JUKU_EXTRA_MARKER{suffix}"
                     markers_name = f"CPM_PLUS_JUKU_EXTRA_MARKERS{suffix}"
@@ -545,7 +545,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     input_name = f"CPM_PLUS_JUKU_EXTRA_INPUT_HEX{suffix}"
                     command = os.environ.get(command_name)
                     if not command:
-                        return
+                        return b""
                     send_console(command.encode("ascii") + b"\r")
                     ready_marker = os.environ.get(ready_name)
                     input_hex = os.environ.get(input_name)
@@ -577,6 +577,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                 f"{response!r}",
                             )
                     print(f"COSIM {case.name}: {command}", flush=True)
+                    return response
 
                 profile_startup = first
                 if expected_profile:
@@ -633,9 +634,9 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 send_console(b"DIAG CPU\r")
                 fourth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: DIAG", flush=True)
-                run_extra_command()
-                run_extra_command("2")
-                run_extra_command("3")
+                extra_transcript = run_extra_command()
+                extra_transcript += run_extra_command("2")
+                extra_transcript += run_extra_command("3")
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: WBOOT", flush=True)
@@ -963,7 +964,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     screen = ram[0xD800:0xD800 + 9600]
     if not expect_disk_failure and direct_core and not network_rom:
         transcript = (profile_startup if expected_profile else first) \
-            + second + third + fourth + fifth + sixth
+            + second + third + fourth + extra_transcript + fifth + sixth
         if drive_b is not None:
             transcript += selected_b + listed_b + diagnosed_b + selected_a
         expected_screen = render_console_transcript(

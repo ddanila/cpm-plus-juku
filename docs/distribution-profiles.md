@@ -9,8 +9,8 @@ beside each one:
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
 | `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.5 | 372 KiB | `17751ba06fa5a59836a99b0dd83ea2185186f025cf3dbb650610d16a6e6b5074` |
 | `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 366 KiB | `5b114df3b053af325e8254afd2134997cff180c13c6cfee17645059390367905` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, DEVICE, DATE, SUBMIT, HELP | 250 KiB | `7edc5f6023c01e3cca025f3fce0f2dbd1d1bf7c3ca70af9f00b86aa9f2c92fb4` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 248 KiB | `c2e75309b9a1701f9bbe39ababd3e616e2e6ad61ad262967613b45a0b14d0818` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, SETDEF, DEVICE, DATE, SUBMIT, DUMP, HELP | 242 KiB | `0ab1dd7ad43800faa232212f0dc2e684257fb3b705d7d27bda8cc3f795203e2a` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 240 KiB | `256b9ba64dc95cf9e04d91d58518dd162540aef0655b10e1358d3fa14101240b` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
@@ -50,7 +50,10 @@ The B: profile is built in CP/M logical side-then-track order and then converted
 to the physical Juku cylinder/head order expected by `--drive-b`. The
 distribution cosimulation passes this physical image through the production
 host's inverse conversion, selects B:, lists it, loads B:`DIAG.COM`, returns to
-A:, and retains the framebuffer oracle with zero NetDisk retries.
+A:, and retains the framebuffer oracle with zero NetDisk retries. On A: it also
+executes `SETDEF`, `DUMP PROFILE.SUB`, and the `HELP DUMP` topic. Interactive
+HELP exit is driven explicitly, and every extra-command byte is included in
+the independent framebuffer oracle.
 
 Run the complete distribution gates with:
 

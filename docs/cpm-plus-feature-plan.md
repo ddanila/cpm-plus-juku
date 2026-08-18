@@ -282,7 +282,7 @@ last-known-good slot is preferred on the next run. See
 
 ## Priority 7: curated 8080 software and development environment
 
-Status: **PLANNED; NOT A C6 RELEASE BLOCKER**
+Status: **IN PROGRESS; FIRST DRI DISTRIBUTION SLICE IMPLEMENTED**
 
 The completed C6 platform is now stable enough to grow into a curated CP/M
 Plus distribution. This is distribution work, not a reason to reopen the
@@ -333,6 +333,16 @@ cases without making every binary inside it redistributable or 8080-safe.
 - Keep the recovery profile small. Put convenience tools in `full`; introduce
   a separately named `dev` profile for assemblers, editors, debuggers, source,
   and language systems.
+
+First slice completed on 2026-08-18: the pinned `SETDEF.COM` and `DUMP.COM`
+bytes, `setdef.plm`/`dump.asm` source mappings, HELP topics, sizes, and SHA-256
+records are admission-gated and present only in the full/demo profiles. The
+production-path simulator executes `SETDEF`, dumps the known `PROFILE.SUB`
+bytes, enters `HELP DUMP`, exits HELP deliberately, and then completes the
+ordinary framebuffer, warm-boot, write/erase, and native-B regression. The
+test harness now includes extra-command output in its independent framebuffer
+oracle; previously those commands could run without contributing to the final
+visual comparison.
 
 Do not duplicate established CP/M commands merely to give them Unix names:
 `TYPE` already covers the ordinary `cat` case, `PIP` copies files, `REN`

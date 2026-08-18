@@ -59,6 +59,20 @@
       "bytes": 5376,
       "sha256": "8c641d7383d48e14a60fe72df0f4af926a970b0aba40765770f3034da80a1f24"
     },
+    "SETDEF.COM": {
+      "archive_member": "setdef.com",
+      "source_members": ["setdef.plm"],
+      "version": "CP/M 3 SETDEF",
+      "bytes": 4244,
+      "sha256": "03e5ef141bfc9da39dbde435f7ad7ab264ce7b22caa5b1d3297065abe437cf08"
+    },
+    "DUMP.COM": {
+      "archive_member": "dump.com",
+      "source_members": ["dump.asm"],
+      "version": "CP/M 3 DUMP",
+      "bytes": 960,
+      "sha256": "4acabe3feaaf03622adaaaaea3bb25d37cdc32e07901343b532974be2c783a64"
+    },
     "HELP.COM": {
       "archive_member": "help.com",
       "source_members": ["help.plm", "minhlp.plm", "mcd80a.asm"],
@@ -68,7 +82,7 @@
     },
     "HELP.HLP": {
       "archive_member": "help.hlp",
-      "source_members": ["help.dat", "commands.help", "date.help", "device.help", "help.help", "pip.help", "set.help", "show.help", "submit.help"],
+      "source_members": ["help.dat", "commands.help", "date.help", "device.help", "dump.help", "help.help", "pip.help", "set.help", "setdef.help", "show.help", "submit.help"],
       "version": "HELP database, 2026-06-07",
       "bytes": 63616,
       "sha256": "0ba002b32e659c19ccec18f13ab3231d403a41911c5b753d42853243b01ed8a6"

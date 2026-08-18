@@ -28,7 +28,8 @@ CASES = {
         {
             "CCP.COM", "DIAG.COM", "WBOOT.COM", "README.TXT", "PIP.COM",
             "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
-            "HELP.COM", "HELP.HLP", "STATUS.COM", "KEYTEST.COM",
+            "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP", "STATUS.COM",
+            "KEYTEST.COM",
         },
         409600,
     ),
@@ -56,7 +57,8 @@ CASES = {
         {
             "CCP.COM", "DIAG.COM", "WBOOT.COM", "README.TXT", "PIP.COM",
             "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
-            "HELP.COM", "HELP.HLP", "STATUS.COM", "KEYTEST.COM",
+            "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP", "STATUS.COM",
+            "KEYTEST.COM",
             "PROFILE.SUB",
         },
         409600,

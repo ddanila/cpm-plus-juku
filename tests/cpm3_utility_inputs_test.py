@@ -27,7 +27,7 @@ def main() -> int:
     provenance, files = module.expected_files()
     required = {
         "PIP.COM", "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM",
-        "SUBMIT.COM", "HELP.COM", "HELP.HLP",
+        "SUBMIT.COM", "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP",
     }
     if set(files) != required:
         raise AssertionError(f"selected CP/M 3 utility set differs: {set(files)}")
@@ -55,7 +55,7 @@ def main() -> int:
                 raise AssertionError(f"wrong archive rejection: {error}")
         else:
             raise AssertionError("changed CP/M 3 binary archive was accepted")
-    print("CPM3-UTILITY-INPUTS-TEST: PASS (8 binaries and source mappings)")
+    print("CPM3-UTILITY-INPUTS-TEST: PASS (10 files and source mappings)")
     return 0
 
 
