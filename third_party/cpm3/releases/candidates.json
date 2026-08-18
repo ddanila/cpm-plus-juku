@@ -14,7 +14,7 @@
       "source_members": ["date.plm", "mcd80a.asm", "makedate.lib"],
       "source_language": "PL/M-80 and 8080 assembly", "bytes": 3247,
       "sha256": "a413859648e340a424de7e8a709aabcee502516122d157b25d5d663d4e771004",
-      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "ERASE.COM", "archive_member": "erase.com",
@@ -35,7 +35,7 @@
       "source_members": ["device.plm", "mcd80a.asm"],
       "source_language": "PL/M-80 and 8080 assembly", "bytes": 7268,
       "sha256": "1a8dd4c17523f36a297d13556948178e0672f2e67bb9b516771b27bf9722444c",
-      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "GENCOM.COM", "archive_member": "gencom.com",
@@ -63,7 +63,7 @@
       "source_members": ["show.plm", "scan.plm", "search.plm", "disp.plm", "dpb80.plm", "util.plm", "timest.plm"],
       "source_language": "PL/M-80", "bytes": 8376,
       "sha256": "17a8561c18d1b9dc4d747f0a1ecd36ceb98ade6be2c2133d5ec1774769a4bcee",
-      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "DIR.COM", "archive_member": "dir.com",
@@ -91,7 +91,7 @@
       "source_members": ["submit.plm", "subrsx.asm", "parse.asm", "getf.asm", "mcd80a.asm"],
       "source_language": "PL/M-80 and 8080 assembly", "bytes": 5376,
       "sha256": "8c641d7383d48e14a60fe72df0f4af926a970b0aba40765770f3034da80a1f24",
-      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "COPYSYS.COM", "archive_member": "copysys.com",
@@ -119,7 +119,7 @@
       "source_members": ["pip.plm", "mcd80f.asm", "inpout.asm"],
       "source_language": "PL/M-80 and 8080 assembly", "bytes": 8632,
       "sha256": "b0b40eada6cebd512333989fdc65f8fa9e2321e2565a633063ae7cac9b02005d",
-      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "SAVE.COM", "archive_member": "save.com",
@@ -161,7 +161,7 @@
       "source_members": ["set.plm", "parse.asm", "dirlbl.asm", "mcd80a.asm"],
       "source_language": "PL/M-80 and 8080 assembly", "bytes": 10368,
       "sha256": "213fa9a4617372d5b4518863a41adcbbca63ea535aae94632052ebb6ad026709",
-      "status": "shipped", "profile": "full", "cpm3_test": "profile-and-directory"
+      "status": "shipped", "profile": "full", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "SID.COM", "archive_member": "sid.com",

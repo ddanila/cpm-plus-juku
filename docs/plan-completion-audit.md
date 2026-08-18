@@ -2,9 +2,11 @@
 
 Audit date: **2026-08-18**
 
-Scope: every requirement in [`cpm-plus-feature-plan.md`](cpm-plus-feature-plan.md)
-and [`network-first-rom-plan.md`](network-first-rom-plan.md). The audited
-deliverable is the ABI 1.2 C6 simulator release. The later blind physical
+Scope: priorities 0--6 of
+[`cpm-plus-feature-plan.md`](cpm-plus-feature-plan.md) and every requirement in
+[`network-first-rom-plan.md`](network-first-rom-plan.md). Priority 7 was added
+after this frozen release audit and tracks curated software separately. The
+audited deliverable is the ABI 1.2 C6 simulator release. The later blind physical
 qualification is recorded separately and never substitutes for unavailable
 display observations.
 

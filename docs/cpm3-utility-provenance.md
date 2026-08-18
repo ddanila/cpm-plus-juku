@@ -1,6 +1,6 @@
 # CP/M 3.1 utility provenance
 
-Status: **PINNED AND VERIFIED; NOT YET ADDED TO THE C4 BASELINE VOLUME**
+Status: **PINNED AND STRICT-8080 VERIFIED IN FULL/DEMO; C4 UNCHANGED**
 
 Priority 1 requires a useful distribution without importing unexplained
 binaries. The selected source is John Elliott's 2026-06-07 Unix build of the
@@ -57,6 +57,18 @@ binary archive and requires rejection.
 This gate deliberately does not alter `out/cpm-plus-juku.img`. C4 remains the
 immutable Priority 0 qualification volume. The separately named full and demo
 profiles consume the staged files with generated contents, provenance,
-free-space, and hash reports. The distribution cosimulation executes `SETDEF`,
-`DUMP PROFILE.SUB`, and `HELP DUMP` through the production CP/M/NetDisk path,
-then retains the normal warm-boot, write/erase, and B:-drive regression.
+free-space, and hash reports. The distribution cosimulation executes a useful
+path through every admitted program: `SETDEF`; exact `DUMP`; interactive
+`HELP`; a `PIP` file creation proved by a second exact dump; `SHOW` space;
+`SET` read-only/read-write transitions; rejected `DATE` input; and a
+missing-file `SUBMIT`. A separate native-BIOS run executes `DEVICE NAMES` and
+requires the real `JUKU` input/output entry. The matrix then retains the normal
+warm-boot, write/erase, and B:-drive regression. The simulator records actual
+TPA instruction fetches in both runs, and the admission gate requires zero Z80
+prefixes and zero undocumented 8080 aliases across the complete sequence.
+
+The extended sequence also proved that the simulator disk server must not use
+a fixed whole-session deadline: the former 180-second limit could expire in a
+healthy interactive run and mimic directory/CCP corruption. Active simulator
+sessions are now unbounded and stop on transport EOF; the exact served image
+is retained on failure for filesystem inspection.

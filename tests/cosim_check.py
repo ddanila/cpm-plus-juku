@@ -431,12 +431,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     ) -> None:
                         serve_disk(
                             master, volume, drive_b=drive_b_volume,
-                            timeout=max(
-                                180,
-                                30 * int(os.environ.get(
-                                    "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
-                                )),
-                            ), idle_timeout=None,
+                            # Utility and soak suites are intentionally open-
+                            # ended active sessions.  The server now exits on
+                            # transport EOF, so a fixed wall-clock deadline
+                            # cannot turn a long, healthy run into Disk I/O.
+                            timeout=None, idle_timeout=None,
                             writable=True,
                             verbose=os.environ.get(
                                 "CPM_PLUS_JUKU_SERVER_VERBOSE", "0",
@@ -635,8 +634,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 fourth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: DIAG", flush=True)
                 extra_transcript = run_extra_command()
-                extra_transcript += run_extra_command("2")
-                extra_transcript += run_extra_command("3")
+                for extra_number in range(2, 17):
+                    extra_transcript += run_extra_command(str(extra_number))
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: WBOOT", flush=True)
@@ -722,8 +721,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             time.sleep(0.1)
             process.terminate()
             process.wait(timeout=5)
-            os.close(master)
             worker.join(timeout=3)
+            os.close(master)
         finally:
             if process.poll() is None:
                 process.terminate()
@@ -733,6 +732,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             except OSError:
                 pass
             os.close(console_master)
+            # Keep the exact host-side media state even when a command or an
+            # assertion fails.  Directory-creation regressions otherwise
+            # disappear with the temporary server bytearray before cpmtools
+            # can distinguish a target write bug from a stale-cache bug.
+            if "worker" in locals() and worker.is_alive():
+                worker.join(timeout=3)
+            (case / "served-volume.img").write_bytes(volume)
 
     if direct_core:
         expected_auto_ready = int(os.environ.get(

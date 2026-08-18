@@ -50,10 +50,15 @@ The B: profile is built in CP/M logical side-then-track order and then converted
 to the physical Juku cylinder/head order expected by `--drive-b`. The
 distribution cosimulation passes this physical image through the production
 host's inverse conversion, selects B:, lists it, loads B:`DIAG.COM`, returns to
-A:, and retains the framebuffer oracle with zero NetDisk retries. On A: it also
-executes `SETDEF`, `DUMP PROFILE.SUB`, and the `HELP DUMP` topic. Interactive
-HELP exit is driven explicitly, and every extra-command byte is included in
-the independent framebuffer oracle.
+A:, and retains the framebuffer oracle with zero NetDisk retries. On A: it
+also executes the shipped DRI file/system utilities: `SETDEF`, exact `DUMP`,
+the `HELP DUMP` topic, `PIP` create/copy, `SHOW`, `SET`, `DATE`, and `SUBMIT`.
+Interactive HELP exit is driven explicitly; copied bytes and attributes are
+verified by subsequent commands; and every extra-command byte is included in
+the independent framebuffer oracle. `DEVICE NAMES` is executed separately on
+the native-BIOS/full-volume path, where the real fixed `JUKU` character table
+must be reported. This split preserves the immutable RomBios and C4/C5/C6 SYS
+artifacts byte for byte.
 
 Run the complete distribution gates with:
 

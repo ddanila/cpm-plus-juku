@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **IMPLEMENTED AND PACKAGED; C6 BLIND HARDWARE MATRIX PASSED**
+Status: **C0--C6 BASELINE IMPLEMENTED; PRIORITY 7 CURATION IN PROGRESS**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -282,7 +282,7 @@ last-known-good slot is preferred on the next run. See
 
 ## Priority 7: curated 8080 software and development environment
 
-Status: **IN PROGRESS; FIRST DRI DISTRIBUTION SLICE IMPLEMENTED**
+Status: **IN PROGRESS; SHIPPED DRI SET ADMISSION COMPLETE**
 
 The completed C6 platform is now stable enough to grow into a curated CP/M
 Plus distribution. This is distribution work, not a reason to reopen the
@@ -438,9 +438,19 @@ required to fail. `make utility-catalogue-check` is part of `make check`.
 The shared C simulator now records actual instruction fetches, not byte-pattern
 guesses, over `0100h..99FFh`. The distribution regression requires nonzero TPA
 execution with zero fetched Z80 prefixes and zero undocumented 8080 aliases
-while running `SETDEF`, `DUMP`, and `HELP`. The remaining already-shipped DRI
-utilities still need individual executable command paths before the admission
-gate can be called complete.
+while running every shipped DRI executable. The completed path covers
+`SETDEF`, exact `DUMP`, `HELP`, `PIP` create/copy, `SHOW`, `SET` attribute
+changes, `DEVICE NAMES`, `DATE` validation, and `SUBMIT` error handling,
+then proves warm boot and both drives. All nine shipped `.COM` rows now require
+`strict-8080-cosim`; downgrading even one row fails the catalogue audit.
+
+The longer sequence exposed and fixed a simulator-only 180-second whole-session
+deadline which had looked like target directory/CCP corruption. Active disk
+sessions now run without a wall-clock limit, stop cleanly at transport EOF,
+and retain the served image on failure. It also confirmed that `DEVICE` belongs
+on the native-BIOS admission path: `DEVICE NAMES` must report the fixed `JUKU`
+input/output entry there. Keeping it out of the placeholder RomBios DEVTBL path
+preserves every qualified RomBios and C4/C5/C6 SYS byte.
 
 Research starting points: [z80pack](https://github.com/udo-munk/z80pack),
 [z88dk](https://github.com/z88dk/z88dk),
@@ -476,6 +486,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
+| 7. Curated software/development | **In progress** | The 23-program source/binary catalogue and strict executable admission of every currently shipped DRI utility pass. Exact `cpm-ls`/`HIST` provenance, selected gap-filling tools, optional development media, and compiler comparisons remain. |
 
 `make check` is the complete ordinary desk gate. `make bench-candidate` additionally
 rebuilds the immutable C4 package and proves that incomplete or tampered
@@ -485,12 +496,14 @@ their historical physical-promotion semantics.
 `make release-candidate` remains the C5 desk packaging gate. It binds the ABI
 1.1 C5 ROM and exact D15/D16 halves to the matching locale-native CP/M Plus
 3.1 system, C4 fallback, published media/reports, license, and notice in a
-byte-reproducible tar. This completes every desk-executable item in this plan.
+byte-reproducible tar. This completes every desk-executable item in the frozen
+C0--C6 baseline. Priority 7 is the subsequent active distribution-development
+phase.
 It deliberately does not promote C5: the blind hardware matrix passes, but the
 display/cursor gate remains. See
 [`cpm-plus-31-c5-release-candidate.md`](cpm-plus-31-c5-release-candidate.md).
 
-`make c6-release-candidate` is the completed-plan gate. It rebuilds ABI 1.2,
+`make c6-release-candidate` is the completed C0--C6 baseline gate. It rebuilds ABI 1.2,
 runs its executable C/HDL boundaries, both local and N4 CP/M paths, the full
 64-cycle read/write/reconnect soak, manifest and fallback checks, then creates
 and independently reproduces the C6 simulator package. The later exact C6 pair
@@ -506,4 +519,4 @@ serial output cannot stall the polled keyboard between keys. Both have bounded
 exits, and buffered mode passes an exact simulator transcript including Space
 and Enter. A working external display is still required to complete C6's
 physical visual promotion, but exact framebuffer/cursor oracles satisfy the
-simulator-release scope of this completed plan.
+simulator-release scope of that completed baseline.

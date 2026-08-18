@@ -107,6 +107,8 @@ def audit() -> tuple[dict[str, object], list[dict[str, object]]]:
                         f"shipped candidate is not admission-pinned: {name}")
                 require(item["profile"] == "full",
                         f"shipped candidate is outside full profile: {name}")
+                require(item["cpm3_test"] == "strict-8080-cosim",
+                        f"shipped candidate lacks executable 8080 proof: {name}")
             elif name in selected_com:
                 raise ValueError(
                     f"admission-pinned candidate is not marked shipped: {name}"

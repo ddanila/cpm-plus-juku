@@ -68,6 +68,13 @@ def main() -> int:
                           "admission-pinned candidate")
 
         changed = json.loads(json.dumps(original))
+        pip = next(item for item in changed["candidates"]
+                   if item["name"] == "PIP.COM")
+        pip["cpm3_test"] = "profile-and-directory"
+        require_rejection(module, candidate_path, changed,
+                          "lacks executable 8080 proof")
+
+        changed = json.loads(json.dumps(original))
         changed["candidates"] = changed["candidates"][:19]
         require_rejection(module, candidate_path, changed,
                           "outside planned range")
