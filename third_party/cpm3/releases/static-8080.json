@@ -1,0 +1,186 @@
+{
+  "schema": "cpm-plus-juku-cpm3-static-8080-v1",
+  "programs": {
+    "DATE.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 3247,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "date.plm and mcd80a.asm normal transient entry",
+        "evidence": {"reachable_instructions": 1256, "reachable_code_bytes": 2541, "data_bytes": 706, "listing_sha256": "6aded898026d2ab66b6c15c125d90c9b0632db6ae94af48c30f806b6878d6946"}
+      }]
+    },
+    "SETDEF.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 4244,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "setdef.plm DO CASE statements and mcd80a.asm entry",
+        "policy": {"indirect_targets": {
+          "08AC": ["08AD", "08B6", "08BF", "08C8", "08D1", "08DA", "08E3", "08EC", "08F5"],
+          "0A2E": ["0A2F", "0A38", "0A41", "0A4A"],
+          "0AB7": ["0AB8", "0AC1", "0ACA"],
+          "0CBB": ["0CBC", "0CC4", "0CFD", "0E94", "0EE5", "0F4F", "0FB8", "0FC0", "0FC8", "0FDE", "0FFF", "1007", "100F", "1035", "1056"]
+        }},
+        "evidence": {"reachable_instructions": 1456, "reachable_code_bytes": 3240, "data_bytes": 1004, "listing_sha256": "3532b99b96568f96e750622dc890b4d1879aa4de4a3a156ea0c724c4e92cb53a"}
+      }]
+    },
+    "DEVICE.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 7268,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "device.plm DO CASE statements and mcd80a.asm entry",
+        "policy": {"indirect_targets": {
+          "0CCC": ["0CCD", "0CD6", "0CDF", "0CE8", "0CF1", "0CFA", "0D03", "0D0C", "0D15", "0D1E", "0D27"],
+          "1601": ["1602", "160B", "160E", "1617", "161A", "1623", "1626", "162F", "1632"]
+        }},
+        "evidence": {"reachable_instructions": 2529, "reachable_code_bytes": 5316, "data_bytes": 1952, "listing_sha256": "ad6913669f4f5b7a29efc45b632165b4222216983304010cd8d2a8ca57accaf2"}
+      }]
+    },
+    "HEXCOM.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 1131,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "hexcom.asm entry and deliberate BDOS tail calls",
+        "evidence": {"reachable_instructions": 353, "reachable_code_bytes": 731, "data_bytes": 400, "listing_sha256": "c6e4949ee6017f5b41fd020b4e2a26aa7eaf4a7dac13b25526939f4c9d801171"}
+      }]
+    },
+    "SHOW.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 8376,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "SHOW PL/M modules and normal transient entry",
+        "evidence": {"reachable_instructions": 3086, "reachable_code_bytes": 6379, "data_bytes": 1997, "listing_sha256": "35e14ab79346adb1c4e23d87729035d259804c608c498c9c2395a130fef8ca0f"}
+      }]
+    },
+    "PATCH.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 2369,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "patch.asm STOP label and normal transient entry",
+        "policy": {"noreturn_targets": {
+          "07D1": "PATCH stop label terminates through BDOS function 0"
+        }},
+        "evidence": {"reachable_instructions": 710, "reachable_code_bytes": 1661, "data_bytes": 708, "listing_sha256": "14a8ab9b67feb970ce907b2fa180ebad2825b87591f4ff603c8211d8b88b50b7"}
+      }]
+    },
+    "DUMP.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 960,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "dump.asm normal transient entry",
+        "evidence": {"reachable_instructions": 298, "reachable_code_bytes": 661, "data_bytes": 299, "listing_sha256": "b8d61615a551aa6baeb2f1374dac02242f21b5dd3f205d20cfe9ffd3872b6ef0"}
+      }]
+    },
+    "PIP.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 8632,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "pip.plm output/input DO CASE statements and mcd80f.asm entry",
+        "policy": {"indirect_targets": {
+          "1240": ["1241", "124B", "1259", "1267", "1275", "1299", "129C"],
+          "14BD": ["14BE", "14C1", "14C4", "14CC", "14CF", "151F", "1522", "1535", "1545"]
+        }},
+        "evidence": {"reachable_instructions": 3323, "reachable_code_bytes": 7229, "data_bytes": 1403, "listing_sha256": "c230e0272d930f0cb8a5962a70d936d66b29d1333eebc8b4ced126e8bcb58d8b"}
+      }]
+    },
+    "ED.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 9254,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "ed.plm and mcd80a.asm normal transient entry",
+        "evidence": {"reachable_instructions": 3528, "reachable_code_bytes": 7952, "data_bytes": 1302, "listing_sha256": "7f590e7bbdceda93c7e457934a9b388360829837f45cf4fcf4219b593bfa88f6"}
+      }]
+    },
+    "HELP.COM": {
+      "format": "flat-com",
+      "components": [{
+        "name": "transient", "offset": 0, "bytes": 6967,
+        "origin": "0100", "entry_points": ["0100"],
+        "source_basis": "help.plm/minhlp.plm and mcd80a.asm normal transient entry",
+        "evidence": {"reachable_instructions": 2527, "reachable_code_bytes": 5296, "data_bytes": 1671, "listing_sha256": "510073880ad37281ff28398fc721a08759fdb5434a4dace82069bb1bc26b35f5"}
+      }]
+    },
+    "SUBMIT.COM": {
+      "format": "gencom-rsx",
+      "components": [
+        {
+          "name": "transient", "offset": 256, "bytes": 3840,
+          "origin": "0100", "entry_points": ["0100"],
+          "source_basis": "submit.plm/getf.asm and mcd80a.asm transient",
+          "evidence": {"reachable_instructions": 1403, "reachable_code_bytes": 2877, "data_bytes": 963, "listing_sha256": "51a55f21bc6593e211750b990ad415fbb82bc04706214d4775d59f30ae601d13"}
+        },
+        {
+          "name": "SUB RSX", "offset": 4096, "bytes": 1088,
+          "origin": "0100", "entry_points": ["0106"],
+          "source_basis": "subrsx.asm prefix, BIOS/BDOS exit table, and GENCOM NEXT patch",
+          "policy": {
+            "indirect_targets": {"0189": ["0109", "0138", "013E"]},
+            "dynamic_direct_exits": {"0109": "GENCOM patches NEXT to the next RSX or BDOS"}
+          },
+          "evidence": {"reachable_instructions": 384, "reachable_code_bytes": 725, "data_bytes": 363, "listing_sha256": "416f66b4e84d22695682f6c6e16ad28aa5e824e846ef37c5fcb913e72c8c50f3"}
+        }
+      ],
+      "container_noncode_bytes": 448
+    },
+    "SET.COM": {
+      "format": "gencom-rsx",
+      "components": [
+        {
+          "name": "transient", "offset": 256, "bytes": 8832,
+          "origin": "0100", "entry_points": ["0100"],
+          "source_basis": "set.plm/parse.asm and mcd80a.asm transient",
+          "evidence": {"reachable_instructions": 2754, "reachable_code_bytes": 6100, "data_bytes": 2732, "listing_sha256": "3dbac3c5985e3b57a434e6cdddd08275760febb96e039c0d168090429b74e0ff"}
+        },
+        {
+          "name": "DIRLBL RSX", "offset": 9088, "bytes": 1090,
+          "origin": "0100", "entry_points": ["0106"],
+          "source_basis": "dirlbl.asm next-RSX, sector-translate, and BIOS computed transfers",
+          "policy": {"dynamic_indirect_exits": {
+            "0126": "DIRLBL transfers to the next RSX or BDOS",
+            "04F1": "DIRLBL calls the BIOS sector-translate vector",
+            "04FF": "DIRLBL calls a computed BIOS entry"
+          }},
+          "evidence": {"reachable_instructions": 502, "reachable_code_bytes": 953, "data_bytes": 137, "listing_sha256": "ba7eda7b523eb3e0edf54a7bfb89458b054a5b552eed477fbdd6ea9a7a9c1ca1"}
+        }
+      ],
+      "container_noncode_bytes": 446
+    },
+    "SID.COM": {
+      "format": "sid-relocator",
+      "components": [
+        {
+          "name": "relocator and complete container listing", "offset": 0, "bytes": 7936,
+          "origin": "0100", "entry_points": ["0100"],
+          "source_basis": "prs0mov.asm relocator; full listing accounts for embedded module and bitmap",
+          "policy": {"dynamic_indirect_exits": {
+            "01E6": "SID relocator transfers to the relocated linked debugger module"
+          }},
+          "evidence": {"reachable_instructions": 54, "reachable_code_bytes": 84, "data_bytes": 7852, "listing_sha256": "99278fea75a59712bce97df3e0aa4c58f0ca85b1df6ff221c715278ee42ebf03"}
+        },
+        {
+          "name": "linked debugger module", "offset": 256, "bytes": 6777,
+          "origin": "0000", "entry_points": ["0000", "0003", "0006", "0009", "000C", "000E", "0010", "0680"],
+          "source_basis": "prs1asm.asm/prs2mon.asm public entries, command/category tables, utility call",
+          "policy": {
+            "indirect_targets": {
+              "076E": ["07A3", "1094", "07CD", "07FD", "0907", "092D", "0947", "0A0B", "0AEF", "0AFC", "0B2B", "0B51", "0C13", "0E31", "0EC0", "0EBB", "0EFC", "0EFF", "0FCF"],
+              "1809": ["1826", "184E", "1826", "184E", "182C", "1860", "1872", "18A3", "18A3", "18A0", "18A0", "1896", "18A3", "1891"]
+            },
+            "indirect_external_targets": {"076E": {"0000": "SID Q command exits through CP/M warm boot"}},
+            "dynamic_indirect_calls": {"0DFB": {"return_continuations": ["0DFC"], "reason": "SID calls a loaded debugger utility with a stacked return"}}
+          },
+          "evidence": {"reachable_instructions": 2823, "reachable_code_bytes": 5600, "data_bytes": 1177, "listing_sha256": "3307ba972e1eb965028d6db76e4885d25ffd29fc04cea433f4a6f54786bbcf79"}
+        }
+      ],
+      "relocation_and_padding_bytes": 903
+    }
+  }
+}

@@ -15,33 +15,35 @@ The TPA column is a conservative static load measurement: `.COM` bytes
 start at 0100h, and the remaining count is the space to the measured
 C6 TPA ceiling before runtime stack, buffers, or RSXs. A candidate is
 not admitted merely because its image fits; selected programs still
-need executable strict-8080 CP/M 3 evidence.
+need both flow-aware static 8080 and executable strict-8080 CP/M 3
+evidence. GENCOM RSXs and SID's relocated module are audited as
+separate executable components rather than mistaken for flat COMs.
 
-| Program | State/profile | Source/build | Bytes | Static TPA use | CP/M 3 evidence |
-| --- | --- | --- | ---: | --- | --- |
-| `DATE.COM` | shipped / full | PL/M-80 and 8080 assembly: `date.plm`, `mcd80a.asm`, `makedate.lib` | 3,247 | 0100h--0DAEh; 35,921 B remain | strict-8080-cosim |
-| `ERASE.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `erase.plm`, `parse.asm`, `mcd80a.asm` | 3,725 | 0100h--0F8Ch; 35,443 B remain | not-run |
-| `SETDEF.COM` | shipped / full | PL/M-80 and 8080 assembly: `setdef.plm`, `mcd80a.asm` | 4,244 | 0100h--1193h; 34,924 B remain | strict-8080-cosim |
-| `DEVICE.COM` | shipped / full | PL/M-80 and 8080 assembly: `device.plm`, `mcd80a.asm` | 7,268 | 0100h--1D63h; 31,900 B remain | strict-8080-cosim |
-| `GENCOM.COM` | candidate / dev | PL/M-80 and 8080 assembly: `gencom.plm`, `parse.asm`, `mcd80a.asm` | 14,602 | 0100h--3A09h; 24,566 B remain | not-run |
-| `HEXCOM.COM` | shipped / dev | 8080 assembly: `hexcom.asm` | 1,131 | 0100h--056Ah; 38,037 B remain | strict-8080-cosim |
-| `RENAME.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `rename.plm`, `parse.asm`, `mcd80a.asm` | 2,866 | 0100h--0C31h; 36,302 B remain | not-run |
-| `SHOW.COM` | shipped / full | PL/M-80: `show.plm`, `scan.plm`, `search.plm`, `disp.plm`, `dpb80.plm`, `util.plm`, `timest.plm` | 8,376 | 0100h--21B7h; 30,792 B remain | strict-8080-cosim |
-| `DIR.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `main80.plm`, `scan.plm`, `search.plm`, `sort.plm`, `disp.plm`, `util.plm`, `dpb80.plm`, `timest.plm`, `mcd80a.asm` | 14,559 | 0100h--39DEh; 24,609 B remain | not-run |
-| `GENCPM.COM` | candidate / dev | PL/M-80 and 8080 assembly: `gencpm.plm`, `setbuf.plm`, `getdef.plm`, `crdef.plm`, `ldrlwr.asm`, `mcd80f.asm`, `datmod.asm` | 21,155 | 0100h--53A2h; 18,013 B remain | not-run |
-| `PATCH.COM` | shipped / dev | 8080 assembly: `patch.asm` | 2,369 | 0100h--0A40h; 36,799 B remain | strict-8080-cosim |
-| `SUBMIT.COM` | shipped / full | PL/M-80 and 8080 assembly: `submit.plm`, `subrsx.asm`, `parse.asm`, `getf.asm`, `mcd80a.asm` | 5,376 | 0100h--15FFh; 33,792 B remain | strict-8080-cosim |
-| `COPYSYS.COM` | candidate / dev | 8080 assembly: `copysys.asm` | 1,831 | 0100h--0826h; 37,337 B remain | not-run |
-| `DUMP.COM` | shipped / full | 8080 assembly: `dump.asm` | 960 | 0100h--04BFh; 38,208 B remain | strict-8080-cosim |
-| `GET.COM` | candidate / full | PL/M-80 and 8080 assembly: `get.plm`, `parse.asm`, `getf.asm`, `getrsx.asm`, `getrsx.lib`, `mcd80a.asm` | 6,656 | 0100h--1AFFh; 32,512 B remain | not-run |
-| `PIP.COM` | shipped / full | PL/M-80 and 8080 assembly: `pip.plm`, `mcd80f.asm`, `inpout.asm` | 8,632 | 0100h--22B7h; 30,536 B remain | strict-8080-cosim |
-| `SAVE.COM` | candidate / dev | 8080 assembly: `save.asm` | 1,792 | 0100h--07FFh; 37,376 B remain | not-run |
-| `TYPE.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `type.plm`, `parse.asm`, `mcd80a.asm` | 3,012 | 0100h--0CC3h; 36,156 B remain | not-run |
-| `ED.COM` | shipped / dev | PL/M-80 and 8080 assembly: `ed.plm`, `mcd80a.asm`, `makedate.lib` | 9,254 | 0100h--2525h; 29,914 B remain | strict-8080-cosim |
-| `HELP.COM` | shipped / full | PL/M-80 and 8080 assembly: `help.plm`, `minhlp.plm`, `mcd80a.asm`, `help.dat` | 6,967 | 0100h--1C36h; 32,201 B remain | strict-8080-cosim |
-| `PUT.COM` | candidate / full | PL/M-80 and 8080 assembly: `put.plm`, `parse.asm`, `putf.asm`, `putrsx.asm`, `mcd80a.asm` | 7,040 | 0100h--1C7Fh; 32,128 B remain | not-run |
-| `SET.COM` | shipped / full | PL/M-80 and 8080 assembly: `set.plm`, `parse.asm`, `dirlbl.asm`, `mcd80a.asm` | 10,368 | 0100h--297Fh; 28,800 B remain | strict-8080-cosim |
-| `SID.COM` | shipped / dev | 8080 assembly: `prs0mov.asm`, `prs1asm.asm`, `prs2mon.asm`, `makedate.lib` | 7,936 | 0100h--1FFFh; 31,232 B remain | strict-8080-cosim |
+| Program | State/profile | Source/build | Bytes | Static TPA use | Static 8080 proof | CP/M 3 evidence |
+| --- | --- | --- | ---: | --- | --- | --- |
+| `DATE.COM` | shipped / full | PL/M-80 and 8080 assembly: `date.plm`, `mcd80a.asm`, `makedate.lib` | 3,247 | 0100h--0DAEh; 35,921 B remain | 1 component(s), 2,541 code B | strict-8080-cosim |
+| `ERASE.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `erase.plm`, `parse.asm`, `mcd80a.asm` | 3,725 | 0100h--0F8Ch; 35,443 B remain | not admitted | not-run |
+| `SETDEF.COM` | shipped / full | PL/M-80 and 8080 assembly: `setdef.plm`, `mcd80a.asm` | 4,244 | 0100h--1193h; 34,924 B remain | 1 component(s), 3,240 code B | strict-8080-cosim |
+| `DEVICE.COM` | shipped / full | PL/M-80 and 8080 assembly: `device.plm`, `mcd80a.asm` | 7,268 | 0100h--1D63h; 31,900 B remain | 1 component(s), 5,316 code B | strict-8080-cosim |
+| `GENCOM.COM` | candidate / dev | PL/M-80 and 8080 assembly: `gencom.plm`, `parse.asm`, `mcd80a.asm` | 14,602 | 0100h--3A09h; 24,566 B remain | not admitted | not-run |
+| `HEXCOM.COM` | shipped / dev | 8080 assembly: `hexcom.asm` | 1,131 | 0100h--056Ah; 38,037 B remain | 1 component(s), 731 code B | strict-8080-cosim |
+| `RENAME.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `rename.plm`, `parse.asm`, `mcd80a.asm` | 2,866 | 0100h--0C31h; 36,302 B remain | not admitted | not-run |
+| `SHOW.COM` | shipped / full | PL/M-80: `show.plm`, `scan.plm`, `search.plm`, `disp.plm`, `dpb80.plm`, `util.plm`, `timest.plm` | 8,376 | 0100h--21B7h; 30,792 B remain | 1 component(s), 6,379 code B | strict-8080-cosim |
+| `DIR.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `main80.plm`, `scan.plm`, `search.plm`, `sort.plm`, `disp.plm`, `util.plm`, `dpb80.plm`, `timest.plm`, `mcd80a.asm` | 14,559 | 0100h--39DEh; 24,609 B remain | not admitted | not-run |
+| `GENCPM.COM` | candidate / dev | PL/M-80 and 8080 assembly: `gencpm.plm`, `setbuf.plm`, `getdef.plm`, `crdef.plm`, `ldrlwr.asm`, `mcd80f.asm`, `datmod.asm` | 21,155 | 0100h--53A2h; 18,013 B remain | not admitted | not-run |
+| `PATCH.COM` | shipped / dev | 8080 assembly: `patch.asm` | 2,369 | 0100h--0A40h; 36,799 B remain | 1 component(s), 1,661 code B | strict-8080-cosim |
+| `SUBMIT.COM` | shipped / full | PL/M-80 and 8080 assembly: `submit.plm`, `subrsx.asm`, `parse.asm`, `getf.asm`, `mcd80a.asm` | 5,376 | 0100h--15FFh; 33,792 B remain | 2 component(s), 3,602 code B | strict-8080-cosim |
+| `COPYSYS.COM` | candidate / dev | 8080 assembly: `copysys.asm` | 1,831 | 0100h--0826h; 37,337 B remain | not admitted | not-run |
+| `DUMP.COM` | shipped / full | 8080 assembly: `dump.asm` | 960 | 0100h--04BFh; 38,208 B remain | 1 component(s), 661 code B | strict-8080-cosim |
+| `GET.COM` | candidate / full | PL/M-80 and 8080 assembly: `get.plm`, `parse.asm`, `getf.asm`, `getrsx.asm`, `getrsx.lib`, `mcd80a.asm` | 6,656 | 0100h--1AFFh; 32,512 B remain | not admitted | not-run |
+| `PIP.COM` | shipped / full | PL/M-80 and 8080 assembly: `pip.plm`, `mcd80f.asm`, `inpout.asm` | 8,632 | 0100h--22B7h; 30,536 B remain | 1 component(s), 7,229 code B | strict-8080-cosim |
+| `SAVE.COM` | candidate / dev | 8080 assembly: `save.asm` | 1,792 | 0100h--07FFh; 37,376 B remain | not admitted | not-run |
+| `TYPE.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `type.plm`, `parse.asm`, `mcd80a.asm` | 3,012 | 0100h--0CC3h; 36,156 B remain | not admitted | not-run |
+| `ED.COM` | shipped / dev | PL/M-80 and 8080 assembly: `ed.plm`, `mcd80a.asm`, `makedate.lib` | 9,254 | 0100h--2525h; 29,914 B remain | 1 component(s), 7,952 code B | strict-8080-cosim |
+| `HELP.COM` | shipped / full | PL/M-80 and 8080 assembly: `help.plm`, `minhlp.plm`, `mcd80a.asm`, `help.dat` | 6,967 | 0100h--1C36h; 32,201 B remain | 1 component(s), 5,296 code B | strict-8080-cosim |
+| `PUT.COM` | candidate / full | PL/M-80 and 8080 assembly: `put.plm`, `parse.asm`, `putf.asm`, `putrsx.asm`, `mcd80a.asm` | 7,040 | 0100h--1C7Fh; 32,128 B remain | not admitted | not-run |
+| `SET.COM` | shipped / full | PL/M-80 and 8080 assembly: `set.plm`, `parse.asm`, `dirlbl.asm`, `mcd80a.asm` | 10,368 | 0100h--297Fh; 28,800 B remain | 2 component(s), 7,053 code B | strict-8080-cosim |
+| `SID.COM` | shipped / dev | 8080 assembly: `prs0mov.asm`, `prs1asm.asm`, `prs2mon.asm`, `makedate.lib` | 7,936 | 0100h--1FFFh; 31,232 B remain | 2 component(s), 5,684 code B | strict-8080-cosim |
 
 All rows use the upstream Makefile recipe recorded in the catalogue:
 Pinned upstream Makefile using DRI PL/M-80, MAC/RMAC/LINK, Thames, and zxcc. The target CPU contract is

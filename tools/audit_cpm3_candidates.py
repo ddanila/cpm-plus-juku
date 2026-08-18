@@ -6,19 +6,25 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import sys
 import zipfile
+from pathlib import Path
 
+TOOLS = Path(__file__).resolve().parent
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
+from audit_8080_com import audit_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASES = ROOT / "third_party/cpm3/releases"
 CATALOGUE = RELEASES / "candidates.json"
+STATIC_AUDIT = RELEASES / "static-8080.json"
 PROVENANCE = RELEASES / "provenance.json"
 SOURCE_ARCHIVE = RELEASES / "cpm3src_unix-20260607.zip"
 BINARY_ARCHIVE = RELEASES / "cpm3bin_unix-20260607.zip"
 DEFAULT_OUTPUT = ROOT / "docs/cpm3-utility-catalogue.md"
 SCHEMA = "cpm-plus-juku-cpm3-candidates-v1"
+STATIC_SCHEMA = "cpm-plus-juku-cpm3-static-8080-v1"
 VALID_STATUSES = {"shipped", "candidate", "deferred-duplicate"}
 VALID_PROFILES = {"full", "dev", "none"}
 VALID_TESTS = {"strict-8080-cosim", "profile-and-directory", "not-run"}
@@ -40,10 +46,192 @@ def load_json(path: Path) -> dict[str, object]:
     return value
 
 
+def hex_address(value: object, label: str) -> int:
+    require(
+        isinstance(value, str)
+        and len(value) == 4
+        and all(character in "0123456789ABCDEF" for character in value),
+        f"invalid {label}: {value!r}",
+    )
+    return int(value, 16)
+
+
+def address_map(value: object, label: str) -> dict[int, tuple[int, ...]]:
+    require(isinstance(value, dict), f"{label} is not an object")
+    result: dict[int, tuple[int, ...]] = {}
+    for raw_address, raw_targets in value.items():
+        address = hex_address(raw_address, f"{label} address")
+        require(isinstance(raw_targets, list) and raw_targets,
+                f"{label} targets absent at {raw_address}")
+        result[address] = tuple(
+            hex_address(target, f"{label} target")
+            for target in raw_targets
+        )
+    return result
+
+
+def reason_map(value: object, label: str) -> dict[int, str]:
+    require(isinstance(value, dict), f"{label} is not an object")
+    result: dict[int, str] = {}
+    for raw_address, reason in value.items():
+        require(isinstance(reason, str) and reason.strip(),
+                f"{label} rationale absent at {raw_address}")
+        result[hex_address(raw_address, f"{label} address")] = reason
+    return result
+
+
+def static_policy(raw: object) -> dict[str, object]:
+    require(isinstance(raw, dict), "static 8080 policy is not an object")
+    allowed = {
+        "indirect_targets", "indirect_external_targets",
+        "dynamic_indirect_exits", "dynamic_indirect_calls",
+        "dynamic_direct_exits", "noreturn_targets",
+    }
+    require(not (set(raw) - allowed),
+            f"unknown static 8080 policy fields: {sorted(set(raw) - allowed)}")
+    result: dict[str, object] = {}
+    if "indirect_targets" in raw:
+        result["indirect_targets"] = address_map(
+            raw["indirect_targets"], "indirect target",
+        )
+    if "indirect_external_targets" in raw:
+        external = raw["indirect_external_targets"]
+        require(isinstance(external, dict),
+                "indirect external targets are not an object")
+        result["indirect_external_targets"] = {
+            hex_address(site, "indirect external site"): reason_map(
+                targets, "indirect external target",
+            )
+            for site, targets in external.items()
+        }
+    for field in (
+        "dynamic_indirect_exits", "dynamic_direct_exits",
+        "noreturn_targets",
+    ):
+        if field in raw:
+            result[field] = reason_map(raw[field], field.replace("_", " "))
+    if "dynamic_indirect_calls" in raw:
+        calls = raw["dynamic_indirect_calls"]
+        require(isinstance(calls, dict),
+                "dynamic indirect calls are not an object")
+        converted = {}
+        for site, call in calls.items():
+            require(isinstance(call, dict),
+                    f"dynamic indirect call differs at {site}")
+            continuations = call.get("return_continuations")
+            reason = call.get("reason")
+            require(isinstance(continuations, list) and continuations
+                    and isinstance(reason, str) and reason.strip(),
+                    f"dynamic indirect call evidence absent at {site}")
+            converted[hex_address(site, "dynamic indirect call site")] = (
+                tuple(hex_address(target, "return continuation")
+                      for target in continuations),
+                reason,
+            )
+        result["dynamic_indirect_calls"] = converted
+    return result
+
+
+def audit_static_program(name: str, image: bytes, raw: object) -> dict:
+    require(isinstance(raw, dict), f"static audit absent: {name}")
+    image_format = raw.get("format")
+    require(image_format in {"flat-com", "gencom-rsx", "sid-relocator"},
+            f"static audit format differs: {name}")
+    components = raw.get("components")
+    require(isinstance(components, list) and components,
+            f"static audit components absent: {name}")
+
+    if image_format == "flat-com":
+        require(len(components) == 1
+                and components[0].get("offset") == 0
+                and components[0].get("bytes") == len(image),
+                f"flat COM coverage differs: {name}")
+    elif image_format == "gencom-rsx":
+        require(len(components) == 2 and len(image) >= 0x100
+                and image[0] == 0xC9 and image[3] == 0xC9
+                and image[15] == 1,
+                f"GENCOM header differs: {name}")
+        transient, rsx = components
+        require(transient.get("offset") == 0x100
+                and transient.get("bytes") == int.from_bytes(
+                    image[1:3], "little",
+                )
+                and rsx.get("offset") == int.from_bytes(
+                    image[16:18], "little",
+                )
+                and rsx.get("bytes") == int.from_bytes(
+                    image[18:20], "little",
+                )
+                and raw.get("container_noncode_bytes") ==
+                len(image) - transient["bytes"] - rsx["bytes"],
+                f"GENCOM component map differs: {name}")
+    else:
+        require(name == "SID.COM" and len(components) == 2
+                and components[0].get("offset") == 0
+                and components[0].get("bytes") == len(image)
+                and components[1].get("offset") == 0x100
+                and components[1].get("bytes") == int.from_bytes(
+                    image[1:3], "little",
+                )
+                and raw.get("relocation_and_padding_bytes") ==
+                len(image) - 0x100 - components[1]["bytes"],
+                f"SID relocator component map differs: {name}")
+
+    audited_components = []
+    for component in components:
+        require(isinstance(component, dict),
+                f"static component is not an object: {name}")
+        component_name = component.get("name")
+        offset = component.get("offset")
+        size = component.get("bytes")
+        source_basis = component.get("source_basis")
+        require(isinstance(component_name, str) and component_name
+                and isinstance(offset, int) and isinstance(size, int)
+                and size > 0 and 0 <= offset <= len(image) - size
+                and isinstance(source_basis, str) and source_basis.strip(),
+                f"static component metadata differs: {name}")
+        origin = hex_address(component.get("origin"), "component origin")
+        entries = component.get("entry_points")
+        require(isinstance(entries, list) and entries,
+                f"static entry points absent: {name}/{component_name}")
+        kwargs = static_policy(component.get("policy", {}))
+        result, _ = audit_bytes(
+            image[offset:offset + size],
+            origin=origin,
+            entry_points=tuple(
+                hex_address(value, "component entry point")
+                for value in entries
+            ),
+            **kwargs,
+        )
+        evidence = component.get("evidence")
+        require(isinstance(evidence, dict)
+                and set(evidence) == {
+                    "reachable_instructions", "reachable_code_bytes",
+                    "data_bytes", "listing_sha256",
+                }
+                and all(result[key] == value
+                        for key, value in evidence.items())
+                and result["forbidden_reachable_opcodes"] == 0
+                and result["unapproved_runtime_dependencies"] == 0,
+                f"static 8080 evidence differs: {name}/{component_name}")
+        audited_components.append({
+            "name": component_name,
+            **evidence,
+        })
+    return {"format": image_format, "components": audited_components}
+
+
 def audit() -> tuple[dict[str, object], list[dict[str, object]]]:
     catalogue = load_json(CATALOGUE)
     provenance = load_json(PROVENANCE)
+    static = load_json(STATIC_AUDIT)
     require(catalogue.get("schema") == SCHEMA, "candidate schema differs")
+    require(static.get("schema") == STATIC_SCHEMA,
+            "static 8080 schema differs")
+    static_programs = static.get("programs")
+    require(isinstance(static_programs, dict),
+            "static 8080 program map is absent")
     candidates = catalogue.get("candidates")
     require(isinstance(candidates, list), "candidate list is absent")
     require(20 <= len(candidates) <= 30,
@@ -117,6 +305,9 @@ def audit() -> tuple[dict[str, object], list[dict[str, object]]]:
                         f"shipped candidate profile differs: {name}")
                 require(item["cpm3_test"] == "strict-8080-cosim",
                         f"shipped candidate lacks executable 8080 proof: {name}")
+                item["static_8080"] = audit_static_program(
+                    name, data, static_programs.get(name),
+                )
             elif name in selected_com:
                 raise ValueError(
                     f"admission-pinned candidate is not marked shipped: {name}"
@@ -130,6 +321,8 @@ def audit() -> tuple[dict[str, object], list[dict[str, object]]]:
     require(selected_com == {item["name"] for item in audited
                              if item["status"] == "shipped"},
             "catalogue shipped set differs from admitted COM set")
+    require(set(static_programs) == selected_com,
+            "static 8080 program set differs from admitted COM set")
     require((ROOT / str(catalogue["license"])).is_file(),
             "catalogue license file is absent")
     return catalogue, audited
@@ -154,19 +347,28 @@ def render(catalogue: dict[str, object], candidates: list[dict[str, object]]) ->
         "start at 0100h, and the remaining count is the space to the measured",
         "C6 TPA ceiling before runtime stack, buffers, or RSXs. A candidate is",
         "not admitted merely because its image fits; selected programs still",
-        "need executable strict-8080 CP/M 3 evidence.",
+        "need both flow-aware static 8080 and executable strict-8080 CP/M 3",
+        "evidence. GENCOM RSXs and SID's relocated module are audited as",
+        "separate executable components rather than mistaken for flat COMs.",
         "",
-        "| Program | State/profile | Source/build | Bytes | Static TPA use | CP/M 3 evidence |",
-        "| --- | --- | --- | ---: | --- | --- |",
+        "| Program | State/profile | Source/build | Bytes | Static TPA use | Static 8080 proof | CP/M 3 evidence |",
+        "| --- | --- | --- | ---: | --- | --- | --- |",
     ]
     for item in candidates:
         sources = ", ".join(f"`{name}`" for name in item["source_members"])
         state = f"{item['status']} / {item['profile']}"
         span = (f"0100h--{item['load_end']:04X}h; "
                 f"{item['tpa_bytes_after_image']:,} B remain")
+        static_proof = "not admitted"
+        if item["status"] == "shipped":
+            components = item["static_8080"]["components"]
+            code = sum(component["reachable_code_bytes"]
+                       for component in components)
+            static_proof = f"{len(components)} component(s), {code:,} code B"
         lines.append(
             f"| `{item['name']}` | {state} | {item['source_language']}: "
-            f"{sources} | {item['bytes']:,} | {span} | {item['cpm3_test']} |"
+            f"{sources} | {item['bytes']:,} | {span} | {static_proof} | "
+            f"{item['cpm3_test']} |"
         )
     lines.extend([
         "",

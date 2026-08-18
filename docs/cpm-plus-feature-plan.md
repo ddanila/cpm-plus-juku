@@ -501,6 +501,18 @@ hashes, every source member and binary, the 20--30 entry bound, profile/status
 consistency, and the admitted full-profile set; mutations to each boundary are
 required to fail. `make utility-catalogue-check` is part of `make check`.
 
+Static-instruction slice completed on 2026-08-18: every one of the 13 admitted
+DRI executables has a complete, canonical flow-aware 8080 listing and a pinned
+listing hash. The gate rejects reachable undocumented/Z80 aliases, direct
+hardware I/O, arbitrary external transfers, and unannotated indirect control
+flow. Exact source-backed policies cover PL/M `DO CASE` tables, PATCH's
+non-returning `STOP`, and the executable components hidden by CP/M 3 container
+formats. In particular, it separately audits the normal transient and RSX in
+GENCOM-built `SET`/`SUBMIT`, plus SID's relocator and linked debugger module;
+unused annotations fail so a stale exception cannot quietly weaken coverage.
+The binary archive hash still accounts for every header, relocation bitmap,
+padding byte, and data byte outside those executable paths.
+
 The shared C simulator now records actual instruction fetches, not byte-pattern
 guesses, over `0100h..99FFh`. The distribution regression requires nonzero TPA
 execution with zero fetched Z80 prefixes and zero undocumented 8080 aliases

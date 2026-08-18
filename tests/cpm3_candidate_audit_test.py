@@ -5,10 +5,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
-from pathlib import Path
 import shutil
 import tempfile
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "tools/audit_cpm3_candidates.py"
@@ -86,6 +85,23 @@ def main() -> int:
                           "outside planned range")
 
         module.CATALOGUE = ROOT / "third_party/cpm3/releases/candidates.json"
+        static_path = directory / "static-8080.json"
+        static = json.loads(module.STATIC_AUDIT.read_text())
+        static["programs"]["DATE.COM"]["components"][0]["evidence"][
+            "reachable_code_bytes"
+        ] += 1
+        static_path.write_text(json.dumps(static))
+        module.STATIC_AUDIT = static_path
+        try:
+            module.audit()
+        except ValueError as error:
+            if "static 8080 evidence differs" not in str(error):
+                raise AssertionError(f"wrong static-audit rejection: {error}")
+        else:
+            raise AssertionError("mutated static 8080 evidence was accepted")
+
+        module.STATIC_AUDIT = \
+            ROOT / "third_party/cpm3/releases/static-8080.json"
         binary = directory / module.BINARY_ARCHIVE.name
         shutil.copyfile(module.BINARY_ARCHIVE, binary)
         data = bytearray(binary.read_bytes())

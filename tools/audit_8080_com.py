@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -224,17 +225,89 @@ def decode(image: bytes, address: int, origin: int = ORIGIN) -> Instruction:
     return Instruction(address, opcode, raw, text)
 
 
-def audit_bytes(image: bytes, *, origin: int = ORIGIN) -> tuple[dict, str]:
+def audit_bytes(
+    image: bytes,
+    *,
+    origin: int = ORIGIN,
+    entry_points: Iterable[int] | None = None,
+    indirect_targets: Mapping[int, Iterable[int]] | None = None,
+    indirect_external_targets: Mapping[int, Mapping[int, str]] | None = None,
+    dynamic_indirect_exits: Mapping[int, str] | None = None,
+    dynamic_indirect_calls: Mapping[
+        int, tuple[Iterable[int], str]
+    ] | None = None,
+    dynamic_direct_exits: Mapping[int, str] | None = None,
+    noreturn_targets: Mapping[int, str] | None = None,
+) -> tuple[dict, str]:
     if not image:
         raise AuditError("COM image is empty")
     if origin + len(image) > 0x10000:
         raise AuditError("COM image exceeds the 8080 address space")
 
+    entries = tuple(entry_points if entry_points is not None else (origin,))
+    indirect = {
+        address: tuple(targets)
+        for address, targets in (indirect_targets or {}).items()
+    }
+    indirect_external = {
+        address: dict(targets)
+        for address, targets in (indirect_external_targets or {}).items()
+    }
+    dynamic = dict(dynamic_indirect_exits or {})
+    dynamic_calls = {
+        address: (tuple(value[0]), value[1])
+        for address, value in (dynamic_indirect_calls or {}).items()
+    }
+    dynamic_direct = dict(dynamic_direct_exits or {})
+    noreturn = dict(noreturn_targets or {})
+    for label, addresses in (
+        ("entry point", entries),
+        ("indirect-transfer site", indirect),
+        ("indirect-external-transfer site", indirect_external),
+        ("dynamic-indirect-exit site", dynamic),
+        ("dynamic-indirect-call site", dynamic_calls),
+        ("dynamic-direct-exit site", dynamic_direct),
+        ("non-returning target", noreturn),
+    ):
+        for address in addresses:
+            if not origin <= address < origin + len(image):
+                raise AuditError(
+                    f"{label} {address:04X}h is outside the audited image",
+                )
+    if len(entries) != len(set(entries)):
+        raise AuditError("duplicate audit entry point")
+    if (set(indirect) | set(indirect_external)) & \
+            (set(dynamic) | set(dynamic_calls)):
+        raise AuditError("PCHL site has both bounded and dynamic policies")
+    if set(dynamic) & set(dynamic_calls):
+        raise AuditError("PCHL site has both dynamic exit and call policies")
+    if any(not targets for targets in indirect.values()):
+        raise AuditError("bounded PCHL policy has no targets")
+    if any(not targets for targets in indirect_external.values()):
+        raise AuditError("external PCHL policy has no targets")
+    if any(not continuations for continuations, _ in dynamic_calls.values()):
+        raise AuditError("dynamic PCHL call has no return continuation")
+    if any(not reason.strip() for reason in (
+        *dynamic.values(), *(value[1] for value in dynamic_calls.values()),
+        *dynamic_direct.values(), *noreturn.values(),
+        *(reason for targets in indirect_external.values()
+          for reason in targets.values()),
+    )):
+        raise AuditError("source-backed policy rationale is empty")
+
     instructions: dict[int, Instruction] = {}
     occupied: dict[int, int] = {}
-    pending = [origin]
+    pending = list(entries)
     dependencies: set[str] = set()
     approved_indirect_returns = 0
+    used_indirect: set[int] = set()
+    used_indirect_external: set[int] = set()
+    used_dynamic: set[int] = set()
+    used_dynamic_calls: set[int] = set()
+    used_dynamic_direct: set[int] = set()
+    used_noreturn: set[int] = set()
+    bdos_system_resets = 0
+    bdos_tail_calls = 0
 
     def add_control_target(target: int, source: Instruction, kind: str) -> None:
         if origin <= target < origin + len(image):
@@ -245,6 +318,9 @@ def audit_bytes(image: bytes, *, origin: int = ORIGIN) -> tuple[dict, str]:
             return
         if target == 0x0005 and kind == "call":
             dependencies.add("0005h CP/M BDOS call gate")
+            return
+        if target == 0x0005 and kind == "jump":
+            dependencies.add("0005h CP/M BDOS tail-call gate")
             return
         raise AuditError(
             f"unapproved external {kind} from {source.address:04X}h "
@@ -284,10 +360,37 @@ def audit_bytes(image: bytes, *, origin: int = ORIGIN) -> tuple[dict, str]:
         opcode = instruction.opcode
         follow_next = True
         if opcode == 0xC3 or opcode in CONDITIONAL_JUMPS:
+            if address in dynamic_direct:
+                if opcode != 0xC3:
+                    raise AuditError(
+                        f"conditional jump at dynamic direct-exit site "
+                        f"{address:04X}h",
+                    )
+                used_dynamic_direct.add(address)
+                follow_next = False
+                continue
             add_control_target(instruction.word, instruction, "jump")
+            if opcode == 0xC3 and instruction.word == 0x0005:
+                bdos_tail_calls += 1
             follow_next = opcode in CONDITIONAL_JUMPS
         elif opcode == 0xCD or opcode in CONDITIONAL_CALLS:
             add_control_target(instruction.word, instruction, "call")
+            if opcode == 0xCD and instruction.word == 0x0005:
+                # DRI's common 8080 startup exits through BDOS function 0,
+                # immediately followed by an unreachable 8086 INT 20h guard.
+                # Recognise only the adjacent MVI C,00h sequence.
+                previous = instructions.get(address - 2)
+                if previous is not None and previous.raw == bytes((0x0E, 0)):
+                    bdos_system_resets += 1
+                    follow_next = False
+            if instruction.word in noreturn:
+                if opcode != 0xCD:
+                    raise AuditError(
+                        f"conditional call to annotated non-returning target "
+                        f"{instruction.word:04X}h at {address:04X}h",
+                    )
+                used_noreturn.add(instruction.word)
+                follow_next = False
         elif opcode == 0xC9:
             follow_next = False
         elif opcode in CONDITIONAL_RETURNS:
@@ -299,16 +402,39 @@ def audit_bytes(image: bytes, *, origin: int = ORIGIN) -> tuple[dict, str]:
             follow_next = vector != 0
         elif opcode == 0xE9:
             previous = instructions.get(address - 1)
-            if previous is None or previous.opcode != 0xE3:
+            if previous is not None and previous.opcode == 0xE3:
+                # z88dk's 8080 callee-cleanup helper loads the caller's return
+                # address, exchanges it with the stack top, then uses PCHL as
+                # an indirect RET. Accept only that exact terminator.
+                approved_indirect_returns += 1
+                follow_next = False
+            elif address in indirect or address in indirect_external:
+                if address in indirect:
+                    used_indirect.add(address)
+                for target in indirect.get(address, ()):
+                    add_control_target(target, instruction, "jump")
+                if address in indirect_external:
+                    used_indirect_external.add(address)
+                    for target, reason in indirect_external[address].items():
+                        dependencies.add(
+                            f"{target:04X}h indirect external transfer: "
+                            f"{reason}",
+                        )
+                follow_next = False
+            elif address in dynamic_calls:
+                used_dynamic_calls.add(address)
+                continuations, _ = dynamic_calls[address]
+                for target in continuations:
+                    add_control_target(target, instruction, "jump")
+                follow_next = False
+            elif address in dynamic:
+                used_dynamic.add(address)
+                follow_next = False
+            else:
                 raise AuditError(
                     f"unapproved indirect PCHL transfer is reachable at "
                     f"{address:04X}h",
                 )
-            # z88dk's 8080 callee-cleanup helper loads the caller's return
-            # address, exchanges it with the stack top, then uses PCHL as an
-            # indirect RET.  Accept only that exact XTHL/PCHL terminator.
-            approved_indirect_returns += 1
-            follow_next = False
         elif opcode == 0x76:
             follow_next = False
 
@@ -319,6 +445,20 @@ def audit_bytes(image: bytes, *, origin: int = ORIGIN) -> tuple[dict, str]:
                     "of the COM image",
                 )
             pending.append(instruction.next_address)
+
+    unused = []
+    for label, configured, used in (
+        ("bounded PCHL", set(indirect), used_indirect),
+        ("external PCHL", set(indirect_external), used_indirect_external),
+        ("dynamic PCHL", set(dynamic), used_dynamic),
+        ("dynamic PCHL call", set(dynamic_calls), used_dynamic_calls),
+        ("dynamic direct exit", set(dynamic_direct), used_dynamic_direct),
+        ("non-returning target", set(noreturn), used_noreturn),
+    ):
+        for address in sorted(configured - used):
+            unused.append(f"{label} {address:04X}h")
+    if unused:
+        raise AuditError("unused source-backed policy: " + ", ".join(unused))
 
     lines = []
     address = origin
@@ -345,11 +485,62 @@ def audit_bytes(image: bytes, *, origin: int = ORIGIN) -> tuple[dict, str]:
     code_bytes = sum(len(item.raw) for item in instructions.values())
     result = {
         "origin": f"{origin:04X}",
+        "entry_points": [f"{value:04X}" for value in entries],
         "reachable_instructions": len(instructions),
         "reachable_code_bytes": code_bytes,
         "data_bytes": len(image) - code_bytes,
         "approved_runtime_dependencies": sorted(dependencies),
         "approved_xthl_pchl_returns": approved_indirect_returns,
+        "approved_bdos_system_resets": bdos_system_resets,
+        "approved_bdos_tail_calls": bdos_tail_calls,
+        "approved_bounded_pchl": [
+            {
+                "address": f"{address:04X}",
+                "targets": [f"{target:04X}" for target in indirect[address]],
+            }
+            for address in sorted(used_indirect)
+        ],
+        "approved_external_pchl": [
+            {
+                "address": f"{address:04X}",
+                "targets": [
+                    {
+                        "address": f"{target:04X}",
+                        "reason": reason,
+                    }
+                    for target, reason in sorted(
+                        indirect_external[address].items(),
+                    )
+                ],
+            }
+            for address in sorted(used_indirect_external)
+        ],
+        "approved_dynamic_pchl": [
+            {"address": f"{address:04X}", "reason": dynamic[address]}
+            for address in sorted(used_dynamic)
+        ],
+        "approved_dynamic_pchl_calls": [
+            {
+                "address": f"{address:04X}",
+                "return_continuations": [
+                    f"{target:04X}"
+                    for target in dynamic_calls[address][0]
+                ],
+                "reason": dynamic_calls[address][1],
+            }
+            for address in sorted(used_dynamic_calls)
+        ],
+        "approved_dynamic_direct_exits": [
+            {
+                "address": f"{address:04X}",
+                "reason": dynamic_direct[address],
+            }
+            for address in sorted(used_dynamic_direct)
+        ],
+        "approved_noreturn_targets": [
+            {"address": f"{address:04X}", "reason": noreturn[address]}
+            for address in sorted(used_noreturn)
+        ],
         "listing_sha256": hashlib.sha256(listing.encode("ascii")).hexdigest(),
         "forbidden_reachable_opcodes": 0,
         "unapproved_runtime_dependencies": 0,
