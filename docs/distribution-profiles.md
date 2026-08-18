@@ -9,9 +9,9 @@ beside each one:
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
 | `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.5 | 372 KiB | `17751ba06fa5a59836a99b0dd83ea2185186f025cf3dbb650610d16a6e6b5074` |
 | `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 366 KiB | `5b114df3b053af325e8254afd2134997cff180c13c6cfee17645059390367905` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery files plus PIP, SHOW, SET, SETDEF, DEVICE, DATE, SUBMIT, DUMP, HELP | 242 KiB | `0ab1dd7ad43800faa232212f0dc2e684257fb3b705d7d27bda8cc3f795203e2a` |
-| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 224 KiB | `dbc9c88fea3187d0ca3759dd306d7e2a62ff7c13fc6432e8ea423a2223a2168c` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 240 KiB | `256b9ba64dc95cf9e04d91d58518dd162540aef0655b10e1358d3fa14101240b` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery and DRI files plus CRC, CMP, MEM, WC, FIND, STRINGS, and `TOOLS.TXT` | 228 KiB | `7b2f38686409de4f7bf7f050e84357e5f74258c81b0616f6f6ab18aad9063b09` |
+| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 210 KiB | `04c76245f619adc80f9f0dfcc71526fd641c08e3c29d92077c89d2528ce77892` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 226 KiB | `ed580c033d2491a8f30b21c9d24cc7f6753bf9423d929930395a4f06e6e518e1` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
@@ -34,6 +34,9 @@ runs `HEXCOM HELLO`, executes the resulting `HELLO.COM`, enters and quits SID,
 and asks PATCH to enumerate SID's installed patches. This proves the complete
 host-assisted edit/assemble-to-HEX/convert/debug workflow without claiming
 that an original on-target assembler is available from complete source.
+
+The full profile's project utilities are documented and independently
+simulator-admitted in [`project-utilities.md`](project-utilities.md).
 
 ## Build contract
 

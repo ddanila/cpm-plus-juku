@@ -380,6 +380,16 @@ Reads as well as writes can acknowledge, reset, or otherwise disturb real
 peripherals, so direct-I/O diagnostics must use an explicit safe-port list and
 separate destructive operations.
 
+Gap-filling utility slice completed on 2026-08-18: the separately generated
+full/demo/dev profiles now include project-owned `CRC`, `CMP`, `MEM`, `WC`,
+`FIND`, and `STRINGS` commands plus target-side `TOOLS.TXT`. Their exact
+positive and negative behavior runs under the fetched-opcode strict-8080
+simulator gate. MEM is read-only and capped at 40h bytes. Existing STATUS,
+DATE, DIAG PIT, and native TIME tests satisfy the safe timing/clock item; the
+maintained diagnostic suites remain the hardware-port allow-list, so no
+unrestricted or duplicate `PORT` command was added. See
+[`project-utilities.md`](project-utilities.md).
+
 ### Optional development media
 
 - Audit the CP/M 8080 FIG-Forth 1.1 source and its complete notice. If it
@@ -496,7 +506,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
-| 7. Curated software/development | **In progress** | The 23-program source/binary catalogue, strict executable admission of every shipped DRI utility, and reproducible HEXCOM/PATCH/SID development image pass. Exact `cpm-ls`/`HIST` provenance, selected gap-filling tools, FIG-Forth audit, and compiler comparisons remain. |
+| 7. Curated software/development | **In progress** | The 23-program DRI catalogue, every shipped DRI executable, reproducible HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST` decisions, FIG-Forth audit, and compiler comparisons remain. |
 
 `make check` is the complete ordinary desk gate. `make bench-candidate` additionally
 rebuilds the immutable C4 package and proves that incomplete or tampered

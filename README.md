@@ -173,5 +173,6 @@ The authoritative current documents are:
 - [`docs/plan-completion-audit.md`](docs/plan-completion-audit.md)
 - [`docs/cpm-plus-31-c6-simulator.md`](docs/cpm-plus-31-c6-simulator.md)
 - [`docs/distribution-profiles.md`](docs/distribution-profiles.md)
+- [`docs/project-utilities.md`](docs/project-utilities.md)
 - [`docs/cpm3-native-services.md`](docs/cpm3-native-services.md)
 - [`docs/netdisk-performance.md`](docs/netdisk-performance.md)

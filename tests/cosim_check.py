@@ -634,7 +634,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 fourth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: DIAG", flush=True)
                 extra_transcript = run_extra_command()
-                for extra_number in range(2, 17):
+                for extra_number in range(2, 25):
                     extra_transcript += run_extra_command(str(extra_number))
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)

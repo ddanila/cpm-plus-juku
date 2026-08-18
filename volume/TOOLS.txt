@@ -1,0 +1,30 @@
+Juku CP/M Plus full-profile tools
+================================
+
+CRC filename
+  CRC-16/CCITT-FALSE over every 128-byte CP/M record. The final record's
+  on-disk padding is included. Output counts and checksums are hexadecimal.
+
+CMP file1 file2
+  Compare every CP/M record. Reports the first differing record/offset or
+  which file is shorter. An optional A: through P: drive prefix is accepted.
+
+MEM address [length]
+  Read-only hex/ASCII memory view. Address is four hexadecimal digits;
+  length is two hexadecimal digits, defaults to 10h, and is capped at 40h.
+
+WC textfile
+  Count lines, words, and bytes through the CP/M text EOF byte (1Ah).
+  Counts are six-digit hexadecimal values.
+
+FIND textfile token
+  Print lines containing a case-insensitive token and report the hexadecimal
+  match count. The token is limited to 31 characters and lines to 120.
+
+STRINGS filename
+  Print ASCII runs of at least four characters from all physical file
+  records. Unlike text tools, 1Ah is treated as an ordinary binary byte.
+
+STATUS, DIAG, and DATE already provide system, safe hardware, timing, and
+host-clock information. No unrestricted port-access tool is shipped because
+even reads can acknowledge or reset Juku peripherals.

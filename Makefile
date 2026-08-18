@@ -144,6 +144,21 @@ distribution-cosim-check: all
 	CPM_PLUS_JUKU_EXTRA_MARKER9='Illegal time/date specification' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND10='SUBMIT MISSING' \
 	CPM_PLUS_JUKU_EXTRA_MARKER10="No 'SUB' File Found" \
+	CPM_PLUS_JUKU_EXTRA_COMMAND11='CRC README.TXT' \
+	CPM_PLUS_JUKU_EXTRA_MARKER11='CRC16-CCITT: 4613  records: 0004' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND12='CMP CRC.COM CRC.COM' \
+	CPM_PLUS_JUKU_EXTRA_MARKER12='files are identical' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND13='CMP CRC.COM README.TXT' \
+	CPM_PLUS_JUKU_EXTRA_MARKER13='difference at record 0000 offset 00' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND14='MEM 0100 10' \
+	CPM_PLUS_JUKU_EXTRA_MARKER14='0100: 11 82 02 CD 5A 02 3A 80 00 47 21 81 00 CD FE 01' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND15='WC README.TXT' \
+	CPM_PLUS_JUKU_EXTRA_MARKER15='WC (hex): lines 000014  words 00003B  bytes 0001FA' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND16='FIND README.TXT Juku' \
+	CPM_PLUS_JUKU_EXTRA_MARKER16='FIND: 04' \
+	CPM_PLUS_JUKU_EXTRA_MARKERS16='host-backed NetDisk-v3|Shared non-destructive Juku diagnostics|Project: https://github.com/ddanila/cpm-plus-juku' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND17='STRINGS README.TXT' \
+	CPM_PLUS_JUKU_EXTRA_MARKER17='host-backed NetDisk-v3' \
 	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
 
@@ -647,6 +662,24 @@ $(BUILD)/nativecheck.cim: src/nativecheck.asm $(ZMAC) | $(BUILD)
 $(BUILD)/status.cim: src/status.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/crc.cim: src/crc.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/cmp.cim: src/cmp.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/mem.cim: src/mem.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/wc.cim: src/wc.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/find.cim: src/find.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/strings.cim: src/strings.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
 $(BUILD)/keytest.cim: src/keytest.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
@@ -713,7 +746,9 @@ $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) &: \
 
 $(FULL_VOLUME) $(FULL_REPORT) &: third_party/cpm3/ccp.com \
 		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim \
-		$(BUILD)/keytest.cim volume/README.txt \
+		$(BUILD)/keytest.cim $(BUILD)/crc.cim $(BUILD)/cmp.cim \
+		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
+		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
 		$(BUILD)/cpm3-utilities/manifest.json volume/profiles/full.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/full.json \
@@ -733,7 +768,9 @@ $(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
 
 $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
 		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim \
-		$(BUILD)/keytest.cim volume/README.txt \
+		$(BUILD)/keytest.cim $(BUILD)/crc.cim $(BUILD)/cmp.cim \
+		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
+		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
 		volume/PROFILE.sub $(BUILD)/cpm3-utilities/manifest.json \
 		volume/profiles/full.json volume/profiles/demo.json \
 		tools/build_volume.py diskdefs | $(OUT)
