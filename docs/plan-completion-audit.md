@@ -1,6 +1,6 @@
 # CP/M Plus and network-first ROM completion audit
 
-Audit date: **2026-08-18**
+Audit date: **2026-08-19**
 
 Scope: priorities 0--7 of
 [`cpm-plus-feature-plan.md`](cpm-plus-feature-plan.md) and every requirement in
@@ -25,7 +25,7 @@ gate; it is not a substitute for the broader Priority-7 admission matrix.
 | step | requirement | authoritative evidence | result |
 | ---: | --- | --- | --- |
 | 1 | Freeze stock/RAM-BIOS reference and reproducible artifacts | `verify-prebuilt`, C4 package checks, C5 pinned ROM/system hashes, `tests/c5_boot_manifest_test.py` | Complete; C6 rebuild proves C5 ROM and system byte identity. |
-| 2 | Native compact console in RAM, exact fonts, cursor, four modes | `creep_console_oracle.py`, `tests/console_font_test.py`, `tests/cosim_check.py`, four 9,600-byte framebuffer comparisons | Complete; local output is the behavioral oracle for ROM. |
+| 2 | Native compact console in RAM, exact fonts, cursor, four modes | `creep_console_oracle.py`, `vidtest_oracle.py`, `VIDTEST.COM`, seven live C6 cases and sixteen independent 9,600-byte surface pairs | Complete at desk; four analog display observations remain a separate physical gate. |
 | 3 | 6 KiB/10 KiB inventory and call/size budget | `tools/rom_budget.py --check`, generated ROM metadata | Complete; both windows and copied-helper/gate sizes fail closed. |
 | 4 | Fixed versioned ABI and safe call gate | `juku-common/platform/ROM-ABI.md`, `sync/network_first_rom_abi_check.sh`, `tests/network_first_rom_{abi,locale,extended}_test.py` | Complete through ABI 1.2; full fixed vector map, register/stack/DI/PIC/memory-mode/overlay checks pass. |
 | 5 | Automatic 19,200-baud keyless boot, quick POST, identity-free host | `tests/network_first_rom_boot_test.py`, real C6 CP/M cosimulation, generated stage dictionary | Complete; valid host reaches `A>` and missed/absent/corrupt host paths retry without a required reset. |
@@ -59,7 +59,7 @@ gate; it is not a substitute for the broader Priority-7 admission matrix.
 | 4 | Shared safe diagnostics and observability | Diag 0.5, Status 1.3, retained D610h..D613h record, operations 24h/25h/27h, generated memory map | Complete; destructive live-CP/M tests are explicitly rejected. |
 | 5 | Measured NetDisk performance and safe media | pinned 10/0/1 request counts, per-drive cache fixture, capability operation 26h, multi-request fixture, copy/snapshot/read-only tests, long write/reconnect soak | Complete for selected synchronous design. |
 | 6 | Manifest, identity-free media, fallback slots and recovery | C6 boot manifest, last-known-good tests, C4 fallback, reproducible package | Complete. |
-| 7 | Curated strict-8080 software and development environment | generated 23-program catalogue, full/development profile reports, static component listings, current-C6 full/dev cosimulation, runtime-memory manifest, external/compiler audits and negative tests | Complete; 13 admitted DRI programs and six project tools execute on the C6 native path, while every rejected or deferred candidate has a measured disposition. |
+| 7 | Curated strict-8080 software and development environment | generated 23-program catalogue, full/development profile reports, static component listings, current-C6 full/dev/video cosimulation, runtime-memory manifest, external/compiler audits and negative tests | Complete; 13 admitted DRI programs, six gap tools, and VIDTEST execute on the C6 native path, while every rejected or deferred candidate has a measured disposition. |
 
 ## Priority 7 admission evidence
 
@@ -70,7 +70,7 @@ gate; it is not a substitute for the broader Priority-7 admission matrix.
 | Static Intel-8080 proof | canonical flow-aware component listings and `audit_8080_com.py` policies | Complete for all 13 admitted DRI programs, including GENCOM RSXs and SID's relocated component; forbidden opcodes, I/O, transfers, and stale annotations fail closed. |
 | Useful execution on current C6 | `distribution-cosim-check`, `development-cosim-check`, fetched-opcode counters and exact artifact identities in each metrics file | Complete; all admitted DRI programs return to CCP on the ABI 1.2 ROM/extended V16 system with zero fetched Z80 prefixes or undocumented aliases. |
 | Disk and runtime memory admission | `third_party/cpm3/releases/runtime-memory.json`, `cpm3-runtime-memory.md`, eight negative mutations | Complete; exact C6 ROM/system/Fastboot hashes, allocation, transient/RSX placement, command-scoped stack segments, and 39,168-byte TPA headroom are bound for all 13 programs. |
-| Project-owned gap tools | `project-utilities.md` and the full-profile simulator matrix | Complete for `CRC`, `CMP`, bounded read-only `MEM`, `WC`, `FIND`, and `STRINGS`; existing STATUS/DATE/DIAG/TIME cover machine and clock needs. |
+| Project-owned tools | `project-utilities.md`, `cpm3-video-acceptance.md`, and the full-profile simulator matrix | Complete for the six gap tools `CRC`, `CMP`, bounded read-only `MEM`, `WC`, `FIND`, and `STRINGS`, plus strict-8080 `VIDTEST`; existing STATUS/DATE/DIAG/TIME cover machine and clock needs. |
 | DRI development workflow | `cpm3-development-tools.md`, byte-exact rebuild gate, edit/save/readback simulation | Complete; ED, HEXCOM, PATCH, and SID form the admitted hybrid workflow, while ASM/LOAD absence and host-only MAC/RMAC/DRLINK are explicit. |
 | External candidates | `external-software-audit.md`, pinned revisions/patches/results and negative tests | Complete decisions: `cpm-ls` passes but is deferred on measured NetDisk/TPA cost; HIST is rejected for absent source/license; FIG-Forth core passes but its incomplete package is deferred. |
 | Host compiler experiments | `experiments/compiler-comparison/results.json`, exact Millfork/z88dk fixtures, strict rebuild/simulator records | Complete; Millfork is the preferred future high-level experiment, z88dk remains a portability probe, hand-written 8080 assembly remains production, and `uplm80` is rejected for Z80 output. |

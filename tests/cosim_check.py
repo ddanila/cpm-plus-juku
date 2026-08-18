@@ -51,6 +51,7 @@ LD80 = ROOT / "build" / "bin" / "ld80"
 ZX0 = ROOT / "build" / "bin" / "zx0"
 sys.path.insert(0, str(COSIM / "tools"))
 sys.path.insert(0, str(COMMON / "tools"))
+sys.path.insert(0, str(ROOT / "tools"))
 
 from janet_disk_server import juku_image_to_volume, serve_disk  # noqa: E402
 from janet_fastboot import serve_fast  # noqa: E402
@@ -58,6 +59,7 @@ from creep_console_oracle import (  # noqa: E402
     main as check_console_font,
     render_transcript as render_console_transcript,
 )
+from vidtest_oracle import framebuffer as vidtest_framebuffer  # noqa: E402
 
 ram_console_reference: bytes | None = None
 
@@ -288,11 +290,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         fastboot: Path = FASTBOOT, system: Path = SYSTEM,
         expect_disk_failure: str | None = None,
         network_rom: bool = False, disk_fault: str | None = None,
-        video_mode: int = 3, remote_console: bool = False,
+        video_mode: int = 3, locale: int | None = None,
+        remote_console: bool = False,
         drive_b: Path | None = DRIVE_B) -> None:
     require(not network_rom or direct_core,
             "network ROM requires direct-core fastboot")
     require(video_mode in range(4), "video mode must be 0..3")
+    require(locale is None or locale in range(4), "locale must be 0..3")
     require(
         not remote_console or (
             direct_core and not expect_disk_failure and disk_fault is None
@@ -340,6 +344,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         case_name += f"-{disk_fault}"
     if video_mode != 3:
         case_name += f"-video{video_mode}"
+    if locale is not None:
+        case_name += f"-locale{locale}"
     if remote_console:
         case_name += "-remote-console"
     expected_profile = os.environ.get("CPM_PLUS_JUKU_EXPECT_PROFILE")
@@ -357,9 +363,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     console_master, console_slave = pty.openpty()
     tty.setraw(console_slave)
     environment = os.environ.copy()
-    s21_raw = (video_mode << 1) | int(
-        os.environ.get("CPM_PLUS_JUKU_S21_EXTRA", "0"), 0,
-    )
+    s21_extra = int(os.environ.get("CPM_PLUS_JUKU_S21_EXTRA", "0"), 0)
+    if locale is not None:
+        s21_extra = (s21_extra & ~0x18) | (locale << 3)
+    active_locale = (s21_extra >> 3) & 3
+    s21_raw = (video_mode << 1) | s21_extra
     environment.update(
         JUKU_USART_PTY=os.ttyname(slave),
         JUKU_CONSOLE_PTY=os.ttyname(console_slave),
@@ -593,9 +601,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     str(default_command_timeout),
                 ))
 
-                def capture_transient_stack() -> dict[str, int]:
+                def request_checkpoint() -> tuple[dict[str, str], bytes]:
                     nonlocal checkpoint_generation
-                    nonlocal last_captured_program_start
                     process.send_signal(signal.SIGUSR1)
                     deadline = time.monotonic() + 5
                     checkpoint_state: dict[str, str] = {}
@@ -616,9 +623,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         time.sleep(0.01)
                     else:
                         raise AssertionError(
-                            "simulator did not produce an on-demand "
-                            "transient-stack checkpoint",
+                            "simulator did not produce an on-demand checkpoint",
                         )
+                    return checkpoint_state, (case / "final.ram").read_bytes()
+
+                def capture_transient_stack() -> dict[str, int]:
+                    nonlocal last_captured_program_start
+                    checkpoint_state, _ram = request_checkpoint()
                     program_start = int(checkpoint_state.get(
                         "tpa_program_starts", "0",
                     ))
@@ -670,6 +681,56 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             ],
                         ),
                     }
+
+                def capture_vidtest() -> None:
+                    expected = {
+                        "hidden": vidtest_framebuffer(
+                            video_mode, active_locale, cursor=False,
+                        ),
+                        "visible": vidtest_framebuffer(
+                            video_mode, active_locale, cursor=True,
+                        ),
+                    }
+                    seen: set[str] = set()
+                    samples = 0
+                    last_screen = b""
+                    deadline = time.monotonic() + 8
+                    # The output hook observes the last marker byte at CONOUT
+                    # entry. Let that final cell finish before checkpointing.
+                    time.sleep(0.05)
+                    while time.monotonic() < deadline and len(seen) < 2:
+                        _state, checkpoint_ram = request_checkpoint()
+                        last_screen = checkpoint_ram[0xD800:0xD800 + 9600]
+                        samples += 1
+                        for phase, frame in expected.items():
+                            if last_screen == frame:
+                                seen.add(phase)
+                                (case / f"vidtest-{phase}.bin").write_bytes(
+                                    last_screen,
+                                )
+                        if len(seen) < 2:
+                            time.sleep(0.04)
+                    if len(seen) != 2:
+                        differences = {
+                            phase: next((
+                                index for index, pair in enumerate(
+                                    zip(last_screen, frame)
+                                ) if pair[0] != pair[1]
+                            ), None)
+                            for phase, frame in expected.items()
+                        }
+                        raise AssertionError(
+                            "VIDTEST did not reproduce both exact cursor "
+                            f"phases for mode {video_mode}/locale "
+                            f"{active_locale}; seen={sorted(seen)} "
+                            f"samples={samples} first_differences="
+                            f"{differences}",
+                        )
+                    print(
+                        f"COSIM {case.name}: VIDTEST exact hidden/visible "
+                        f"frames ({samples} checkpoints)",
+                        flush=True,
+                    )
 
                 def run_extra_command(suffix: str = "") -> bytes:
                     command_name = f"CPM_PLUS_JUKU_EXTRA_COMMAND{suffix}"
@@ -763,6 +824,14 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         response += read_until(
                             ready_marker.encode("ascii"), command_timeout,
                         )
+                        if os.environ.get(
+                            "CPM_PLUS_JUKU_CAPTURE_VIDTEST", "0",
+                        ) == "1":
+                            require(
+                                command == "VIDTEST",
+                                "VIDTEST capture was armed for another command",
+                            )
+                            capture_vidtest()
                         input_delay = float(os.environ.get(
                             input_delay_name, "0",
                         ))
@@ -1377,7 +1446,7 @@ def main() -> None:
     require(selected in (
         "both", "direct", "stock", "network", "network-smoke",
         "network-compound", "network-soak", "network-remote", "video",
-        "remote", "distribution", "all",
+        "vidtest", "remote", "distribution", "all",
     ),
             f"invalid CPM_PLUS_JUKU_BOOT_PATH={selected!r}")
     paths = (True, False) if selected in ("both", "all") else \
@@ -1411,6 +1480,16 @@ def main() -> None:
         if selected == "video":
             for video_mode in video_modes:
                 run(trace, work, direct_core=True, video_mode=video_mode)
+            return
+        if selected == "vidtest":
+            for video_mode, locale in (
+                (0, 0), (1, 0), (2, 0), (3, 0),
+                (3, 1), (3, 2), (3, 3),
+            ):
+                run(
+                    trace, work, direct_core=True, network_rom=True,
+                    video_mode=video_mode, locale=locale,
+                )
             return
         if selected == "remote":
             run(trace, work, direct_core=True, remote_console=True)
@@ -1477,6 +1556,16 @@ def main() -> None:
         if selected == "video":
             for video_mode in video_modes:
                 run(trace, work, direct_core=True, video_mode=video_mode)
+            return
+        if selected == "vidtest":
+            for video_mode, locale in (
+                (0, 0), (1, 0), (2, 0), (3, 0),
+                (3, 1), (3, 2), (3, 3),
+            ):
+                run(
+                    trace, work, direct_core=True, network_rom=True,
+                    video_mode=video_mode, locale=locale,
+                )
             return
         if selected == "remote":
             run(trace, work, direct_core=True, remote_console=True)

@@ -7,11 +7,11 @@ beside each one:
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
-| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.5 | 372 KiB | `17751ba06fa5a59836a99b0dd83ea2185186f025cf3dbb650610d16a6e6b5074` |
-| `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 366 KiB | `5b114df3b053af325e8254afd2134997cff180c13c6cfee17645059390367905` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery and DRI files plus CRC, CMP, MEM, WC, FIND, STRINGS, and `TOOLS.TXT` | 228 KiB | `7b2f38686409de4f7bf7f050e84357e5f74258c81b0616f6f6ab18aad9063b09` |
-| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus ED, HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 200 KiB | `8c2f73be49a3f26b49da89a3cd9511edea1510625c83da04bc9eac76b406bd10` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 226 KiB | `ed580c033d2491a8f30b21c9d24cc7f6753bf9423d929930395a4f06e6e518e1` |
+| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.5 | 372 KiB | `03486d06284fcf0a0fbc541b19b7ee448311a07862f143a744525f8094331b13` |
+| `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 366 KiB | `fcae1532759c6f8a93e81404fd8656e2f4c4b8efb4853e1c467da174b7f2513c` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery and DRI files plus CRC, CMP, MEM, WC, FIND, STRINGS, VIDTEST, and `TOOLS.TXT` | 226 KiB | `44ea124201d70e6519768182edd118d5876306a4bd7c64487f53e979ebc6f1ff` |
+| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus ED, HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 198 KiB | `9ef550a139acb3e2c10bcdd31ba2b8957b3c242617300772f6add660f03939a6` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 224 KiB | `b1764b55365c190c61d2a778be39e207b0257166581daaada578f7d85f6c422e` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
@@ -39,6 +39,8 @@ workflow without claiming that a source-complete on-target assembler exists.
 
 The full profile's project utilities are documented and independently
 simulator-admitted in [`project-utilities.md`](project-utilities.md).
+Its deterministic display utility and physical procedure are documented in
+[`cpm3-video-acceptance.md`](cpm3-video-acceptance.md).
 
 ## Build contract
 
@@ -86,6 +88,7 @@ Run the complete distribution gates with:
 make distribution-check
 make distribution-cosim-check
 make development-cosim-check
+make vidtest-cosim-check
 ```
 
 ## Initial command policy

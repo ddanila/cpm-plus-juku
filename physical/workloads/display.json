@@ -1,0 +1,28 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "display",
+  "volume_profile": "full-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": ["VIDTEST.COM"],
+  "commands": [
+    {
+      "name": "vidtest",
+      "command": "VIDTEST",
+      "steps": [
+        {
+          "wait": "VIDTEST READY",
+          "delay": 60,
+          "send_hex": "0d"
+        }
+      ],
+      "expect": [
+        "Juku Vidtest 1.0",
+        "Mode ",
+        "Locale ",
+        "VIDTEST READY",
+        "Juku Vidtest 1.0 DONE"
+      ],
+      "coverage": ["VIDTEST.COM"]
+    }
+  ]
+}

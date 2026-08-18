@@ -1,7 +1,7 @@
 # CP/M Plus physical acceptance runner
 
-`tools/physical_acceptance.py` is the C6 acceptance path for the full and
-development distributions. It is separate from the immutable C4 promotion
+`tools/physical_acceptance.py` is the C6 acceptance path for the full,
+development, and display workloads. It is separate from the immutable C4 promotion
 recorder: C4 retains its historical candidate, checklist, and hashes, while
 this runner binds each new physical run to the current post-C6 loaded system
 and the unchanged C6 ROM.
@@ -20,15 +20,21 @@ accepted only when the N4 transcript also contains every expected target
 reply and the final CCP prompt for every command. Disk traffic alone cannot
 turn a command into a pass.
 
-The full workload runs 29 commands covering all 19 admitted full-profile and
-project utilities. It includes paginated reads, Status, buffered Keytest,
+The full workload runs 29 commands covering all 19 nonvisual acceptance
+programs. It includes paginated reads, Status, buffered Keytest,
 every admitted DRI utility, both four-record PIP/CRC copies, the nonzero-user
 warm boot, and native B:. The development workload runs the baseline plus all
 four admitted development programs, including scripted SID and ED sessions.
-The declarative definitions are:
+The display workload boots the full image, runs `VIDTEST`, retains its complete
+mode/locale transcript, leaves the page visible for 60 seconds, exits it, and
+requires the returned CCP prompt. It automates target evidence but cannot
+replace the human analog-display observation described in
+[`cpm3-video-acceptance.md`](cpm3-video-acceptance.md). The declarative
+definitions are:
 
 - `physical/workloads/full.json`;
-- `physical/workloads/development.json`.
+- `physical/workloads/development.json`;
+- `physical/workloads/display.json`.
 
 Every `Press RETURN to Continue` is handled automatically. Interactive input
 steps are explicit hex payloads in the workload, recorded by hash, and sent
@@ -53,6 +59,12 @@ Then run the development image in a separate session:
 
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 --profile development --output out/physical-CS00015-development
+```
+
+For one display mode (repeat with the four documented S21 settings):
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 --profile display --output out/physical-CS00015-display-40x24
 ```
 
 The default 30-minute operator wait is a host-side bench policy. It prevents a
@@ -96,7 +108,7 @@ status, or post-run volume invalidates the result.
 
 `make physical-acceptance-check` exercises paging, interactive input, timeout
 diagnostics, a complete fake-host lifecycle, clean shutdown, evidence audit,
-tamper rejection, both real workload definitions, and the current C6 manifest.
+tamper rejection, all three real workload definitions, and the current C6 manifest.
 The already established exact-C6 full and development cosim suites remain the
 runtime authority until the two corresponding CS00015 result directories have
 also passed this physical audit.

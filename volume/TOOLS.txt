@@ -25,6 +25,10 @@ STRINGS filename
   Print ASCII runs of at least four characters from all physical file
   records. Unlike text tools, 1Ah is treated as an ordinary binary byte.
 
+VIDTEST
+  Draw the S21-selected screen boundary, ASCII, active locale, and CP437 UI
+  samples. The real underline cursor keeps blinking; press any key to exit.
+
 STATUS, DIAG, and DATE already provide system, safe hardware, timing, and
 host-clock information. No unrestricted port-access tool is shipped because
 even reads can acknowledge or reset Juku peripherals.

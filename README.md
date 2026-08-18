@@ -125,6 +125,7 @@ make utility-catalogue-check development-tool-audit-check
 make external-software-audit-check
 make compiler-comparison-check
 make physical-acceptance-check
+make vidtest-cosim-check
 ```
 
 ## Generated outputs
@@ -163,7 +164,7 @@ must be byte-identical.
   synchronous write-through and invalidate cache before their first attempt.
 - A: defaults read-only with explicit copy/snapshot/write-through modes; B:
   remains read-only and uses native Juku cylinder/head geometry.
-- `STATUS`, `DIAG`, `KEYTEST`, `KEYRAW`, `SOAK`, and `N4BULK` provide bounded
+- `STATUS`, `DIAG`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`, and `N4BULK` provide bounded
   target and machine-readable observability.
 
 Measured recovery-A request counts remain 10/0/1 for boot/first `DIR`/`TYPE`.
@@ -196,4 +197,5 @@ The authoritative current documents are:
 - [`docs/cpm3-native-services.md`](docs/cpm3-native-services.md)
 - [`docs/cpm3-pip-warm-boot-fix.md`](docs/cpm3-pip-warm-boot-fix.md)
 - [`docs/cpm3-physical-acceptance.md`](docs/cpm3-physical-acceptance.md)
+- [`docs/cpm3-video-acceptance.md`](docs/cpm3-video-acceptance.md)
 - [`docs/netdisk-performance.md`](docs/netdisk-performance.md)

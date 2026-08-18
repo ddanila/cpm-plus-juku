@@ -644,6 +644,35 @@ baud rates, write-back caching, authenticated boot, and banked CP/M Plus remain
 separately named research projects rather than implicit extensions of this
 baseline.
 
+### Current decisions and next actions
+
+No new EPROM is required for the remaining M1--M3 acceptance work: C6 already
+contains the required ROM ABI, while the corrected system, physical runner,
+and `VIDTEST.COM` are network-loaded. Proceed in this order:
+
+1. run the full M2 workload on CS00015 and retain its passing evidence bundle;
+   this also closes M1 by exercising the corrected four-record PIP copy and
+   checking CRC `4613`;
+2. run the development M2 workload and retain its independent evidence bundle;
+3. when a working display is available, run the M3 display workload once in
+   each of the four S21 video modes and record geometry, cursor behavior,
+   cropping, monitor identity, and photographs;
+4. only then start M4 with a fresh measured baseline for cold login, first A:,
+   first B:, alternating drives, sequential reads, and synchronous writes;
+5. start M5 with a strict-8080 command-history prototype and a concrete
+   pseudographic text-interface tool, admitting either only after the same
+   source, license, size, memory, and exact-C6 execution gates as current
+   utilities;
+6. keep M6 work machine-specific: investigate CS00000's USART and CS00024's
+   RAM/refresh/D57 evidence only on those machines, without changing CS00015's
+   known-good reference behavior.
+
+M4 and M5 should normally remain network-loaded system/media changes. A C7 ROM
+is justified only when a measured improvement requires a new resident service
+or ABI and cannot be implemented safely by the host, BIOS, or transient
+program. Do not spend physical runs on catalogue exploration or changes that
+have not already passed the simulator and fault-injection gates.
+
 The repository-wide M1 regression also made the C4 build boundary explicit:
 the stock-ROM/RAM-BIOS and network-ROM C4 system/V15 pairs are consumed from
 their hash-checked prebuilt files, whose source boundary is cpm-plus-juku
@@ -750,8 +779,10 @@ Status on 2026-08-19:
   records byte-addressed target replies and host lifecycle evidence, preserves
   timeout diagnostics, shuts the host down cleanly, and independently audits
   retained results. One full and one development CS00015 run remain.
-- M3 is the next display-dependent goal. It is desk-testable first, but final
-  acceptance waits for a working external display.
+- M3's desk implementation is complete. `VIDTEST.COM` is admitted to the
+  full/dev/demo media, all sixteen oracle surfaces are deterministic, and the
+  exact C6 executable passes seven live geometry/locale cases with both cursor
+  phases. Four physical display observations still wait for a working monitor.
 - M4 and M5 are measured improvements, not correctness work. They start only
   after M1/M2 make performance and distribution changes cheap to qualify.
 - M6 is an evidence ledger rather than a shared-machine workaround: CS00015
@@ -778,12 +809,13 @@ repeating the old failing image would add no evidence.
    are implemented and regression-tested. Complete one full and one
    development run on CS00015; retain both passing result directories. The
    full run also supplies M1's remaining PIP/CRC physical evidence.
-2. **Physical display acceptance.** Add a compact `VIDTEST.COM` that renders
-   screen boundaries, representative ASCII and locale banks, connected CP437
-   pseudographics, and an observable underline cursor. With the unchanged C6
-   ROM, inspect raw S21 `01h`, `03h`, `05h`, and `07h` for 40x24, 53x24,
+2. **Physical display acceptance.** `VIDTEST.COM`, its strict-8080 gate, the
+   independent sixteen-surface oracle, seven exact-C6 executable cases, and
+   the 60-second physical display workload are complete. With the unchanged
+   C6 ROM, inspect raw S21 `01h`, `03h`, `05h`, and `07h` for 40x24, 53x24,
    64x20, and 80x24 respectively. This is the only outstanding C6 physical
-   promotion boundary; framebuffer oracles remain the software authority.
+   promotion boundary; framebuffer oracles remain the software authority and
+   monitor cropping must be recorded separately.
 3. **Measured NetDisk performance.** Optimize initial A: login and first or
    alternating drive selection, retaining separate wire, target, console, and
    host timings. Steady-state `DIR` is already served from CP/M state and is

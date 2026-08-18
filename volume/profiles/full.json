@@ -11,6 +11,7 @@
     { "source": "build/wboot-user.cim", "destination": "0:WBOOT.COM", "provenance": { "source": "src/wboot-user.asm", "version": "cpm-plus-juku nonzero-user warm-boot test", "license": "LICENSE" } },
     { "source": "build/status.cim", "destination": "0:STATUS.COM", "provenance": { "source": "src/status.asm", "version": "Juku Status 1.3", "license": "LICENSE" } },
     { "source": "build/keytest.cim", "destination": "0:KEYTEST.COM", "provenance": { "source": "src/keytest.asm", "version": "Juku Keytest 1.1", "license": "LICENSE" } },
+    { "source": "build/vidtest.cim", "destination": "0:VIDTEST.COM", "provenance": { "source": "src/vidtest.asm", "version": "Juku Vidtest 1.0", "license": "LICENSE" } },
     { "source": "build/crc.cim", "destination": "0:CRC.COM", "provenance": { "source": "src/crc.asm", "version": "Juku CRC 1.0", "license": "LICENSE" } },
     { "source": "build/cmp.cim", "destination": "0:CMP.COM", "provenance": { "source": "src/cmp.asm", "version": "Juku CMP 1.0", "license": "LICENSE" } },
     { "source": "build/mem.cim", "destination": "0:MEM.COM", "provenance": { "source": "src/mem.asm", "version": "Juku MEM 1.0", "license": "LICENSE" } },

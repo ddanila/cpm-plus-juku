@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run and audit C6 full/development acceptance on a physical Juku."""
+"""Run and audit C6 full, development, or display acceptance on a Juku."""
 
 from __future__ import annotations
 
@@ -38,6 +38,7 @@ PAGE_PROMPT = b"Press RETURN to Continue"
 PROFILE_VOLUMES = {
     "full": "full-a",
     "development": "development-a",
+    "display": "full-a",
 }
 
 
@@ -252,7 +253,9 @@ def load_workload(profile: str, path: Path | None = None) \
     programs = runtime.get("programs")
     runtime_profile = "dev" if profile == "development" else profile
     admitted: set[str] = set()
-    if isinstance(programs, dict):
+    if profile == "display":
+        admitted = {"VIDTEST.COM"}
+    elif isinstance(programs, dict):
         admitted = {
             name for name, record in programs.items()
             if isinstance(record, dict)
