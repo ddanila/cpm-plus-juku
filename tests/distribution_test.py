@@ -191,6 +191,8 @@ def malformed_profiles_fail_closed() -> None:
                 "source", "/etc/passwd")),
             ("duplicate", lambda value: value["files"].append(
                 dict(value["files"][0]))),
+            ("attributes", lambda value: value["files"][0].__setitem__(
+                "attributes", "system")),
         ):
             candidate = json.loads(json.dumps(original))
             mutation(candidate)

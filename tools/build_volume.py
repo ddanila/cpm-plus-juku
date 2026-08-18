@@ -121,6 +121,10 @@ def load_profile(path: Path, stack: tuple[Path, ...] = ()) -> dict[str, object]:
         names.add(destination)
         if record.get("mode", "binary") not in ("binary", "text"):
             raise ValueError(f"invalid mode for {destination}")
+        attributes = record.get("attributes", "")
+        if not isinstance(attributes, str) or not re.fullmatch(
+                r"(?!.*(.).*\1)[1234rsa]*", attributes):
+            raise ValueError(f"invalid attributes for {destination}")
         provenance = record.get("provenance")
         if not isinstance(provenance, dict):
             raise ValueError(f"provenance is missing for {destination}")
@@ -214,6 +218,13 @@ def build(output: Path, profile_path: Path,
                  str(record["destination"])],
                 cwd=ROOT, env=environment, check=True,
             )
+            attributes = str(record.get("attributes", ""))
+            if attributes:
+                subprocess.run(
+                    ["cpmchattr", "-f", geometry, str(temporary),
+                     attributes, str(record["destination"])],
+                    cwd=ROOT, env=environment, check=True,
+                )
         if temporary.stat().st_size != image_bytes:
             raise RuntimeError(
                 f"unexpected {profile['name']} volume size: "
@@ -243,7 +254,7 @@ def build(output: Path, profile_path: Path,
             "allocated_bytes": allocated_bytes,
             "free_bytes": free_bytes,
             "files": [
-                {
+                ({
                     "destination": record["destination"],
                     "source": str(source.relative_to(ROOT)),
                     "mode": record.get("mode", "binary"),
@@ -255,7 +266,8 @@ def build(output: Path, profile_path: Path,
                         len(data) / allocation_block_bytes
                     ) * allocation_block_bytes,
                     "provenance": record["provenance"],
-                }
+                } | ({"attributes": record["attributes"]}
+                     if record.get("attributes") else {}))
                 for record, source, data in prepared
             ],
             "cpmtools_listing": listing.rstrip().splitlines(),

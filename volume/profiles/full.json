@@ -6,9 +6,9 @@
   "image_bytes": 409600,
   "allocation_block_bytes": 2048,
   "files": [
-    { "source": "third_party/cpm3/ccp.com", "destination": "0:CCP.COM", "sha256": "f1837073d217075223d17dd81d068481819665273b59fbb3502c2f9068e8a671", "provenance": { "source": "Digital Research CP/M 3.1 release", "version": "CP/M 3 CCP", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "third_party/cpm3/ccp.com", "destination": "0:CCP.COM", "sha256": "f1837073d217075223d17dd81d068481819665273b59fbb3502c2f9068e8a671", "attributes": "rs", "provenance": { "source": "Digital Research CP/M 3.1 release", "version": "CP/M 3 CCP", "license": "third_party/cpm3/LICENSE.md" } },
     { "source": "build/diag.cim", "destination": "0:DIAG.COM", "provenance": { "source": "src/diag.asm and pinned juku-common diagnostics", "version": "cpm-plus-juku build", "license": "LICENSE and third_party/juku-common notices" } },
-    { "source": "build/wboot.cim", "destination": "0:WBOOT.COM", "provenance": { "source": "src/wboot.asm", "version": "cpm-plus-juku build", "license": "LICENSE" } },
+    { "source": "build/wboot-user.cim", "destination": "0:WBOOT.COM", "provenance": { "source": "src/wboot-user.asm", "version": "cpm-plus-juku nonzero-user warm-boot test", "license": "LICENSE" } },
     { "source": "build/status.cim", "destination": "0:STATUS.COM", "provenance": { "source": "src/status.asm", "version": "Juku Status 1.3", "license": "LICENSE" } },
     { "source": "build/keytest.cim", "destination": "0:KEYTEST.COM", "provenance": { "source": "src/keytest.asm", "version": "Juku Keytest 1.1", "license": "LICENSE" } },
     { "source": "build/crc.cim", "destination": "0:CRC.COM", "provenance": { "source": "src/crc.asm", "version": "Juku CRC 1.0", "license": "LICENSE" } },

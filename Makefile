@@ -734,6 +734,9 @@ $(C4_DIAG): prebuilt/cpm-plus-juku.img diskdefs | $(BUILD)
 $(BUILD)/wboot.cim: src/wboot.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/wboot-user.cim: src/wboot-user.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
 $(BUILD)/nativecheck.cim: src/nativecheck.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
@@ -773,7 +776,7 @@ $(BUILD)/n4bulk.cim: src/n4bulk.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
 $(NATIVE_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
-		$(BUILD)/wboot.cim $(BUILD)/status.cim $(BUILD)/keytest.cim \
+		$(BUILD)/wboot-user.cim $(BUILD)/status.cim $(BUILD)/keytest.cim \
 		$(BUILD)/nativecheck.cim \
 		volume/README.txt volume/profiles/recovery.json \
 		volume/profiles/native-recovery.json volume/profiles/native-test.json \
@@ -802,7 +805,7 @@ $(VOLUME): $(RECOVERY_VOLUME) | $(OUT)
 	cp $(RECOVERY_VOLUME) $@
 
 $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) &: \
-		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot.cim \
+		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot-user.cim \
 		$(BUILD)/status.cim $(BUILD)/keytest.cim volume/README.txt \
 		volume/profiles/recovery.json volume/profiles/native-recovery.json \
 		tools/build_volume.py diskdefs | $(OUT)
@@ -812,7 +815,7 @@ $(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) &: \
 		--report $(NATIVE_RECOVERY_REPORT)
 
 $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) &: \
-		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot.cim \
+		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot-user.cim \
 		$(BUILD)/status.cim $(BUILD)/keytest.cim $(BUILD)/keyraw.cim \
 		$(BUILD)/disksoak.cim $(BUILD)/n4bulk.cim \
 		volume/README.txt volume/profiles/recovery.json \
@@ -823,7 +826,7 @@ $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) &: \
 		--output $(C6_RECOVERY_VOLUME) --report $(C6_RECOVERY_REPORT)
 
 $(FULL_VOLUME) $(FULL_REPORT) &: third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim \
+		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
 		$(BUILD)/keytest.cim $(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
 		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
@@ -845,7 +848,7 @@ $(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
 		--output $(APPS_VOLUME) --report $(APPS_REPORT)
 
 $(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
-		$(BUILD)/diag.cim $(BUILD)/wboot.cim $(BUILD)/status.cim \
+		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
 		$(BUILD)/keytest.cim $(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
 		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \

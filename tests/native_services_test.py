@@ -62,6 +62,11 @@ def main() -> int:
         raise AssertionError(
             "CCP loader does not restore single-record BDOS reads",
         )
+    wboot = (ROOT / "src" / "wboot-user.asm").read_text()
+    if not re.search(
+            r"mvi\s+e,1\s+mvi\s+c,32\s+call\s+0005h\s+jmp\s+0000h",
+            wboot):
+        raise AssertionError("WBOOT does not exercise a nonzero-user return")
 
     fixture = bytes(range(32))
     cases = ((0, 8, 8), (8, 0, 8), (0, 4, 16), (4, 0, 16),
@@ -80,7 +85,7 @@ def main() -> int:
         raise AssertionError("native V15 bootstrap header is missing")
     print(
         "CPM3-NATIVE-SERVICES: PASS "
-        "(CCP reload, device, MULTIO, FLUSH, MOVE, TIME, USERF, "
+        "(nonzero-user CCP reload, device, MULTIO, FLUSH, MOVE, TIME, USERF, "
         "status/diag publish)"
     )
     return 0

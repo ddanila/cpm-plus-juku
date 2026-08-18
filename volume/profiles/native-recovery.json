@@ -5,6 +5,18 @@
   "description": "Post-C4 recovery A: with native Juku configuration and resident-system status",
   "files": [
     {
+      "source": "third_party/cpm3/ccp.com",
+      "destination": "0:CCP.COM",
+      "sha256": "f1837073d217075223d17dd81d068481819665273b59fbb3502c2f9068e8a671",
+      "attributes": "rs",
+      "override": true,
+      "provenance": {
+        "source": "Digital Research CP/M 3.1 release",
+        "version": "CP/M 3 CCP",
+        "license": "third_party/cpm3/LICENSE.md"
+      }
+    },
+    {
       "source": "build/diag.cim",
       "destination": "0:DIAG.COM",
       "override": true,
@@ -12,6 +24,16 @@
         "source": "src/diag.asm and pinned juku-common diagnostics",
         "version": "Juku Diag 0.5",
         "license": "LICENSE and third_party/juku-common notices"
+      }
+    },
+    {
+      "source": "build/wboot-user.cim",
+      "destination": "0:WBOOT.COM",
+      "override": true,
+      "provenance": {
+        "source": "src/wboot-user.asm",
+        "version": "cpm-plus-juku nonzero-user warm-boot test",
+        "license": "LICENSE"
       }
     },
     {

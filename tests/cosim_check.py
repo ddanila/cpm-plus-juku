@@ -844,6 +844,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 send_console(b"WBOOT\r")
                 fifth = read_until(b"A>", command_timeout)
                 print(f"COSIM {case.name}: WBOOT", flush=True)
+                # Native recovery profiles deliberately warm boot from user 1
+                # to prove that public CCP.COM can be reloaded.  Return to user
+                # 0 before the shared erase/write regression continues.
+                send_console(b"USER 0\r")
+                read_until(b"A>", command_timeout)
                 soak_cycles = int(os.environ.get(
                     "CPM_PLUS_JUKU_SOAK_CYCLES", "0",
                 )) if disk_fault == "mid-session-restart" else 0
@@ -1000,7 +1005,9 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 f"legacy drain did not provoke three N3 attempts: {stats}",
             )
     else:
-        require(b"DIR" in second and b"CCP" in second,
+        require(
+            b"DIR" in second
+            and (b"CCP" in second or b"SYSTEM FILE(S) EXIST" in second),
                 f"CP/M Plus network DIR failed: {second!r}")
         require(
             b"TYPE README.TXT" in third
