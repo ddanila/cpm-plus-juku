@@ -282,7 +282,7 @@ last-known-good slot is preferred on the next run. See
 
 ## Priority 7: curated 8080 software and development environment
 
-Status: **IN PROGRESS; SHIPPED DRI SET ADMISSION COMPLETE**
+Status: **IMPLEMENTATION COMPLETE; FINAL AUDIT RUNNING**
 
 The completed C6 platform is now stable enough to grow into a curated CP/M
 Plus distribution. This is distribution work, not a reason to reopen the
@@ -513,6 +513,18 @@ unused annotations fail so a stale exception cannot quietly weaken coverage.
 The binary archive hash still accounts for every header, relocation bitmap,
 padding byte, and data byte outside those executable paths.
 
+Runtime-memory slice completed on 2026-08-18: all 13 shipped DRI programs now
+run on the C6 network-first ROM and native BIOS with the exact 39,168-byte TPA,
+return to CCP, and freeze a command-scoped stack checkpoint before warm boot.
+The admission gate binds each useful command to its C6 entry SP, private-stack
+anchor and low-water mark, segment/SP-write counts, loaded transient size,
+GENCOM RSX size where applicable, 2,048-byte disk allocation, and remaining
+TPA. Full and development volume reports are cross-checked, and six negative
+mutations prove the gate fails closed. The observed workload peaks range from
+6 to 20 bytes, while the smallest runtime headroom is 29,914 bytes. These are
+named-workload regression measurements rather than unsupported worst-case
+claims. See [`cpm3-runtime-memory.md`](cpm3-runtime-memory.md).
+
 The shared C simulator now records actual instruction fetches, not byte-pattern
 guesses, over `0100h..99FFh`. The distribution regression requires nonzero TPA
 execution with zero fetched Z80 prefixes and zero undocumented 8080 aliases
@@ -564,7 +576,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
-| 7. Curated software/development | **Implementation complete; final audit running** | The 23-program DRI catalogue, every shipped DRI executable, ED/HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST`/FIG-Forth decisions, seven individual DRI development-tool dispositions, and Millfork/z88dk/uplm80 experiments are complete and fail-closed. |
+| 7. Curated software/development | **Implementation complete; final audit running** | The 23-program DRI catalogue, every shipped DRI executable, ED/HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST`/FIG-Forth decisions, seven individual DRI development-tool dispositions, Millfork/z88dk/uplm80 experiments, and live C6 disk/stack/RSX/TPA evidence for all 13 shipped programs are complete and fail-closed. |
 
 `make check` is the complete ordinary desk gate. `make bench-candidate` additionally
 rebuilds the immutable C4 package and proves that incomplete or tampered

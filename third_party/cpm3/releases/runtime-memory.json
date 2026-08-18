@@ -1,0 +1,208 @@
+{
+  "schema": "cpm-plus-juku-cpm3-runtime-memory-v1",
+  "platform": "C6 network-first ROM with native CP/M 3 BIOS",
+  "tpa": {
+    "origin": "0100",
+    "top_exclusive": "9A00",
+    "bytes": 39168,
+    "initial_stack": "9CFE"
+  },
+  "allocation_block_bytes": 2048,
+  "programs": {
+    "DATE.COM": {
+      "profile": "full",
+      "metric": "extra9",
+      "command": "DATE BAD",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "0D2C",
+        "low_sp": "0D22",
+        "segment_min_anchor_sp": "0D2C",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 4,
+        "bytes_observed": 10,
+        "explicit_sp_writes": 3
+      }
+    },
+    "SETDEF.COM": {
+      "profile": "full",
+      "metric": "extra",
+      "command": "SETDEF",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "1170",
+        "low_sp": "1168",
+        "segment_min_anchor_sp": "1170",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 3,
+        "bytes_observed": 8,
+        "explicit_sp_writes": 2
+      }
+    },
+    "DEVICE.COM": {
+      "profile": "full",
+      "metric": "extra18",
+      "command": "DEVICE NAMES",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "1C43",
+        "low_sp": "1C39",
+        "segment_min_anchor_sp": "1C43",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 3,
+        "bytes_observed": 10,
+        "explicit_sp_writes": 2
+      }
+    },
+    "HEXCOM.COM": {
+      "profile": "dev",
+      "metric": "extra",
+      "command": "HEXCOM HELLO",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "05B3",
+        "low_sp": "05A5",
+        "segment_min_anchor_sp": "05B3",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 2,
+        "bytes_observed": 14,
+        "explicit_sp_writes": 2
+      }
+    },
+    "SHOW.COM": {
+      "profile": "full",
+      "metric": "extra6",
+      "command": "SHOW A:[SPACE]",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "1F4B",
+        "low_sp": "1F37",
+        "segment_min_anchor_sp": "1F4B",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 3,
+        "bytes_observed": 20,
+        "explicit_sp_writes": 2
+      }
+    },
+    "PATCH.COM": {
+      "profile": "dev",
+      "metric": "extra4",
+      "command": "PATCH SID",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "0A51",
+        "low_sp": "0A47",
+        "segment_min_anchor_sp": "0A51",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 2,
+        "bytes_observed": 10,
+        "explicit_sp_writes": 1
+      }
+    },
+    "SUBMIT.COM": {
+      "profile": "full",
+      "metric": "extra10",
+      "command": "SUBMIT MISSING",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "0EDF",
+        "low_sp": "0ED7",
+        "segment_min_anchor_sp": "0EDF",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 3,
+        "bytes_observed": 8,
+        "explicit_sp_writes": 2
+      }
+    },
+    "DUMP.COM": {
+      "profile": "full",
+      "metric": "extra2",
+      "command": "DUMP PROFILE.SUB",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "04D2",
+        "low_sp": "04BE",
+        "segment_min_anchor_sp": "04D2",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 2,
+        "bytes_observed": 20,
+        "explicit_sp_writes": 1
+      }
+    },
+    "PIP.COM": {
+      "profile": "full",
+      "metric": "extra4",
+      "command": "PIP COPY.TXT=PROFILE.SUB",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "22B7",
+        "low_sp": "22A7",
+        "segment_min_anchor_sp": "22B7",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 2,
+        "bytes_observed": 16,
+        "explicit_sp_writes": 1
+      }
+    },
+    "ED.COM": {
+      "profile": "dev",
+      "metric": "extra5",
+      "command": "ED EDTEST.TXT",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "2249",
+        "low_sp": "2237",
+        "segment_min_anchor_sp": "2249",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 4,
+        "bytes_observed": 18,
+        "explicit_sp_writes": 3
+      }
+    },
+    "HELP.COM": {
+      "profile": "full",
+      "metric": "extra3",
+      "command": "HELP DUMP",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "1A8B",
+        "low_sp": "1A81",
+        "segment_min_anchor_sp": "1A8B",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 3,
+        "bytes_observed": 10,
+        "explicit_sp_writes": 2
+      }
+    },
+    "SET.COM": {
+      "profile": "full",
+      "metric": "extra7",
+      "command": "SET COPY.TXT [RO]",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "21A8",
+        "low_sp": "219A",
+        "segment_min_anchor_sp": "21A8",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 3,
+        "bytes_observed": 14,
+        "explicit_sp_writes": 2
+      }
+    },
+    "SID.COM": {
+      "profile": "dev",
+      "metric": "extra3",
+      "command": "SID HELLO.COM",
+      "runtime": {
+        "entry_sp": "9CFE",
+        "anchor_sp": "0200",
+        "low_sp": "01FA",
+        "segment_min_anchor_sp": "0200",
+        "segment_max_anchor_sp": "9CFE",
+        "segments": 2,
+        "bytes_observed": 6,
+        "explicit_sp_writes": 1
+      }
+    }
+  }
+}

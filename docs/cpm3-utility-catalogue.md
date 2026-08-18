@@ -18,6 +18,9 @@ not admitted merely because its image fits; selected programs still
 need both flow-aware static 8080 and executable strict-8080 CP/M 3
 evidence. GENCOM RSXs and SID's relocated module are audited as
 separate executable components rather than mistaken for flat COMs.
+Shipped rows also have allocation, live stack, transient/RSX, and
+C6 TPA evidence in
+[`cpm3-runtime-memory.md`](cpm3-runtime-memory.md).
 
 | Program | State/profile | Source/build | Bytes | Static TPA use | Static 8080 proof | CP/M 3 evidence |
 | --- | --- | --- | ---: | --- | --- | --- |

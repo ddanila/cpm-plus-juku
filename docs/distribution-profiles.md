@@ -61,19 +61,24 @@ per-file source and volume hashes, provenance, allocation, and free space.
 images and reports, exercises negative profiles, and proves the named recovery
 image still equals C4.
 
-The B: profile is built in CP/M logical side-then-track order and then converted
-to the physical Juku cylinder/head order expected by `--drive-b`. The
-distribution cosimulation passes this physical image through the production
-host's inverse conversion, selects B:, lists it, loads B:`DIAG.COM`, returns to
-A:, and retains the framebuffer oracle with zero NetDisk retries. On A: it
-also executes the shipped DRI file/system utilities: `SETDEF`, exact `DUMP`,
-the `HELP DUMP` topic, `PIP` create/copy, `SHOW`, `SET`, `DATE`, and `SUBMIT`.
-Interactive HELP exit is driven explicitly; copied bytes and attributes are
-verified by subsequent commands; and every extra-command byte is included in
-the independent framebuffer oracle. `DEVICE NAMES` is executed separately on
-the native-BIOS/full-volume path, where the real fixed `JUKU` character table
-must be reported. This split preserves the immutable RomBios and C4/C5/C6 SYS
-artifacts byte for byte.
+The B: profile is built in CP/M logical side-then-track order and then
+converted to the physical Juku cylinder/head order expected by `--drive-b`.
+The distribution cosimulation boots the C6 network-first ROM and native BIOS,
+passes this physical image through the production host's inverse conversion,
+selects B:, lists it, loads B:`DIAG.COM`, returns to A:, and retains the
+framebuffer oracle with zero NetDisk retries. On A: it also executes the
+shipped DRI file/system utilities: `SETDEF`, exact `DUMP`, the `HELP DUMP`
+topic, `PIP` create/copy, `SHOW`, `SET`, `DATE`, `SUBMIT`, and native `DEVICE
+NAMES` with the fixed `JUKU` character table. Interactive HELP exit is driven
+explicitly; copied bytes and attributes are verified by subsequent commands;
+and every extra-command byte is included in the independent framebuffer
+oracle. The separate general cosimulation retains the RomBios compatibility
+path and immutable C4/C5/C6 artifacts byte for byte.
+
+Both full and development command matrices capture live stack low-water marks
+inside the 39,168-byte C6 TPA and cross-check per-file disk allocation. The
+exact evidence and conservative interpretation are in
+[`cpm3-runtime-memory.md`](cpm3-runtime-memory.md).
 
 Run the complete distribution gates with:
 

@@ -41,6 +41,8 @@ FULL_REPORT := $(OUT)/cpm-plus-juku-full.report.json
 DEV_REPORT := $(OUT)/cpm-plus-juku-dev.report.json
 APPS_REPORT := $(OUT)/cpm-plus-juku-apps.report.json
 DEMO_REPORT := $(OUT)/cpm-plus-juku-museum-demo.report.json
+DRI_FULL_RUNTIME_METRICS := $(BUILD)/cpm3-dri-full-runtime.json
+DRI_DEV_RUNTIME_METRICS := $(BUILD)/cpm3-dri-dev-runtime.json
 BOOT_MANIFEST := $(OUT)/cpm-plus-juku-native-manifest.json
 C5_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c5-manifest.json
 C5_ROM_DIR := ../8080-cosim/spinoffs/jukuravi/network-rom
@@ -102,7 +104,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	distribution-check manifest-check c5-manifest-check \
 	c6-manifest-check c6-release-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
-	development-cosim-check \
+	distribution-cosim-check development-cosim-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
@@ -115,6 +117,8 @@ distribution-input-check:
 utility-catalogue-check:
 	$(PYTHON) tools/audit_cpm3_candidates.py --check
 	$(PYTHON) tests/cpm3_candidate_audit_test.py
+	$(PYTHON) tools/audit_cpm3_runtime.py --check
+	$(PYTHON) tests/cpm3_runtime_audit_test.py
 
 development-tool-audit-check:
 	$(PYTHON) tools/audit_cpm3_development_tools.py --check
@@ -150,6 +154,8 @@ distribution-check: distribution
 	$(PYTHON) tests/distribution_test.py
 
 distribution-cosim-check: all
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(DEMO_VOLUME) \
 	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
 	CPM_PLUS_JUKU_EXPECT_PROFILE=DIR \
@@ -191,10 +197,22 @@ distribution-cosim-check: all
 	CPM_PLUS_JUKU_EXTRA_MARKERS16='host-backed NetDisk-v3|Shared non-destructive Juku diagnostics|Project: https://github.com/ddanila/cpm-plus-juku' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND17='STRINGS README.TXT' \
 	CPM_PLUS_JUKU_EXTRA_MARKER17='host-backed NetDisk-v3' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND18='DEVICE NAMES' \
+	CPM_PLUS_JUKU_EXTRA_MARKER18='Physical Devices:' \
+	CPM_PLUS_JUKU_EXTRA_MARKERS18='JUKU|IO' \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK=1 \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK_METRICS='extra,extra2,extra3,extra4,extra6,extra7,extra9,extra10,extra18' \
+	CPM_PLUS_JUKU_METRICS_OUTPUT=$(DRI_FULL_RUNTIME_METRICS) \
 	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
-	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=2 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
+	$(PYTHON) tools/audit_cpm3_runtime.py --check --profile full \
+		--metrics $(DRI_FULL_RUNTIME_METRICS) --volume-report $(DEMO_REPORT)
 
 development-cosim-check: all
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(DEV_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND='HEXCOM HELLO' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND2=HELLO \
@@ -210,8 +228,15 @@ development-cosim-check: all
 	CPM_PLUS_JUKU_EXTRA_MARKER5='NEW FILE' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND6='TYPE EDTEST.TXT' \
 	CPM_PLUS_JUKU_EXTRA_MARKER6='EDITED ON JUKU CP/M PLUS 3.1' \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK=1 \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK_METRICS='extra,extra3,extra4,extra5' \
+	CPM_PLUS_JUKU_METRICS_OUTPUT=$(DRI_DEV_RUNTIME_METRICS) \
 	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
-	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
+	$(PYTHON) tools/audit_cpm3_runtime.py --check --profile dev \
+		--metrics $(DRI_DEV_RUNTIME_METRICS) --volume-report $(DEV_REPORT)
 
 manifest-check: $(BOOT_MANIFEST)
 	$(PYTHON) tests/boot_manifest_test.py
@@ -910,8 +935,8 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_EXTRA_MARKER3='Physical Devices:' \
 	CPM_PLUS_JUKU_EXTRA_MARKERS3='JUKU|IO' \
 	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
-	CPM_PLUS_JUKU_EXPECT_BOOT_READS=23 \
-	CPM_PLUS_JUKU_EXPECT_DIR_READS=2 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_READS=24 \
+	CPM_PLUS_JUKU_EXPECT_DIR_READS=3 \
 	CPM_PLUS_JUKU_EXPECT_TYPE_READS=3 \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS=1 \

@@ -69,15 +69,19 @@ edit/save/readback path. See
 This gate deliberately does not alter `out/cpm-plus-juku.img`. C4 remains the
 immutable Priority 0 qualification volume. The separately named full, demo,
 and development profiles consume the staged files with generated contents,
-provenance, free-space, and hash reports. The distribution cosimulation executes a useful
-path through every admitted program: `SETDEF`; exact `DUMP`; interactive
-`HELP`; a `PIP` file creation proved by a second exact dump; `SHOW` space;
-`SET` read-only/read-write transitions; rejected `DATE` input; and a
-missing-file `SUBMIT`. A separate native-BIOS run executes `DEVICE NAMES` and
-requires the real `JUKU` input/output entry. The matrix then retains the normal
-warm-boot, write/erase, and B:-drive regression. The simulator records actual
-TPA instruction fetches in both runs, and the admission gate requires zero Z80
-prefixes and zero undocumented 8080 aliases across the complete sequence.
+provenance, free-space, and hash reports. The distribution cosimulation uses
+the C6 network-first ROM and native BIOS for a useful path through every
+admitted full-profile program: `SETDEF`; exact `DUMP`; interactive `HELP`; a
+`PIP` file creation proved by a second exact dump; `SHOW` space; `SET`
+read-only/read-write transitions; rejected `DATE` input; missing-file
+`SUBMIT`; and `DEVICE NAMES` with the real `JUKU` input/output entry. The
+development matrix uses the same 39,168-byte C6 TPA. Both retain normal
+warm-boot and write/erase checks; the full matrix also proves native B:. The
+simulator records actual TPA instruction fetches and the admission gate
+requires zero Z80 prefixes and zero undocumented 8080 aliases across the
+complete sequence. Exact disk allocation, transient/RSX size, live stack, and
+TPA headroom are checked in
+[`cpm3-runtime-memory.md`](cpm3-runtime-memory.md).
 
 The extended sequence also proved that the simulator disk server must not use
 a fixed whole-session deadline: the former 180-second limit could expire in a

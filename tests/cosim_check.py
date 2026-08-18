@@ -342,7 +342,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     status_reports: list[dict[str, int]] = []
     diag_reports: list[dict[str, int]] = []
     boot_reports: list[dict[str, int]] = []
-    command_metrics: dict[str, dict[str, int | float]] = {}
+    command_metrics: dict[str, dict[str, int | float | str]] = {}
     checkpoint_generation = 0
     last_captured_program_start = 0
     fault_evidence: dict[str, int] = {}
@@ -597,6 +597,19 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         "stack_low_sp": int(
                             checkpoint_state["tpa_program_stack_low_sp"], 16,
                         ),
+                        "stack_segment_min_anchor_sp": int(
+                            checkpoint_state[
+                                "tpa_program_segment_min_anchor_sp"
+                            ], 16,
+                        ),
+                        "stack_segment_max_anchor_sp": int(
+                            checkpoint_state[
+                                "tpa_program_segment_max_anchor_sp"
+                            ], 16,
+                        ),
+                        "stack_segments": int(
+                            checkpoint_state["tpa_program_stack_segments"],
+                        ),
                         "stack_bytes_observed": int(
                             checkpoint_state["tpa_program_stack_bytes"],
                         ),
@@ -634,6 +647,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     capture_stack = os.environ.get(
                         "CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK", "0",
                     ) == "1"
+                    selected_stack_metrics = {
+                        value.strip() for value in os.environ.get(
+                            "CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK_METRICS", "",
+                        ).split(",") if value.strip()
+                    }
+                    capture_stack = capture_stack and (
+                        not selected_stack_metrics
+                        or metric_name in selected_stack_metrics
+                    )
                     if capture_stack:
                         process.send_signal(signal.SIGUSR2)
                         # The emulator processes the signal at its next
@@ -714,6 +736,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                 f"{response!r}",
                             )
                     command_metrics[metric_name] = {
+                        "command": command,
                         "read_requests": stats.get("reads", 0)
                         - metric_before["reads"],
                         "read_records": stats.get("read_records", 0)
@@ -897,6 +920,19 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             if "worker" in locals() and worker.is_alive():
                 worker.join(timeout=3)
             (case / "served-volume.img").write_bytes(volume)
+
+    if os.environ.get("CPM_PLUS_JUKU_PRINT_TRACE_STDERR", "0") == "1":
+        print((case / "stderr.txt").read_text(), end="", flush=True)
+
+    # Preserve completed command evidence before evaluating the independent
+    # post-run oracles. A late count or framebuffer failure must not erase the
+    # measurements needed to diagnose an otherwise expensive full matrix.
+    if command_metrics:
+        metrics_text = json.dumps(command_metrics, indent=2) + "\n"
+        (case / "disk-metrics.json").write_text(metrics_text)
+        metrics_output = os.environ.get("CPM_PLUS_JUKU_METRICS_OUTPUT")
+        if metrics_output:
+            Path(metrics_output).write_text(metrics_text)
 
     if direct_core:
         expected_auto_ready = int(os.environ.get(
@@ -1232,12 +1268,6 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     else:
         require(resident_overruns == 0,
                 f"fixed NetDisk path still overran the resident 8251: {state}")
-    if command_metrics:
-        metrics_text = json.dumps(command_metrics, indent=2) + "\n"
-        (case / "disk-metrics.json").write_text(metrics_text)
-        metrics_output = os.environ.get("CPM_PLUS_JUKU_METRICS_OUTPUT")
-        if metrics_output:
-            Path(metrics_output).write_text(metrics_text)
     print(
         "JUKU CP/M PLUS 3.1: PASS "
         f"({boot_label} "
