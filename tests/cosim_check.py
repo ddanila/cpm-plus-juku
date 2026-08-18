@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import pty
+import re
 import select
 import signal
 import subprocess
@@ -115,8 +116,21 @@ def build_timing_fixture(
     )
     require(all(path.is_file() for path in required),
             "legacy timing regression requires a completed make all")
+
+    def assemble(command: list[str], module: str) -> int:
+        result = subprocess.run(
+            command, cwd=ROOT, check=True, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        )
+        matches = re.findall(
+            r"^\s*(\d+)\s+bytes\s*$", result.stdout, re.MULTILINE,
+        )
+        require(len(matches) == 1,
+                f"cannot measure legacy fixture module {module}")
+        return int(matches[0])
+
     platform_command = [
-        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8", "-l",
     ]
     if adapter_define:
         platform_command.append(f"-D{adapter_define}")
@@ -124,13 +138,13 @@ def build_timing_fixture(
         f"-I{COMMON / 'platform'}", "-o", str(platform),
         str(ROOT / "src" / "platform-adapter.asm"),
     ])
-    subprocess.run(platform_command, cwd=ROOT, check=True)
-    subprocess.run([
-        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+    platform_size = assemble(platform_command, "platform adapter")
+    keyboard_size = assemble([
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8", "-l",
         "-o", str(keyboard), str(COMMON / "platform" / "ram-keyboard.asm"),
-    ], cwd=ROOT, check=True)
+    ], "keyboard")
     netdisk_command = [
-        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8", "-l",
         "-DCPM3ADAPTER",
     ]
     if netdisk_define:
@@ -138,19 +152,29 @@ def build_timing_fixture(
     netdisk_command.extend([
         "-o", str(netdisk), str(COMMON / "platform" / "netdisk-v3.asm"),
     ])
-    subprocess.run(netdisk_command, cwd=ROOT, check=True)
-    subprocess.run([
-        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+    netdisk_size = assemble(netdisk_command, "NetDisk v3")
+    netconsole_size = assemble([
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8", "-l",
         "-o", str(netconsole), str(COMMON / "platform" / "netconsole.asm"),
-    ], cwd=ROOT, check=True)
+    ], "NetConsole")
+    position = 0xA000
+    placements: list[str] = []
+    for module, size in (
+            (platform, platform_size), (keyboard, keyboard_size),
+            (netdisk, netdisk_size), (netconsole, netconsole_size)):
+        placements.extend((f"-P0x{position:04x}", str(module)))
+        position += size
+    require(position <= 0xB000,
+            f"legacy timing fixture exceeds A000h..AFFFh by "
+            f"{position - 0xB000} bytes")
     subprocess.run([
         str(LD80), "-m", "-O", "bin", "-o", str(adapter_all),
-        "-s", "/dev/null", "-P0xa000",
-        str(platform), "-P0xaa90",
-        str(keyboard), "-P0xac10", str(netdisk), "-P0xae40",
-        str(netconsole),
+        "-s", "/dev/null", *placements,
     ], cwd=ROOT, check=True)
-    adapter.write_bytes(adapter_all.read_bytes()[40960:])
+    adapter_payload = adapter_all.read_bytes()[0xA000:]
+    require(len(adapter_payload) <= 0x1000,
+            "linked legacy timing adapter exceeds A000h..AFFFh")
+    adapter.write_bytes(adapter_payload)
     subprocess.run([
         sys.executable, str(ROOT / "tools" / "mksystem3.py"), str(adapter),
         str(ROOT / "third_party" / "cpm3" / "cpm3.sys"), str(system),
@@ -319,6 +343,9 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     if remote_console:
         case_name += "-remote-console"
     expected_profile = os.environ.get("CPM_PLUS_JUKU_EXPECT_PROFILE")
+    expected_profile_output = os.environ.get(
+        "CPM_PLUS_JUKU_EXPECT_PROFILE_OUTPUT",
+    )
     if expected_profile:
         case_name += "-profile"
     if drive_b is not None:
@@ -789,7 +816,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         profile_startup += read_until(b"A>", command_timeout)
                     require(
                         expected_profile.encode("ascii") in profile_startup
-                        and b"CCP" in profile_startup,
+                        and (
+                            expected_profile_output is None
+                            or expected_profile_output.encode("ascii")
+                            in profile_startup
+                        ),
                         "CP/M Plus PROFILE.SUB did not complete its expected "
                         f"command: {profile_startup!r}",
                     )
@@ -1007,7 +1038,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     else:
         require(
             b"DIR" in second
-            and (b"CCP" in second or b"SYSTEM FILE(S) EXIST" in second),
+            and b"DIAG" in second
+            and b"A>" in second,
                 f"CP/M Plus network DIR failed: {second!r}")
         require(
             b"TYPE README.TXT" in third
@@ -1216,26 +1248,34 @@ def run(trace: Path, work: Path, *, direct_core: bool,
             + second + third + fourth + extra_transcript + fifth + sixth
         if drive_b is not None:
             transcript += selected_b + listed_b + diagnosed_b + selected_a
-        expected_screen = render_console_transcript(
-            transcript, mode=video_mode,
-        )
-        expected_screen_hidden = render_console_transcript(
-            transcript, mode=video_mode, cursor=False,
-        )
         (case / "console.bin").write_bytes(transcript)
-        (case / "expected-screen.bin").write_bytes(expected_screen)
-        if screen not in (expected_screen, expected_screen_hidden):
-            first_difference = next(
-                index for index, pair in enumerate(zip(screen, expected_screen))
-                if pair[0] != pair[1]
+        # SYSTEM is an immutable C4 artifact built at its recorded historical
+        # source boundary. Do not compare it with today's evolved renderer;
+        # its checked bytes and physical qualification are authoritative, and
+        # its captured framebuffer remains the cross-path reference below.
+        # A newly linked RAM-console fixture must still match the independent
+        # current source oracle exactly.
+        if system.resolve() != SYSTEM.resolve():
+            expected_screen = render_console_transcript(
+                transcript, mode=video_mode,
             )
-            require(
-                False,
-                "RAM console differs from independent source-font oracle at "
-                f"framebuffer byte {first_difference}: "
-                f"{screen[first_difference]:02X} != "
-                f"{expected_screen[first_difference]:02X}",
+            expected_screen_hidden = render_console_transcript(
+                transcript, mode=video_mode, cursor=False,
             )
+            (case / "expected-screen.bin").write_bytes(expected_screen)
+            if screen not in (expected_screen, expected_screen_hidden):
+                first_difference = next(
+                    index for index, pair in enumerate(
+                        zip(screen, expected_screen),
+                    ) if pair[0] != pair[1]
+                )
+                require(
+                    False,
+                    "RAM console differs from independent source-font oracle "
+                    f"at framebuffer byte {first_difference}: "
+                    f"{screen[first_difference]:02X} != "
+                    f"{expected_screen[first_difference]:02X}",
+                )
         ram_console_reference = screen
     if network_rom:
         gate = ram[0xD620:0xD700]

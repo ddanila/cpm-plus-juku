@@ -620,6 +620,21 @@ This roadmap begins after the completed C0--C6 and Priority-7 implementation
 audit. It does not rewrite the immutable C4/C5 references or require a new ROM
 ABI merely because a loaded CP/M system or its tests need maintenance.
 
+The repository-wide M1 regression also made the C4 build boundary explicit:
+the stock-ROM/RAM-BIOS and network-ROM C4 system/V15 pairs are consumed from
+their hash-checked prebuilt files, whose source boundary is cpm-plus-juku
+`6ce52d8` plus juku-common `aeee23d`. Later common fonts and keyboard routines
+no longer force an overlapping relink or silently alter either physical
+recovery slot.
+The physically qualified C5 system/V15 pair is likewise consumed from pinned
+prebuilt files. Its source boundary is cpm-plus-juku `e970088` plus
+juku-common `04c2541`; post-C5 systems must receive a distinct identity.
+Simulator acceptance treats those frozen artifacts the same way: their exact
+hashes and recorded physical qualification are authoritative, while current
+source-font oracles apply to current relinks. A frozen C4 framebuffer is still
+captured and compared byte-for-byte with the corresponding resident-ROM path;
+it is not reinterpreted through a renderer from a later source boundary.
+
 ### Immediate goal: multi-record PIP correctness
 
 Restore a truthful, hardware-qualified Priority-7 distribution by fixing
@@ -665,8 +680,9 @@ utility, explicit warm boot, A: writes/erase, native B:, zero retries, and
 strict-8080 opcode admission in the production simulator. The structural gate
 also requires the reset in the CCP loader. The HEXCOM/SID/PATCH/ED development
 profile, clean/compound/server-restart/mid-session-restart matrix, manifest,
-package reproducibility, and runtime catalogue gates pass as well. The
-repository-wide check and one CS00015 copy/CRC run remain before M1 is closed.
+package reproducibility, runtime catalogue, frozen C4/C5 identity, legacy
+timing reproductions, and four-mode console gates pass as well. One CS00015
+copy/CRC run remains before M1 is closed.
 
 The correction is complete only when:
 
@@ -700,14 +716,33 @@ before its own evidence exists.
 | M5 | Improve the distribution | Prototype strict-8080 history and text-interface tools, retain reproducible source/license/size/runtime admission, and keep the recovery profile small. | Hardware smoke only for programs admitted by the exact-C6 simulator; no manual catalogue trawl on the bench. |
 | M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 USART and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
 
-The immediate desk sequence for M1 is: run one- through four-record copy
-variants; retain a bounded instruction/BDOS/BIOS history around the first jump
-below `0100h`; compare the native `MOVE`, `MULTIO`, `FLUSH`, DMA, and CCP-return
-paths with the CP/M Plus contract; add the exact four-record workload to normal
-admission; then run the complete simulator and package regression. The next
-useful CS00015 experiment is only the final copy-and-CRC confirmation after
-those gates pass. Repeating the currently known failing command on unchanged
-software would add no evidence.
+Status on 2026-08-19:
+
+- M1's root cause and software fix are complete. Its repository-wide
+  simulator, recovery, package, legacy-timing, and repeated copy/CRC gates
+  pass; only one CS00015 `PIP`/`CRC` confirmation remains.
+- M2 is the next implementation goal. Its purpose is to replace long,
+  error-prone blind command sessions with one reproducible run and an
+  auditable result bundle.
+- M3 is the next display-dependent goal. It is desk-testable first, but final
+  acceptance waits for a working external display.
+- M4 and M5 are measured improvements, not correctness work. They start only
+  after M1/M2 make performance and distribution changes cheap to qualify.
+- M6 is an evidence ledger rather than a shared-machine workaround: CS00015
+  remains the reference while CS00000 and CS00024 keep independent diagnoses.
+
+The next physical action is therefore deliberately small: boot the corrected
+system through the existing C6/N4 ROM on CS00015, run
+`PIP COPY.TXT=README.TXT`, then `CRC COPY.TXT`, and require CRC `4613` plus a
+returned `A>` prompt. No EPROM burn is needed. After that, the next bench work
+should be driven by the M2 runner rather than another hand-entered catalogue.
+
+The completed M1 desk sequence covered one- through four-record variants, a
+bounded instruction/BDOS/BIOS history around the jump below `0100h`, the
+native `MOVE`, `MULTIO`, `FLUSH`, DMA, and CCP-return contracts, the exact
+four-record admission workload, and the complete simulator/package regression.
+The next useful CS00015 experiment is only the final copy-and-CRC confirmation;
+repeating the old failing image would add no evidence.
 
 ### Follow-on work, in priority order
 

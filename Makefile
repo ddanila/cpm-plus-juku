@@ -92,6 +92,14 @@ verify-prebuilt: all
 	cmp $(ROM_SYSTEM) prebuilt/cpm-plus-juku-network-rom-system.bin
 	cmp $(ROM_FASTBOOT) prebuilt/cpm-plus-juku-network-rom-fastboot-v15.bin
 	cmp $(VOLUME) prebuilt/cpm-plus-juku.img
+	test "$$(sha256sum prebuilt/cpm-plus-juku-system.bin | cut -d' ' -f1)" = \
+		254f940e36501dcf3f46c5ba23b2b6cb3b1b7f3a13b1e42ae9786f2fa337a4a4
+	test "$$(sha256sum prebuilt/cpm-plus-juku-fastboot-v15.bin | cut -d' ' -f1)" = \
+		881befd8ebd306ae7313b2dff8b83cb8d964988e17627d76efedaa49e6a19a5d
+	test "$$(sha256sum prebuilt/cpm-plus-juku-c5-system.bin | cut -d' ' -f1)" = \
+		86b36bd70156d10bafba332bd02e8756473c76bde3e9cc4a50fbc530bfb8a3f2
+	test "$$(sha256sum prebuilt/cpm-plus-juku-c5-fastboot-v15.bin | cut -d' ' -f1)" = \
+		4aaff8f9a78c289e96bb1699453d3136f7c2f6c82f3bfb2323d46145028178b0
 
 rom-budget-check: tools $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension.cim $(BUILD)/fastboot-extension-rom-locale.cim \
@@ -161,7 +169,8 @@ distribution-cosim-check: all
 	CPM_PLUS_JUKU_VOLUME=$(DEMO_VOLUME) \
 	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
 	CPM_PLUS_JUKU_S21_EXTRA=0x01 \
-	CPM_PLUS_JUKU_EXPECT_PROFILE=DIR \
+	CPM_PLUS_JUKU_EXPECT_PROFILE='A>DIR' \
+	CPM_PLUS_JUKU_EXPECT_PROFILE_OUTPUT=DIAG \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=SETDEF \
 	CPM_PLUS_JUKU_EXTRA_MARKER='Drive Search Path' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND2='DUMP PROFILE.SUB' \
@@ -606,18 +615,14 @@ $(BUILD)/adapter-romabi-extended-native.bin: \
 	tail -c+49153 $< >$@
 	test $$(stat -c %s $@) -le 4096
 
-$(SYSTEM): $(BUILD)/adapter.bin third_party/cpm3/cpm3.sys \
-		tools/mksystem3.py | $(OUT)
-	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter.bin \
-		third_party/cpm3/cpm3.sys $@
+# The stock-ROM/RAM-BIOS C4 baseline is immutable. Its exact source boundary
+# is cpm-plus-juku 6ce52d8 plus juku-common aeee23d; later common font and
+# keyboard growth must not silently relink that physical recovery artifact.
+$(SYSTEM): prebuilt/cpm-plus-juku-system.bin | $(OUT)
+	cp $< $@
 
-$(ROM_SYSTEM): $(BUILD)/adapter-romabi.bin \
-		third_party/cpm3/cpm3-network-rom.sys \
-		tools/mksystem3.py | $(OUT)
-	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi.bin \
-		third_party/cpm3/cpm3-network-rom.sys $@ \
-		--load-address 0x9000 --adapter-address 0xc000 \
-		--entry-address 0xbc00 --end-address 0xd600
+$(ROM_SYSTEM): prebuilt/cpm-plus-juku-network-rom-system.bin | $(OUT)
+	cp $< $@
 
 $(NATIVE_ROM_SYS): src/cpm3-bios.asm tools/regenerate_cpm3.py \
 		third_party/cpm3/bdos3.spr third_party/cpm3/gencpm.dat \
@@ -633,12 +638,10 @@ $(NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-native.bin \
 		--adapter-address 0xc000 --entry-address 0xbc00 \
 		--end-address 0xd600
 
-$(LOCALE_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-locale-native.bin \
-		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
-	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-locale-native.bin \
-		$(NATIVE_ROM_SYS) $@ --load-address 0x9000 \
-		--adapter-address 0xc000 --entry-address 0xbc00 \
-		--end-address 0xd600
+# C5 is also a physically qualified immutable pair. Rebuild experiments use a
+# new artifact name; the C5 manifest always consumes these pinned bytes.
+$(LOCALE_NATIVE_ROM_SYSTEM): prebuilt/cpm-plus-juku-c5-system.bin | $(OUT)
+	cp $< $@
 
 $(EXTENDED_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-extended-native.bin \
 		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
@@ -689,17 +692,11 @@ $(BUILD)/fastboot-extension-rom-v16.cim: \
 	$(ZMAC) --nmnv --zmac -m -8 \
 		$(addprefix -D,$(FASTBOOT_EXTENSION_V16_DEFS)) -o $@ $<
 
-$(FASTBOOT): $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension.cim $(SYSTEM) $(ZX0) \
-		tools/build_fastboot.py | $(OUT)
-	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension.cim $(SYSTEM) $(ZX0) $@
+$(FASTBOOT): prebuilt/cpm-plus-juku-fastboot-v15.bin | $(OUT)
+	cp $< $@
 
-$(ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension-rom.cim $(ROM_SYSTEM) $(ZX0) \
-		tools/build_fastboot.py | $(OUT)
-	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension-rom.cim $(ROM_SYSTEM) $(ZX0) $@
+$(ROM_FASTBOOT): prebuilt/cpm-plus-juku-network-rom-fastboot-v15.bin | $(OUT)
+	cp $< $@
 
 $(NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension-rom.cim $(NATIVE_ROM_SYSTEM) $(ZX0) \
@@ -707,13 +704,9 @@ $(NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
 	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension-rom.cim $(NATIVE_ROM_SYSTEM) $(ZX0) $@
 
-$(LOCALE_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension-rom-locale.cim \
-		$(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) \
-		tools/build_fastboot.py | $(OUT)
-	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core.cim \
-		$(BUILD)/fastboot-extension-rom-locale.cim \
-		$(LOCALE_NATIVE_ROM_SYSTEM) $(ZX0) $@
+$(LOCALE_NATIVE_ROM_FASTBOOT): \
+		prebuilt/cpm-plus-juku-c5-fastboot-v15.bin | $(OUT)
+	cp $< $@
 
 $(EXTENDED_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
 		$(BUILD)/fastboot-extension-rom-v16.cim \

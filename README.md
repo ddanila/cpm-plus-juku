@@ -39,7 +39,16 @@ A000h..AFFFh  compatibility adapter
 
 It can boot through stock Ekta4401 `TN` or Ekta4402 `N`, using V15 at 19,200
 baud after the stock discovery stage. It remains the recovery and timing
-comparison path.
+comparison path. Both exact prebuilt system/stream pairs—the stock-ROM/RAM-
+BIOS path and its network-ROM counterpart—remain the build inputs;
+their source boundary is repository commit `6ce52d8` with `juku-common`
+`aeee23d`. Current common font and keyboard growth is not allowed to relink
+and silently rename that physical baseline.
+
+The physically qualified C5 system/V15 pair is frozen the same way. Its exact
+source boundary is repository commit `e970088` with `juku-common` `04c2541`;
+the build consumes hash-checked prebuilt bytes for C5 manifests and packages.
+Later loaded-system maintenance is published under a new identity.
 
 The network-first ROM resets directly into bounded POST and identity-free
 19,200/8N1 Fastboot V16. The complete 361-byte receive/decompress loader is
