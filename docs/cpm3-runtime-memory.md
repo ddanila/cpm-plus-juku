@@ -10,6 +10,8 @@ freeze its own command-scoped stack measurement, pass strict Intel
 
 The transient area is `0100h..99FFh` (39,168 bytes). The initial CCP stack at `9CFEh` is in the loader workspace above the TPA and is recorded for attribution, not charged to a program's TPA footprint.
 
+The measured platform is bound by SHA-256 to the exact C6 ROM, extended native system, and V16 Fastboot artifacts; a matching memory map alone is not accepted as C6 evidence.
+
 | Program | Profile and workload | Disk bytes / allocated | Loaded transient / resident | Observed stack | Runtime top / TPA left |
 | --- | --- | ---: | ---: | ---: | ---: |
 | `DATE.COM` | full: `DATE BAD` | 3,247 / 4,096 B | 3,247 B / none | `0D2Ch`→`0D22h`, 10 B | `0DAFh` / 35,921 B |

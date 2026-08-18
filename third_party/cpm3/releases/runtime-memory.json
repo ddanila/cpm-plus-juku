@@ -1,6 +1,23 @@
 {
   "schema": "cpm-plus-juku-cpm3-runtime-memory-v1",
   "platform": "C6 network-first ROM with native CP/M 3 BIOS",
+  "artifacts": {
+    "network_rom": {
+      "name": "juku-network-rom-abi1.2-c6.bin",
+      "bytes": 16384,
+      "sha256": "0487d5150f9b662a193b3f031aadd90002ee232477d355d3877a757a247c2f09"
+    },
+    "system": {
+      "name": "cpm-plus-juku-network-rom-extended-native-system.bin",
+      "bytes": 18432,
+      "sha256": "6dbe02421fb88cc964b9536f0f5c51f0e31a652a6017cb4a8d3178394849b70b"
+    },
+    "fastboot": {
+      "name": "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin",
+      "bytes": 8031,
+      "sha256": "40c1560348b2615064cf8d2f216c5c85a020f9b1384707ec83e93d94a94a3706"
+    }
+  },
   "tpa": {
     "origin": "0100",
     "top_exclusive": "9A00",

@@ -14,6 +14,14 @@ CANDIDATES = RELEASES / "candidates.json"
 STATIC_AUDIT = RELEASES / "static-8080.json"
 DEFAULT_OUTPUT = ROOT / "docs" / "cpm3-runtime-memory.md"
 SCHEMA = "cpm-plus-juku-cpm3-runtime-memory-v1"
+ARTIFACT_NAMES = ("network_rom", "system", "fastboot")
+EXPECTED_ARTIFACTS = {
+    "network_rom": ("juku-network-rom-abi1.2-c6.bin", 16384),
+    "system": ("cpm-plus-juku-network-rom-extended-native-system.bin", 18432),
+    "fastboot": (
+        "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin", 8031,
+    ),
+}
 ADDRESS_FIELDS = (
     "entry_sp", "anchor_sp", "low_sp", "segment_min_anchor_sp",
     "segment_max_anchor_sp",
@@ -64,6 +72,29 @@ def audit() -> dict:
     require(data.get("platform") ==
             "C6 network-first ROM with native CP/M 3 BIOS",
             "runtime-memory platform differs")
+    artifacts = data.get("artifacts")
+    require(isinstance(artifacts, dict)
+            and set(artifacts) == set(ARTIFACT_NAMES),
+            "runtime-memory C6 artifact set differs")
+    for name in ARTIFACT_NAMES:
+        artifact = artifacts[name]
+        require(
+            isinstance(artifact, dict)
+            and set(artifact) == {"name", "bytes", "sha256"}
+            and isinstance(artifact["name"], str)
+            and artifact["name"]
+            and isinstance(artifact["bytes"], int)
+            and artifact["bytes"] > 0
+            and isinstance(artifact["sha256"], str)
+            and len(artifact["sha256"]) == 64
+            and all(character in "0123456789abcdef"
+                    for character in artifact["sha256"]),
+            f"runtime-memory C6 artifact identity differs: {name}",
+        )
+        require(
+            (artifact["name"], artifact["bytes"]) == EXPECTED_ARTIFACTS[name],
+            f"runtime-memory artifact is not the C6 {name}",
+        )
 
     tpa = data.get("tpa")
     require(isinstance(tpa, dict), "runtime-memory TPA record is absent")
@@ -219,6 +250,8 @@ def verify_volume_report(data: dict, profile: str, path: Path) -> None:
 
 def verify_metrics(data: dict, profile: str, path: Path) -> None:
     metrics = load_json(path)
+    require(metrics.get("_platform") == data["artifacts"],
+            "runtime metrics do not bind the exact C6 artifacts")
     selected = [
         record for record in data["records"]
         if record["profile"] == profile
@@ -258,6 +291,10 @@ def render(data: dict) -> str:
          f"`{tpa['initial_stack']}h` is in the loader workspace above the TPA "
          "and is recorded for attribution, not charged to a program's TPA "
          "footprint."),
+        "",
+        ("The measured platform is bound by SHA-256 to the exact C6 ROM, "
+         "extended native system, and V16 Fastboot artifacts; a matching "
+         "memory map alone is not accepted as C6 evidence."),
         "",
         "| Program | Profile and workload | Disk bytes / allocated | Loaded transient / resident | Observed stack | Runtime top / TPA left |",
         "| --- | --- | ---: | ---: | ---: | ---: |",

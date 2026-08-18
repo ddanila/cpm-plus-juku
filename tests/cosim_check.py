@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -19,6 +20,9 @@ import tty
 
 ROOT = Path(__file__).resolve().parents[1]
 COSIM = Path(os.environ.get("JUKU_COSIM_ROOT", ROOT.parent / "8080-cosim"))
+COMMON = Path(os.environ.get(
+    "JUKU_COMMON_ROOT", ROOT / "third_party" / "juku-common",
+)).resolve()
 ROM_DIRECT = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4402.bin"
 ROM_STOCK = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4401.bin"
 ROM_NETWORK = Path(os.environ.get(
@@ -45,7 +49,7 @@ ZMAC = ROOT / "build" / "bin" / "zmac"
 LD80 = ROOT / "build" / "bin" / "ld80"
 ZX0 = ROOT / "build" / "bin" / "zx0"
 sys.path.insert(0, str(COSIM / "tools"))
-sys.path.insert(0, str(ROOT / "third_party" / "juku-common" / "tools"))
+sys.path.insert(0, str(COMMON / "tools"))
 
 from janet_disk_server import juku_image_to_volume, serve_disk  # noqa: E402
 from janet_fastboot import serve_fast  # noqa: E402
@@ -60,6 +64,15 @@ ram_console_reference: bytes | None = None
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise SystemExit(message)
+
+
+def artifact_identity(path: Path) -> dict[str, int | str]:
+    payload = path.read_bytes()
+    return {
+        "name": path.name,
+        "bytes": len(payload),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
 
 
 def build_trace(output: Path) -> None:
@@ -87,44 +100,55 @@ def build_timing_fixture(
     """Build an actual pre-fix code path, rather than injecting an error."""
     fixture = work / name
     fixture.mkdir()
-    platform = ROOT / "build" / "platform-adapter.rel"
-    netdisk = ROOT / "build" / "netdisk-v3.rel"
+    platform = fixture / "platform-adapter.rel"
+    keyboard = fixture / "ram-keyboard.rel"
+    netdisk = fixture / "netdisk-v3.rel"
+    netconsole = fixture / "netconsole.rel"
     adapter_all = fixture / "adapter.all"
     adapter = fixture / "adapter.bin"
     system = fixture / "system.bin"
     fastboot = fixture / "fastboot.bin"
     required = (
-        ZMAC, LD80, ZX0, ROOT / "build" / "platform-adapter.rel",
-        ROOT / "build" / "netdisk-v3.rel",
-        ROOT / "build" / "ram-keyboard.rel",
-        ROOT / "build" / "netconsole.rel",
+        ZMAC, LD80, ZX0,
         ROOT / "build" / "fastboot-core.cim",
         ROOT / "build" / "fastboot-extension.cim",
     )
     require(all(path.is_file() for path in required),
             "legacy timing regression requires a completed make all")
+    platform_command = [
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+    ]
     if adapter_define:
-        platform = fixture / "platform-adapter.rel"
-        subprocess.run([
-            str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
-            f"-D{adapter_define}",
-            f"-I{ROOT / 'third_party' / 'juku-common' / 'platform'}",
-            "-o", str(platform), str(ROOT / "src" / "platform-adapter.asm"),
-        ], cwd=ROOT, check=True)
+        platform_command.append(f"-D{adapter_define}")
+    platform_command.extend([
+        f"-I{COMMON / 'platform'}", "-o", str(platform),
+        str(ROOT / "src" / "platform-adapter.asm"),
+    ])
+    subprocess.run(platform_command, cwd=ROOT, check=True)
+    subprocess.run([
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+        "-o", str(keyboard), str(COMMON / "platform" / "ram-keyboard.asm"),
+    ], cwd=ROOT, check=True)
+    netdisk_command = [
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+        "-DCPM3ADAPTER",
+    ]
     if netdisk_define:
-        netdisk = fixture / "netdisk-v3.rel"
-        subprocess.run([
-            str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
-            "-DCPM3ADAPTER", f"-D{netdisk_define}", "-o", str(netdisk),
-            str(ROOT / "third_party" / "juku-common" / "platform" /
-                "netdisk-v3.asm"),
-        ], cwd=ROOT, check=True)
+        netdisk_command.append(f"-D{netdisk_define}")
+    netdisk_command.extend([
+        "-o", str(netdisk), str(COMMON / "platform" / "netdisk-v3.asm"),
+    ])
+    subprocess.run(netdisk_command, cwd=ROOT, check=True)
+    subprocess.run([
+        str(ZMAC), "--nmnv", "--zmac", "-m", "--rel7", "-8",
+        "-o", str(netconsole), str(COMMON / "platform" / "netconsole.asm"),
+    ], cwd=ROOT, check=True)
     subprocess.run([
         str(LD80), "-m", "-O", "bin", "-o", str(adapter_all),
         "-s", "/dev/null", "-P0xa000",
         str(platform), "-P0xaa90",
-        str(ROOT / "build" / "ram-keyboard.rel"), "-P0xac10",
-        str(netdisk), "-P0xae40", str(ROOT / "build" / "netconsole.rel"),
+        str(keyboard), "-P0xac10", str(netdisk), "-P0xae40",
+        str(netconsole),
     ], cwd=ROOT, check=True)
     adapter.write_bytes(adapter_all.read_bytes()[40960:])
     subprocess.run([
@@ -928,7 +952,15 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     # post-run oracles. A late count or framebuffer failure must not erase the
     # measurements needed to diagnose an otherwise expensive full matrix.
     if command_metrics:
-        metrics_text = json.dumps(command_metrics, indent=2) + "\n"
+        metrics_document = {
+            "_platform": {
+                "network_rom": artifact_identity(rom),
+                "system": artifact_identity(system),
+                "fastboot": artifact_identity(fastboot),
+            },
+            **command_metrics,
+        }
+        metrics_text = json.dumps(metrics_document, indent=2) + "\n"
         (case / "disk-metrics.json").write_text(metrics_text)
         metrics_output = os.environ.get("CPM_PLUS_JUKU_METRICS_OUTPUT")
         if metrics_output:

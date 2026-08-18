@@ -2,22 +2,23 @@
 
 Audit date: **2026-08-18**
 
-Scope: priorities 0--6 of
+Scope: priorities 0--7 of
 [`cpm-plus-feature-plan.md`](cpm-plus-feature-plan.md) and every requirement in
-[`network-first-rom-plan.md`](network-first-rom-plan.md). Priority 7 was added
-after this frozen release audit and tracks curated software separately. The
-audited deliverable is the ABI 1.2 C6 simulator release. The later blind physical
-qualification is recorded separately and never substitutes for unavailable
-display observations.
+[`network-first-rom-plan.md`](network-first-rom-plan.md). The audited platform
+deliverable is the ABI 1.2 C6 simulator release; the audited distribution
+deliverables are its recovery, full, development, demo, and native-B images.
+The later blind physical qualification is recorded separately and never
+substitutes for unavailable display observations.
 
-The fail-closed top-level command is:
+The complete ordinary source, distribution, admission, and simulator gate is:
 
 ```sh
-make c6-release-candidate
+make check
 ```
 
-It must finish without a skipped command. `make check` remains the broader C4/
-C5/source/distribution compatibility gate and is also run before publication.
+It must finish without a skipped command. `make c6-release-candidate` is the
+additional fail-closed C6 rebuild, long-soak, and byte-reproducible packaging
+gate; it is not a substitute for the broader Priority-7 admission matrix.
 
 ## Network-first execution plan
 
@@ -58,6 +59,22 @@ C5/source/distribution compatibility gate and is also run before publication.
 | 4 | Shared safe diagnostics and observability | Diag 0.5, Status 1.3, retained D610h..D613h record, operations 24h/25h/27h, generated memory map | Complete; destructive live-CP/M tests are explicitly rejected. |
 | 5 | Measured NetDisk performance and safe media | pinned 10/0/1 request counts, per-drive cache fixture, capability operation 26h, multi-request fixture, copy/snapshot/read-only tests, long write/reconnect soak | Complete for selected synchronous design. |
 | 6 | Manifest, identity-free media, fallback slots and recovery | C6 boot manifest, last-known-good tests, C4 fallback, reproducible package | Complete. |
+| 7 | Curated strict-8080 software and development environment | generated 23-program catalogue, full/development profile reports, static component listings, current-C6 full/dev cosimulation, runtime-memory manifest, external/compiler audits and negative tests | Complete; 13 admitted DRI programs and six project tools execute on the C6 native path, while every rejected or deferred candidate has a measured disposition. |
+
+## Priority 7 admission evidence
+
+| requirement | authoritative evidence | result |
+| --- | --- | --- |
+| Catalogue 20--30 exact candidates | `third_party/cpm3/releases/candidates.json`, `cpm3-utility-catalogue.md`, `audit_cpm3_candidates.py` and its mutation tests | Complete with 23 DRI candidates, exact archives, source members, provenance, CPU/build contract, sizes, hashes, TPA, profile, and test state. |
+| Reproducible admitted profiles | `volume/profiles/*.json`, generated full/dev volume reports, `distribution_test.py` | Complete; recovery remains small, convenience commands are isolated in full/demo, and development tools are isolated in `development-a`. |
+| Static Intel-8080 proof | canonical flow-aware component listings and `audit_8080_com.py` policies | Complete for all 13 admitted DRI programs, including GENCOM RSXs and SID's relocated component; forbidden opcodes, I/O, transfers, and stale annotations fail closed. |
+| Useful execution on current C6 | `distribution-cosim-check`, `development-cosim-check`, fetched-opcode counters and exact artifact identities in each metrics file | Complete; all admitted DRI programs return to CCP on the ABI 1.2 ROM/extended V16 system with zero fetched Z80 prefixes or undocumented aliases. |
+| Disk and runtime memory admission | `third_party/cpm3/releases/runtime-memory.json`, `cpm3-runtime-memory.md`, eight negative mutations | Complete; exact C6 ROM/system/Fastboot hashes, allocation, transient/RSX placement, command-scoped stack segments, and 39,168-byte TPA headroom are bound for all 13 programs. |
+| Project-owned gap tools | `project-utilities.md` and the full-profile simulator matrix | Complete for `CRC`, `CMP`, bounded read-only `MEM`, `WC`, `FIND`, and `STRINGS`; existing STATUS/DATE/DIAG/TIME cover machine and clock needs. |
+| DRI development workflow | `cpm3-development-tools.md`, byte-exact rebuild gate, edit/save/readback simulation | Complete; ED, HEXCOM, PATCH, and SID form the admitted hybrid workflow, while ASM/LOAD absence and host-only MAC/RMAC/DRLINK are explicit. |
+| External candidates | `external-software-audit.md`, pinned revisions/patches/results and negative tests | Complete decisions: `cpm-ls` passes but is deferred on measured NetDisk/TPA cost; HIST is rejected for absent source/license; FIG-Forth core passes but its incomplete package is deferred. |
+| Host compiler experiments | `experiments/compiler-comparison/results.json`, exact Millfork/z88dk fixtures, strict rebuild/simulator records | Complete; Millfork is the preferred future high-level experiment, z88dk remains a portability probe, hand-written 8080 assembly remains production, and `uplm80` is rejected for Z80 output. |
+| License and credit preservation | generated `SOFTWARE.TXT`, profile provenance records, pinned license files and source mappings | Complete for every distributed third-party executable; no merely referenced external binary is redistributed. |
 
 ## Distribution and provenance requirements
 
@@ -96,6 +113,23 @@ disposition is part of completion:
 - **Full HDL CP/M execution:** not duplicated. The exact C4 structural HDL gate
   covers the valuable hardware boundary; full firmware, cursor pixels,
   recovery, and soak use the cycle/device C model.
+- **`cpm-ls`:** audited and reproducibly ported, but deferred from all profiles.
+  Its ordinary listing costs 55 NetDisk reads versus three for `DIR`, its long
+  listing costs 188, and its 14,913-byte image overlaps commands already
+  available in CP/M.
+- **`HIST` RSX:** rejected. The located behavior-reference binaries have no
+  matching source, independent license, CPU contract, or build recipe.
+- **FIG-Forth:** core execution is proven, including clean `BYE`, but packaging
+  is deferred until the editor, assembler, documentation, and an unambiguous
+  complete-package notice are available.
+- **XMODEM:** intentionally absent. NetDisk/N4 already owns the serial path and
+  provides checksummed, reconnectable disk and file service without a second
+  transfer mode.
+- **Unrestricted `PORT`:** intentionally absent because even reads can disturb
+  hardware. Existing shared diagnostics are the maintained safe I/O allow-list.
+- **Unix-name duplicates:** not added. CP/M `TYPE`, `PIP`, `REN`, `ERA`, and
+  `DIR` remain the preferred implementations unless measurement demonstrates a
+  real missing workflow.
 
 ## Fleet boundary
 
@@ -116,4 +150,8 @@ The checked package is `out/cpm-plus-3.1-juku-c6-simulator/` with matching
 `cpm-plus-juku-c6-manifest.json` binds boot/media inputs and
 `memory-map.json` binds the full ROM vector and RAM placement. If any input is
 rebuilt, all three must be regenerated and the complete release command must
-pass again.
+pass again. Priority-7 distribution authority additionally consists of the
+generated profile reports, `cpm3-utility-catalogue.md`,
+`cpm3-development-tools.md`, `cpm3-runtime-memory.md`, and
+`external-software-audit.md`; `make check` cross-validates them against their
+machine-readable manifests and current-C6 execution evidence.

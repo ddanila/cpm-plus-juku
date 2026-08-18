@@ -34,7 +34,7 @@ def expect_rejection(call, marker: str) -> None:
 
 
 def metrics_for(module, data: dict, profile: str) -> dict:
-    result = {}
+    result = {"_platform": json.loads(json.dumps(data["artifacts"]))}
     for record in data["records"]:
         if record["profile"] != profile:
             continue
@@ -79,12 +79,26 @@ def main() -> int:
         mutated_path.write_text(json.dumps(changed))
         expect_rejection(module.audit, "entry stack")
 
+        changed = json.loads(json.dumps(original))
+        changed["artifacts"]["network_rom"]["name"] = \
+            "juku-network-rom-abi1.bin"
+        mutated_path.write_text(json.dumps(changed))
+        module.RUNTIME = mutated_path
+        expect_rejection(module.audit, "not the C6 network_rom")
+
         module.RUNTIME = original_path
         data = module.audit()
         metrics = metrics_for(module, data, "full")
         metrics_path = work / "metrics.json"
         metrics_path.write_text(json.dumps(metrics))
         module.verify_metrics(data, "full", metrics_path)
+        metrics["_platform"]["network_rom"]["sha256"] = "f" * 64
+        metrics_path.write_text(json.dumps(metrics))
+        expect_rejection(
+            lambda: module.verify_metrics(data, "full", metrics_path),
+            "exact C6 artifacts",
+        )
+        metrics = metrics_for(module, data, "full")
         metrics["extra9"]["command"] = "DATE"
         metrics_path.write_text(json.dumps(metrics))
         expect_rejection(
@@ -115,7 +129,7 @@ def main() -> int:
         )
 
     module.RUNTIME = original_path
-    print("CPM3-RUNTIME-TEST: PASS (six negative gates)")
+    print("CPM3-RUNTIME-TEST: PASS (eight negative gates)")
     return 0
 
 

@@ -141,3 +141,28 @@ return, and exact TYPE readback under strict 8080 execution. SID remains an
 exact assembly-source rebuild. ASM and LOAD are absent from the pinned CP/M 3
 release, while the source-less MAC, RMAC, and DRLINK binaries remain host-side
 ZXCC reproduction inputs and cannot enter a target image.
+
+The Priority 7 closeout then moved every admitted Digital Research program
+onto the current C6 admission path. Nine full-profile and four development
+programs now have exact disk allocation, transient/RSX placement, and
+command-scoped live stack evidence under the 39,168-byte TPA, in addition to
+their canonical static 8080 listings. The simulator executes all thirteen on
+the network-first ROM/native BIOS and fails on any Z80 prefix, undocumented
+alias, mismatched profile report, or altered memory record. Six project-owned
+gap tools pass the same fetched-opcode path. With the external candidates and
+compiler experiments given explicit measured dispositions, `make check` now
+closes the complete feature plan through Priority 7 rather than only the
+frozen C0--C6 platform baseline.
+
+The final requirement audit caught that those full/development runtime jobs
+still inherited the harness's ABI 1.0 ROM default even though their matching
+TPA geometry made the measurements look C6-compatible. Both jobs now select
+the exact ABI 1.2 C6 ROM, extended native system, and V16 stream explicitly,
+and every metrics document carries their names, sizes, and SHA-256 identities.
+The admission checker rejects an ABI 1.0 substitution before considering any
+stack result. Running the development path on C6 also replaced an accidental
+ED prompt dependency with the command's actual post-insert `CR/LF + *` prompt.
+The legacy timing regressions also stopped reusing shared adapter objects: each
+fixture now builds private platform, keyboard, NetDisk, and console modules
+from Make's exact `juku-common` selection, so an unrelated local rebuild cannot
+silently change or break the frozen failure oracle.

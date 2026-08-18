@@ -4,8 +4,9 @@ This repository contains a strict-Intel-8080, non-banked CP/M Plus 3.1 port for
 the Juku E5101/E5104. It uses Digital Research's CP/M 3 CCP, BDOS, SCB, and
 BIOS conventions; it is not CP/Mish 3.
 
-Status: **ABI 1.2 C6 release implemented; its blind physical matrix passes on
-CS00015, with display/cursor observation still pending.**
+Status: **ABI 1.2 C6 and the Priority-7 strict-8080 distribution are complete;
+the blind physical matrix passes on CS00015, with display/cursor observation
+still pending.**
 
 Danila Sukharev owns the project-written code. OpenAI GPT-5.6 Sol was used as a
 development assistant. Third-party authors and licenses are retained in
@@ -86,7 +87,9 @@ The repository builds pinned zmac, ld80, ZX0, and CP/M artifacts locally.
 `make check` verifies immutable prebuilt images, ROM budgets, licensed volume
 inputs, deterministic distribution reports, boot manifests, C5/C6 package
 reproducibility, the CP/M 3 toolchain output, native BIOS services,
-observability/recovery, and the complete legacy/production cosimulation matrix.
+observability/recovery, the 23-program candidate catalogue, every admitted DRI
+and project utility on the current C6 path, live disk/stack/TPA accounting, and
+the complete legacy/production cosimulation matrix.
 
 The final C6 command is:
 
