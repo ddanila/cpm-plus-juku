@@ -4,8 +4,8 @@ This repository contains a strict-Intel-8080, non-banked CP/M Plus 3.1 port for
 the Juku E5101/E5104. It uses Digital Research's CP/M 3 CCP, BDOS, SCB, and
 BIOS conventions; it is not CP/Mish 3.
 
-Status: **ABI 1.2 C6 simulator release implemented; physical promotion is a
-separate step.**
+Status: **ABI 1.2 C6 release implemented; its blind physical matrix passes on
+CS00015, with display/cursor observation still pending.**
 
 Danila Sukharev owns the project-written code. OpenAI GPT-5.6 Sol was used as a
 development assistant. Third-party authors and licenses are retained in
@@ -68,7 +68,8 @@ The additive ROM line is:
   warm-boot, and live-reconnect matrix;
 - C6 / ABI 1.2: bounded console-span, ordered NetDisk multi-request,
   instantaneous raw keyboard, sound, and bounded N4 block output. C6 is the
-  completed simulator release and does not modify C5 bytes.
+  completed simulator release, is now fitted and blind-qualified on CS00015,
+  and does not modify C5 bytes.
 
 ## Build and verification
 
@@ -156,10 +157,13 @@ measured design justifies their cost and failure semantics.
 
 ## Physical use
 
-C6 simulator qualification does not claim that C6 EPROMs have been fitted.
-When hardware and a display are convenient, program the package's named D15
-low and D16 high halves and repeat the short cold-boot, geometry/cursor,
-keyboard, A:/B:, diagnostic, warm-boot, and live-reconnect matrix on CS00015.
+The package's exact C6 D15-low and D16-high halves are fitted in CS00015. On
+2026-08-18 they passed built-in programmer verification, repeated automatic
+19,200-baud V16 cold boots, local keyboard and ROM sound, A:/B:, diagnostics,
+warm boot, writes, soak, and live host replacement. A working display is still
+needed to observe the selected geometry, glyphs, pseudographics, and blinking
+cursor physically. See
+[`docs/cs00015-c6-blind-qualification-20260818.md`](docs/cs00015-c6-blind-qualification-20260818.md).
 C5 and the stock-ROM/RAM-BIOS path remain recoverable baselines.
 
 The authoritative current documents are:

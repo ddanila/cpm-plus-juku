@@ -1,6 +1,6 @@
 # CP/M Plus 3.1 C6 simulator release
 
-Status: **SIMULATOR-QUALIFIED; PHYSICAL PROMOTION IS A SEPARATE STEP**
+Status: **SIMULATOR-QUALIFIED; BLIND PHYSICAL MATRIX PASSED ON CS00015**
 
 The C6 set is the first complete ABI 1.2 network-first candidate. It is an
 immutable, reproducible desk artifact intended to remove hardware availability
@@ -82,10 +82,14 @@ host explicitly reports no console capability.
 
 ## Physical promotion boundary
 
-No physical observation is required to call this simulator artifact complete.
-When CS00015 and a display are convenient, promotion consists of programming
-the named halves and repeating a short cold-boot, display/cursor, keyboard,
-A:/B:, diagnostic, warm-boot, and live-reconnect matrix. A failed physical
-promotion creates a C7 fix or board-specific service record; it does not erase
-the C5 or stock-ROM recovery paths and does not invalidate the simulator
-artifact's accurately scoped claim.
+On 2026-08-18 the exact named halves were programmed, verified, and fitted in
+CS00015. Repeated automatic V16 boots, local keyboard and ROM sound, A:/B:,
+diagnostics, warm boot, snapshot writes, soak, and live host replacement passed
+without a ROM or system fix. Details and exact timings are in
+[`cs00015-c6-blind-qualification-20260818.md`](cs00015-c6-blind-qualification-20260818.md).
+
+The external display was unavailable. Exact geometry, glyphs, pseudographics,
+and blinking-cursor appearance therefore remain a physical observation gate;
+only their exact simulator framebuffer oracles are claimed today. This does
+not weaken the completed simulator release or the retained C5 and stock-ROM
+recovery paths.

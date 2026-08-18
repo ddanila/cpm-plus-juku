@@ -4,8 +4,9 @@ Audit date: **2026-08-18**
 
 Scope: every requirement in [`cpm-plus-feature-plan.md`](cpm-plus-feature-plan.md)
 and [`network-first-rom-plan.md`](network-first-rom-plan.md). The audited
-deliverable is the ABI 1.2 C6 simulator release. Physical installation is a
-separate promotion status and is never inferred below.
+deliverable is the ABI 1.2 C6 simulator release. The later blind physical
+qualification is recorded separately and never substitutes for unavailable
+display observations.
 
 The fail-closed top-level command is:
 
@@ -27,8 +28,8 @@ C5/source/distribution compatibility gate and is also run before publication.
 | 5 | Automatic 19,200-baud keyless boot, quick POST, identity-free host | `tests/network_first_rom_boot_test.py`, real C6 CP/M cosimulation, generated stage dictionary | Complete; valid host reaches `A>` and missed/absent/corrupt host paths retry without a required reset. |
 | 6 | Move common services and prove TPA gain | C6 ROM test, extended CP/M local/N4 tests, `memory-map.json` | Complete; serial, keyboard, console/font, NetDisk, sound, and diagnostics are resident; TPA remains 39,168 bytes, +8,192. |
 | 7 | Recovery and long soak | network compound/restart fixtures and `network-rom-long-soak-check` | Complete; real firmware branches cover truncation, delay, duplicate, CRC, overrun, stale bytes, server replacement, and 64 read/diagnostic/write cycles. |
-| 8 | Qualify production artifacts without hardware blocking | exact C6 C-model run plus C4 structural HDL boundary | Complete for simulator release. CS00015 burning/display remains a truthful physical-promotion action. |
-| 9 | Promote only after parity | C6 package status, C5/C4 fallback slots, local and N4 parity tests | Complete for simulator promotion; no claim that C6 EPROMs have been fitted. |
+| 8 | Qualify production artifacts without hardware blocking | exact C6 C-model run plus C4 structural HDL boundary | Complete for simulator release; the exact C6 pair later passed the CS00015 blind hardware matrix. |
+| 9 | Promote only after parity | C6 package status, C5/C4 fallback slots, local and N4 parity tests, `cs00015-c6-blind-qualification-20260818.md` | Blind physical parity passed; only display/cursor observation remains. |
 
 ## ROM and boot acceptance contract
 
@@ -100,7 +101,7 @@ Machine profiles in `8080-cosim/docs/machines/` prevent one board's fault from
 becoming a global software assumption:
 
 - CS00014: museum exhibition machine, stock ROM;
-- CS00015: home reference, physically exercised C5 path;
+- CS00015: home reference, exact C6 pair fitted; blind C6 matrix passed;
 - CS00000: USART suspicion remains board-local and unproven;
 - CS00024: RAM/D57/raster/parser investigation remains board-local.
 

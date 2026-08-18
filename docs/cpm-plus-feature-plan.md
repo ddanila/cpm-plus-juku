@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **IMPLEMENTED AND PACKAGED AS THE C6 SIMULATOR RELEASE**
+Status: **IMPLEMENTED AND PACKAGED; C6 BLIND HARDWARE MATRIX PASSED**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -27,13 +27,14 @@ Before adding user-facing or protocol features:
 - publish one immutable candidate package and its acceptance record.
 
 Current state (2026-08-18): C4 and C5 are immutable hash-pinned references.
-C5 physically passed the monitorless CS00015 boot, A:/B:, sequential read,
-write/erase, warm boot, diagnostics, keyboard, host-loss, and live reconnect
-matrix. C6 changes neither the C5 ROM nor its matching CP/M system bytes. The
-production-path simulator supplies the remaining exact display/cursor/local-
-keyboard evidence and all C6-only evidence, so hardware availability no longer
-blocks the software release. A later monitor-assisted C6 session is a physical
-promotion, not completion evidence borrowed by the simulator artifact.
+C5 physically passed the monitorless CS00015 matrix. C6 changes neither the C5
+ROM nor its matching CP/M system bytes. On 2026-08-18 the exact C6 pair then
+passed repeated automatic boot, A:/B:, sequential read, write/erase, warm boot,
+diagnostics, local keyboard, sound, soak, host-loss, and live reconnect on the
+same board. The production-path simulator supplies exact display/cursor
+evidence, so hardware availability does not block the software release. A
+later monitor-assisted C6 observation will close the physical visual boundary;
+it is not completion evidence borrowed by the simulator artifact.
 
 The compatibility adapter remains the reference until a replacement matches
 this matrix. Higher baud rates, write-back caching, and additional recovery
@@ -295,7 +296,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 
 | Priority | State | Authoritative evidence |
 | --- | --- | --- |
-| 0. Frozen baseline | **Complete** | C4/C5 are immutable and hash-pinned; C5 booted CS00015 in 6.268 s and passed the blind hardware matrix. Exact C6 display/cursor/local-key behavior is supplied by production-path framebuffer and keyboard oracles, with physical C6 promotion explicitly separate. |
+| 0. Frozen baseline | **Complete** | C4/C5 are immutable and hash-pinned; C5 booted CS00015 in 6.268 s. The exact C6 pair later passed the CS00015 blind boot, keyboard, sound, disk, diagnostic, write, warm-boot, soak, and reconnect matrix; display/cursor observation remains separate. |
 | 1. Distribution | **Complete** | `distribution-check`, deterministic profile reports, provenance checks, native B: conversion, and distribution cosimulation pass. |
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
 | 3. S21/console/locale | **Complete** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, 53x24/64x20 CS00015 evidence, and C6 local/N4 block-output separation. |
@@ -319,16 +320,17 @@ display/cursor gate remains. See
 `make c6-release-candidate` is the completed-plan gate. It rebuilds ABI 1.2,
 runs its executable C/HDL boundaries, both local and N4 CP/M paths, the full
 64-cycle read/write/reconnect soak, manifest and fallback checks, then creates
-and independently reproduces the C6 simulator package. This is sufficient for
-the scoped software release; it truthfully leaves physical promotion pending.
-See [`cpm-plus-31-c6-simulator.md`](cpm-plus-31-c6-simulator.md) and
-[`plan-completion-audit.md`](plan-completion-audit.md).
+and independently reproduces the C6 simulator package. The later exact C6 pair
+passed every monitor-independent physical item on CS00015. See
+[`cpm-plus-31-c6-simulator.md`](cpm-plus-31-c6-simulator.md),
+[`cs00015-c6-blind-qualification-20260818.md`](cs00015-c6-blind-qualification-20260818.md),
+and [`plan-completion-audit.md`](plan-completion-audit.md).
 
 For monitorless completion of the keyboard portion, the post-C4 profiles now
 include `KEYTEST.COM`. Its single-key mode reports unbuffered local key codes
 through N4; its `KEYTEST B` mode captures a complete line before reporting so
 serial output cannot stall the polled keyboard between keys. Both have bounded
 exits, and buffered mode passes an exact simulator transcript including Space
-and Enter. A working external display is still required to promote C5 or C6
-physically, but exact framebuffer/cursor oracles satisfy the simulator-release
-scope of this completed plan.
+and Enter. A working external display is still required to complete C6's
+physical visual promotion, but exact framebuffer/cursor oracles satisfy the
+simulator-release scope of this completed plan.
