@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **COMPLETE THROUGH PRIORITY 7; SIMULATOR AND ADMISSION GATES PASS**
+Status: **COMPLETE THROUGH PRIORITY 7; POST-BASELINE PIP CORRECTNESS WORK ACTIVE**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -613,3 +613,92 @@ exits, and buffered mode passes an exact simulator transcript including Space
 and Enter. A working external display is still required to complete C6's
 physical visual promotion, but exact framebuffer/cursor oracles satisfy the
 simulator-release scope of that completed baseline.
+
+## Post-C6 maintenance and improvement roadmap
+
+This roadmap begins after the completed C0--C6 and Priority-7 implementation
+audit. It does not rewrite the immutable C4/C5 references or require a new ROM
+ABI merely because a loaded CP/M system or its tests need maintenance.
+
+### Immediate goal: multi-record PIP correctness
+
+Restore a truthful, hardware-qualified Priority-7 distribution by fixing
+multi-record `PIP` copying, strengthening its simulator admission workload,
+and verifying the corrected loaded system once on CS00015.
+
+The 2026-08-18 blind Priority-7 run exercised all 13 admitted DRI programs and
+all six project-owned utilities through C6/N4. `SETDEF`, `DUMP`, `HELP`,
+`SHOW`, `DATE`, `SUBMIT`, `DEVICE`, `SET`, `HEXCOM`, `SID`, `PATCH`, and `ED`
+passed. `HEXCOM` created and ran `HELLO.COM`; ED created, saved, and read back
+`EDTEST.TXT`; both `SET` attribute transitions returned to CCP. The only
+failure was `PIP COPY.TXT=README.TXT`: twice, all four data records and the
+directory updates received successful synchronous NetDisk acknowledgements,
+but PIP then stopped disk and N4 polling and did not return to `A>`. Ctrl+C did
+not recover it. The exact `PIP COPY2.TXT=README.TXT` workload subsequently
+reproduced the same prompt timeout in the production simulator. The existing
+admission case copied only the smaller one-record `PROFILE.SUB`, so it did not
+cover this boundary.
+
+The correction is complete only when:
+
+- a reduced simulator matrix identifies the first failing record count and
+  captures the final BDOS/BIOS calls plus CPU PC/SP at the stall;
+- the responsible native-BIOS, cache/invalidation, MULTIO/FLUSH, or return-state
+  defect is corrected without weakening synchronous write-through semantics;
+- the ordinary admission test copies at least the four-record `README.TXT`,
+  returns to `A>`, and verifies the destination as CRC16-CCITT `4613`;
+- repeated copy, warm boot, host reconnect, and the complete C6/Priority-7
+  regression matrix pass;
+- one final CS00015 run performs `PIP COPY.TXT=README.TXT` followed by
+  `CRC COPY.TXT`, returns to CCP, and reports `4613`.
+
+This is expected to require a newly network-loaded CP/M system rather than an
+EPROM burn. Preserve the two failed copy-backed images and host transcripts as
+diagnostic evidence until the cause and regression are closed.
+
+### Follow-on work, in priority order
+
+1. **Physical-test automation.** Turn the full/development N4 smoke into a
+   paging-aware, machine-readable runner with durable console and host logs.
+   Cover the complete admitted workload, writable-copy isolation, target
+   timeout diagnostics, and clean host shutdown. Add a bench-friendly waiting
+   policy so the host does not exhaust its short V16 header-attempt window
+   while a human is still powering or resetting the target; retain bounded
+   production recovery semantics.
+2. **Physical display acceptance.** Add a compact `VIDTEST.COM` that renders
+   screen boundaries, representative ASCII and locale banks, connected CP437
+   pseudographics, and an observable underline cursor. With the unchanged C6
+   ROM, inspect raw S21 `01h`, `03h`, `05h`, and `07h` for 40x24, 53x24,
+   64x20, and 80x24 respectively. This is the only outstanding C6 physical
+   promotion boundary; framebuffer oracles remain the software authority.
+3. **Measured NetDisk performance.** Optimize initial A: login and first or
+   alternating drive selection, retaining separate wire, target, console, and
+   host timings. Steady-state `DIR` is already served from CP/M state and is
+   not a useful optimization target. Preserve independent eight-record A:/B:
+   read-ahead and synchronous invalidating writes. Do not add write-back
+   caching without explicit flush, warm-boot, retry, disconnect, and power-loss
+   contracts.
+4. **Distribution usability.** Consider a project-owned, source-available
+   strict-8080 command-history facility and further text-interface tools that
+   use the connected pseudographic set. Keep hand-written 8080 assembly as the
+   production baseline; use Millfork as the preferred measured high-level
+   experiment and z88dk for C portability probes.
+5. **Deferred software.** Keep `cpm-ls` audited but outside all profiles until
+   an indexed-directory service or demonstrated workflow justifies its 55/188
+   NetDisk reads and 14,913-byte image. Reconsider FIG-Forth only with a
+   complete editor, assembler, documentation, and unambiguous package notice.
+   Continue rejecting the unlicensed/source-less HIST reference binary.
+6. **Physical fleet.** Keep CS00015 as the known-good reference. Treat
+   CS00000's suspected USART fault and CS00024's RAM/refresh/D57 evidence as
+   separate per-machine investigations, preserving their machine profiles
+   rather than generalizing either fault into the production model.
+
+### Explicitly separate future projects
+
+Rates above the proven 19,200-baud mode-2/count-4 setting, cryptographic boot
+authentication, write-back caching, and real banked CP/M Plus all require
+separately named experiments with measured benefit and failure semantics.
+XMODEM remains excluded because NetDisk/N4 already owns the USART and provides
+checksummed, reconnectable disk and file transport. Banking remains outside
+this non-banked port unless new Juku memory hardware is designed, built, and
+characterized.
