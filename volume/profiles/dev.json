@@ -5,6 +5,16 @@
   "description": "Strict-8080 CP/M Plus development A: volume",
   "files": [
     {
+      "source": "build/cpm3-utilities/ED.COM",
+      "destination": "0:ED.COM",
+      "sha256": "043732665d295ed86f96007bb76fa319145df85d384385b30bd5605b6774f56d",
+      "provenance": {
+        "source": "third_party/cpm3/releases/provenance.json; ed.plm plus the pinned upstream PL/M-80 build recipe",
+        "version": "Digital Research CP/M 3 ED",
+        "license": "third_party/cpm3/LICENSE.md"
+      }
+    },
+    {
       "source": "build/cpm3-utilities/HEXCOM.COM",
       "destination": "0:HEXCOM.COM",
       "sha256": "0f458585377284053fb3c8441cdcea75b62dd6a2a4594fe5097b8ca33691964c",

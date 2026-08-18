@@ -344,14 +344,15 @@ oracle; previously those commands could run without contributing to the final
 visual comparison.
 
 Development slice completed on 2026-08-18: a separately named `development-a`
-profile extends `full-a` with HEXCOM, PATCH, SID, `HELLO.ASM`, and its
+profile extends `full-a` with ED, HEXCOM, PATCH, SID, `HELLO.ASM`, and its
 reproducible Intel HEX output while leaving recovery/full/demo bytes
-unchanged. The three Digital Research executables rebuild byte-for-byte from
-their pinned assembly sources with archived MAC/RMAC/DRLINK under pinned ZXCC.
-The strict-8080 simulator converts HELLO on target and executes it, then enters
-and exits SID and exercises PATCH's installed-patch listing. The image has
-224 KiB free and is advertised in every generated boot manifest and included
-in the reproducible C5/C6 packages.
+unchanged. HEXCOM, PATCH, and SID rebuild byte-for-byte from their pinned
+assembly sources with archived MAC/RMAC/DRLINK under pinned ZXCC. ED has a
+complete PL/M-80/assembly mapping and pinned maintained binary. The strict-
+8080 simulator converts and executes HELLO, enters/exits SID, exercises PATCH,
+then inserts, saves, and reads back a new file with ED. The image has 200 KiB
+free and is advertised in every generated boot manifest and included in the
+reproducible C5/C6 packages.
 
 Do not duplicate established CP/M commands merely to give them Unix names:
 `TYPE` already covers the ordinary `cat` case, `PIP` copies files, `REN`
@@ -419,6 +420,16 @@ missing. See [`external-software-audit.md`](external-software-audit.md).
   neither its binaries nor its hardware layer are candidates for direct Juku
   import.
 - LokiOS is Z80-only and remains an ideas reference, not a port dependency.
+
+DRI development-tool audit completed on 2026-08-18: ED and SID are admitted
+to `development-a` with exact source mappings and strict-8080 workflows. The
+pinned `ASM.COM` and `LOAD.COM` candidates do not exist in either exact CP/M 3
+archive, so they are not imported from an unrelated distribution; HEXCOM
+already converts host-produced Intel HEX. RMAC, MAC, and DRLINK exist only as
+source-less executable inputs needed by the upstream/local reproduction path.
+Their exact bytes remain host-side under ZXCC and are forbidden from generated
+target profiles. [`cpm3-development-tools.md`](cpm3-development-tools.md)
+records and checks all seven individual dispositions.
 
 ### Host-side compiler experiments
 
@@ -530,7 +541,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
-| 7. Curated software/development | **In progress** | The 23-program DRI catalogue, every shipped DRI executable, reproducible HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. The exact `cpm-ls`/`HIST`/FIG-Forth decisions and Millfork/z88dk/uplm80 experiments are complete and fail-closed; the individual DRI `ASM`/`LOAD`/`ED`/`RMAC` disposition and final plan-wide gate remain. |
+| 7. Curated software/development | **Implementation complete; final audit running** | The 23-program DRI catalogue, every shipped DRI executable, ED/HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST`/FIG-Forth decisions, seven individual DRI development-tool dispositions, and Millfork/z88dk/uplm80 experiments are complete and fail-closed. |
 
 `make check` is the complete ordinary desk gate. `make bench-candidate` additionally
 rebuilds the immutable C4 package and proves that incomplete or tampered

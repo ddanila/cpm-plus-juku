@@ -1,0 +1,109 @@
+{
+  "schema": "cpm-plus-juku-cpm3-development-tools-v1",
+  "audited_at": "2026-08-18",
+  "release": "Digital Research CP/M 3.1, John Elliott Unix build 2026-06-07",
+  "source_archive": "cpm3src_unix-20260607.zip",
+  "binary_archive": "cpm3bin_unix-20260607.zip",
+  "cpu": "Intel 8080",
+  "tpa_bytes": 39168,
+  "programs": {
+    "ASM.COM": {
+      "decision": "reject-unavailable",
+      "profile": "none",
+      "reason": "Neither the executable nor matching source is present in the exact pinned CP/M 3 source/binary release. The ISIS ASM80 build tool named upstream is not CP/M ASM.COM."
+    },
+    "LOAD.COM": {
+      "decision": "reject-unavailable",
+      "profile": "none",
+      "reason": "Neither the executable nor matching source is present in the exact pinned CP/M 3 source/binary release. Admitted HEXCOM.COM already converts host-produced Intel HEX without importing an unexplained LOAD binary."
+    },
+    "ED.COM": {
+      "decision": "admit",
+      "profile": "dev",
+      "archive": "binary",
+      "member": "ed.com",
+      "bytes": 9254,
+      "sha256": "043732665d295ed86f96007bb76fa319145df85d384385b30bd5605b6774f56d",
+      "source_members": [
+        "ed.plm",
+        "mcd80a.asm",
+        "makedate.lib"
+      ],
+      "build": "Pinned upstream Makefile through original PL/M-80, ASM80, Thames, and ZXCC; the original PL/M tools are deliberately not new default host dependencies.",
+      "tpa_bytes_after_static_image": 29914,
+      "strict_8080_cosim": {
+        "passed": true,
+        "workflow": "ED EDTEST.TXT; wait for : *; Istring^Z; E; TYPE EDTEST.TXT",
+        "saved_text": "EDITED ON JUKU CP/M PLUS 3.1",
+        "read_requests": 72,
+        "read_records": 216,
+        "write_requests": 4,
+        "reply_wire_bytes": 24902,
+        "elapsed_seconds_observed": 58.059,
+        "returned_to_ccp": true,
+        "tpa_z80_prefix_fetches": 0,
+        "tpa_undocumented_opcode_fetches": 0
+      }
+    },
+    "SID.COM": {
+      "decision": "admit",
+      "profile": "dev",
+      "archive": "binary",
+      "member": "sid.com",
+      "bytes": 7936,
+      "sha256": "7c7419d95107bdba5ea1c537e1a316ed9a45229111a9fdd13267f3df65931af7",
+      "source_members": [
+        "prs0mov.asm",
+        "prs1asm.asm",
+        "prs2mon.asm",
+        "makedate.lib"
+      ],
+      "build": "Byte-identical local rebuild with pinned MAC.COM, RMAC.COM, DRLINK.COM, ZXCC, and the archived assembly sources.",
+      "tpa_bytes_after_static_image": 31232,
+      "strict_8080_cosim": {
+        "passed": true,
+        "workflow": "SID HELLO.COM; Q",
+        "returned_to_ccp": true,
+        "tpa_z80_prefix_fetches": 0,
+        "tpa_undocumented_opcode_fetches": 0
+      }
+    },
+    "RMAC.COM": {
+      "decision": "host-build-input-only",
+      "profile": "none",
+      "archive": "source",
+      "member": "rmac.com",
+      "bytes": 13568,
+      "sha256": "d3132c8e356d0c8e71b53757445e7ef89e55dfda9dbda11c48cf7ede6c2c40f3",
+      "source_members": [],
+      "reason": "The pinned release includes this executable to rebuild CP/M 3 but no matching RMAC source. It remains an audited host-side ZXCC input and cannot enter a target profile under the source-required admission rule."
+    },
+    "MAC.COM": {
+      "decision": "host-build-input-only",
+      "profile": "none",
+      "archive": "source",
+      "member": "mac.com",
+      "bytes": 11776,
+      "sha256": "aad715f607cfa02f922c24b4e57c36312fd876f76e03c584fac689dce690d08c",
+      "source_members": [],
+      "reason": "The exact binary is required by the upstream build and local SID/HEXCOM/PATCH reproduction, but matching source is absent."
+    },
+    "DRLINK.COM": {
+      "decision": "host-build-input-only",
+      "profile": "none",
+      "archive": "source",
+      "member": "drlink.com",
+      "bytes": 15744,
+      "sha256": "714115910168df0900a41698551d518c921fe8329dae78378756f2445a4dc175",
+      "source_members": [],
+      "reason": "The exact binary is required by the upstream build and local SID reproduction, but matching source is absent."
+    }
+  },
+  "selected_workflow": [
+    "Edit source and text with ED.COM.",
+    "Build Intel HEX on the modern host with the pinned strict-8080 zmac path.",
+    "Convert HELLO.HEX on target with reproducibly rebuilt HEXCOM.COM.",
+    "Debug the resulting HELLO.COM with reproducibly rebuilt SID.COM.",
+    "Inspect binary patches with reproducibly rebuilt PATCH.COM."
+  ]
+}

@@ -28,7 +28,7 @@ def main() -> int:
     required = {
         "PIP.COM", "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM",
         "SUBMIT.COM", "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP",
-        "HEXCOM.COM", "PATCH.COM", "SID.COM",
+        "ED.COM", "HEXCOM.COM", "PATCH.COM", "SID.COM",
     }
     if set(files) != required:
         raise AssertionError(f"selected CP/M 3 utility set differs: {set(files)}")
@@ -57,7 +57,7 @@ def main() -> int:
                 raise AssertionError(f"wrong archive rejection: {error}")
         else:
             raise AssertionError("changed CP/M 3 binary archive was accepted")
-    print("CPM3-UTILITY-INPUTS-TEST: PASS (13 files and source mappings)")
+    print("CPM3-UTILITY-INPUTS-TEST: PASS (14 files and source mappings)")
     return 0
 
 

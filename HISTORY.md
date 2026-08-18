@@ -133,3 +133,11 @@ admission. Unexplained z80pack `HIST` binaries and Z80-generating `uplm80` are
 rejected. Matching Millfork and z88dk `hello`, `cat`, and `wc` fixtures rebuild
 byte-for-byte and pass strict execution, while hand-written 8080 assembly
 remains the production baseline.
+
+The same audit completed the target development workflow without relaxing the
+source-required boundary. Digital Research ED was added only to the separate
+development profile and now passes a prompt-synchronized insert, save, CCP
+return, and exact TYPE readback under strict 8080 execution. SID remains an
+exact assembly-source rebuild. ASM and LOAD are absent from the pinned CP/M 3
+release, while the source-less MAC, RMAC, and DRLINK binaries remain host-side
+ZXCC reproduction inputs and cannot enter a target image.

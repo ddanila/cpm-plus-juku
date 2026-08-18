@@ -37,7 +37,7 @@ need executable strict-8080 CP/M 3 evidence.
 | `PIP.COM` | shipped / full | PL/M-80 and 8080 assembly: `pip.plm`, `mcd80f.asm`, `inpout.asm` | 8,632 | 0100h--22B7h; 30,536 B remain | strict-8080-cosim |
 | `SAVE.COM` | candidate / dev | 8080 assembly: `save.asm` | 1,792 | 0100h--07FFh; 37,376 B remain | not-run |
 | `TYPE.COM` | deferred-duplicate / none | PL/M-80 and 8080 assembly: `type.plm`, `parse.asm`, `mcd80a.asm` | 3,012 | 0100h--0CC3h; 36,156 B remain | not-run |
-| `ED.COM` | candidate / dev | PL/M-80 and 8080 assembly: `ed.plm`, `mcd80a.asm`, `makedate.lib` | 9,254 | 0100h--2525h; 29,914 B remain | not-run |
+| `ED.COM` | shipped / dev | PL/M-80 and 8080 assembly: `ed.plm`, `mcd80a.asm`, `makedate.lib` | 9,254 | 0100h--2525h; 29,914 B remain | strict-8080-cosim |
 | `HELP.COM` | shipped / full | PL/M-80 and 8080 assembly: `help.plm`, `minhlp.plm`, `mcd80a.asm`, `help.dat` | 6,967 | 0100h--1C36h; 32,201 B remain | strict-8080-cosim |
 | `PUT.COM` | candidate / full | PL/M-80 and 8080 assembly: `put.plm`, `parse.asm`, `putf.asm`, `putrsx.asm`, `mcd80a.asm` | 7,040 | 0100h--1C7Fh; 32,128 B remain | not-run |
 | `SET.COM` | shipped / full | PL/M-80 and 8080 assembly: `set.plm`, `parse.asm`, `dirlbl.asm`, `mcd80a.asm` | 10,368 | 0100h--297Fh; 28,800 B remain | strict-8080-cosim |

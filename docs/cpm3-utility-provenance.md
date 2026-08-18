@@ -32,9 +32,9 @@ selected file, its archive member, source members, version description, size,
 and SHA-256. The approved set is `PIP.COM`, `SHOW.COM`, `SET.COM`,
 `DEVICE.COM`, `DATE.COM`, `SUBMIT.COM`, `SETDEF.COM`, `DUMP.COM`, `HELP.COM`,
 and `HELP.HLP`. The optional development selection additionally admits
-`HEXCOM.COM`, `PATCH.COM`, and `SID.COM`. The HELP source mapping includes
-their topics as well as `setdef.help` and `dump.help`; the pinned database
-exposes all five.
+`ED.COM`, `HEXCOM.COM`, `PATCH.COM`, and `SID.COM`. The HELP source mapping
+includes their topics as well as `setdef.help` and `dump.help`; the pinned
+database exposes all six.
 
 The broader 23-program source/binary corpus, including deferred duplicates and
 development candidates, is independently rendered and negative-tested in
@@ -60,8 +60,11 @@ binary archive and requires rejection.
 runs the archived MAC/RMAC/DRLINK tools through the pinned ZXCC environment,
 and reconstructs HEXCOM, PATCH, and SID from their mapped assembly sources.
 All three results must equal both the pinned release bytes and catalogue
-digests. This is a stronger admission condition than merely extracting the
-matching release binaries.
+digests. ED has complete PL/M-80/assembly source and the pinned upstream build
+recipe, but its clean rebuild needs the original PL/M80/ASM80/Thames tools;
+the maintained upstream binary is instead checksum-pinned and must pass a real
+edit/save/readback path. See
+[`cpm3-development-tools.md`](cpm3-development-tools.md).
 
 This gate deliberately does not alter `out/cpm-plus-juku.img`. C4 remains the
 immutable Priority 0 qualification volume. The separately named full, demo,
@@ -84,6 +87,7 @@ is retained on failure for filesystem inspection.
 
 The development cosimulation starts from `HELLO.ASM` assembled to Intel HEX
 by the pinned host toolchain, converts it to `HELLO.COM` using target
-`HEXCOM`, and executes the result. It then enters and exits `SID HELLO.COM`
-and makes PATCH report SID's patch state. Actual fetched TPA opcodes across
-the sequence remain subject to the strict Intel 8080 execution gate.
+`HEXCOM`, and executes the result. It then enters and exits `SID HELLO.COM`,
+makes PATCH report SID's patch state, and drives ED through its real `: *`
+prompt to insert, save, and read back `EDTEST.TXT`. Actual fetched TPA opcodes
+across the sequence remain subject to the strict Intel 8080 execution gate.

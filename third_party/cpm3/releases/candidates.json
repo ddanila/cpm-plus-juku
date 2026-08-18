@@ -140,7 +140,7 @@
       "source_members": ["ed.plm", "mcd80a.asm", "makedate.lib"],
       "source_language": "PL/M-80 and 8080 assembly", "bytes": 9254,
       "sha256": "043732665d295ed86f96007bb76fa319145df85d384385b30bd5605b6774f56d",
-      "status": "candidate", "profile": "dev", "cpm3_test": "not-run"
+      "status": "shipped", "profile": "dev", "cpm3_test": "strict-8080-cosim"
     },
     {
       "name": "HELP.COM", "archive_member": "help.com",

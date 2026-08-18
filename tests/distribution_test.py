@@ -44,7 +44,7 @@ CASES = {
             "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP", "STATUS.COM",
             "KEYTEST.COM", "CRC.COM", "CMP.COM", "MEM.COM", "WC.COM",
             "FIND.COM", "STRINGS.COM", "TOOLS.TXT", "HEXCOM.COM",
-            "PATCH.COM", "SID.COM",
+            "PATCH.COM", "SID.COM", "ED.COM",
             "HELLO.ASM", "HELLO.HEX",
         },
         409600,

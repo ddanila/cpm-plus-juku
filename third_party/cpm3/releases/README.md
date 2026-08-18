@@ -14,10 +14,14 @@ mismatch before exposing a `.COM` file to the volume builder. The archives
 are inputs, not permission to add every contained binary to the Juku
 distribution.
 
-The optional development set is limited to HEXCOM, PATCH, and SID. Unlike the
-PL/M programs, these three are reproducibly rebuilt from the mapped assembly
-sources by `tools/rebuild_cpm3_dev_utilities.py`; their outputs must be
-byte-identical to the pinned binary release before the dev image can pass.
+The optional development set is limited to ED, HEXCOM, PATCH, and SID. The
+latter three are reproducibly rebuilt from mapped assembly sources by
+`tools/rebuild_cpm3_dev_utilities.py`; their outputs must be byte-identical to
+the pinned binary release before the dev image can pass. ED has complete
+PL/M-80/assembly source and an upstream recipe, and its pinned maintained
+binary must pass a strict edit/save/readback workflow. Exact dispositions for
+ASM, LOAD, ED, SID, RMAC, MAC, and DRLINK are admission-gated by
+`tools/audit_cpm3_development_tools.py`.
 
 Digital Research provenance and redistribution terms are recorded in
 [`../LICENSE.md`](../LICENSE.md). No local claim of authorship is made for the

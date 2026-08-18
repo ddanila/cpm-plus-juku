@@ -59,6 +59,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 	network-rom-long-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
 	distribution-input-check utility-catalogue-check \
+	development-tool-audit-check \
 	compiler-comparison-check compiler-comparison-rebuild-check \
 	external-software-audit-check external-software-rebuild-check \
 	dev-utility-rebuild-check development-cosim-check \
@@ -96,6 +97,7 @@ rom-budget-check: tools $(BUILD)/fastboot-core.cim \
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
 	utility-catalogue-check dev-utility-rebuild-check \
+	development-tool-audit-check \
 	compiler-comparison-check external-software-audit-check \
 	distribution-check manifest-check c5-manifest-check \
 	c6-manifest-check c6-release-candidate-check \
@@ -113,6 +115,10 @@ distribution-input-check:
 utility-catalogue-check:
 	$(PYTHON) tools/audit_cpm3_candidates.py --check
 	$(PYTHON) tests/cpm3_candidate_audit_test.py
+
+development-tool-audit-check:
+	$(PYTHON) tools/audit_cpm3_development_tools.py --check
+	$(PYTHON) tests/cpm3_development_tool_audit_test.py
 
 compiler-comparison-check:
 	$(PYTHON) tools/compiler_comparison.py
@@ -198,6 +204,11 @@ development-cosim-check: all
 	CPM_PLUS_JUKU_EXTRA_MARKER3='#' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND4='PATCH SID' \
 	CPM_PLUS_JUKU_EXTRA_MARKER4='Current patches for' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND5='ED EDTEST.TXT' \
+	CPM_PLUS_JUKU_EXTRA_INPUT_SCRIPT5='[{"wait":": *","hex":"49456469746564206f6e204a756b752043502f4d20506c757320332e311a0d","delay":1},{"wait":": *","hex":"450d","delay":1}]' \
+	CPM_PLUS_JUKU_EXTRA_MARKER5='NEW FILE' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND6='TYPE EDTEST.TXT' \
+	CPM_PLUS_JUKU_EXTRA_MARKER6='EDITED ON JUKU CP/M PLUS 3.1' \
 	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=distribution $(PYTHON) tests/cosim_check.py
 

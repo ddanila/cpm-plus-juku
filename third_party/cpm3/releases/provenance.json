@@ -82,13 +82,20 @@
     },
     "HELP.HLP": {
       "archive_member": "help.hlp",
-      "source_members": ["help.dat", "commands.help", "date.help", "device.help", "dump.help", "help.help", "hexcom.help", "patch.help", "pip.help", "set.help", "setdef.help", "show.help", "sid.help", "submit.help"],
+      "source_members": ["help.dat", "commands.help", "date.help", "device.help", "dump.help", "ed.help", "help.help", "hexcom.help", "patch.help", "pip.help", "set.help", "setdef.help", "show.help", "sid.help", "submit.help"],
       "version": "HELP database, 2026-06-07",
       "bytes": 63616,
       "sha256": "0ba002b32e659c19ccec18f13ab3231d403a41911c5b753d42853243b01ed8a6"
     }
   },
   "selected_development_files": {
+    "ED.COM": {
+      "archive_member": "ed.com",
+      "source_members": ["ed.plm", "mcd80a.asm", "makedate.lib"],
+      "version": "Digital Research CP/M 3 ED",
+      "bytes": 9254,
+      "sha256": "043732665d295ed86f96007bb76fa319145df85d384385b30bd5605b6774f56d"
+    },
     "HEXCOM.COM": {
       "archive_member": "hexcom.com",
       "source_members": ["hexcom.asm"],

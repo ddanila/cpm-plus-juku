@@ -532,8 +532,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     lambda marker, timeout: read_console_until(
                         console_master, marker, timeout,
                     )
-                command_timeout = 600 if network_rom and remote_console \
-                    else 120
+                default_command_timeout = 600 if network_rom \
+                    and remote_console else 120
+                command_timeout = float(os.environ.get(
+                    "CPM_PLUS_JUKU_COMMAND_TIMEOUT",
+                    str(default_command_timeout),
+                ))
 
                 def run_extra_command(suffix: str = "") -> bytes:
                     command_name = f"CPM_PLUS_JUKU_EXTRA_COMMAND{suffix}"
@@ -542,6 +546,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     ready_name = \
                         f"CPM_PLUS_JUKU_EXTRA_READY_MARKER{suffix}"
                     input_name = f"CPM_PLUS_JUKU_EXTRA_INPUT_HEX{suffix}"
+                    script_name = \
+                        f"CPM_PLUS_JUKU_EXTRA_INPUT_SCRIPT{suffix}"
                     input_delay_name = \
                         f"CPM_PLUS_JUKU_EXTRA_INPUT_DELAY{suffix}"
                     command = os.environ.get(command_name)
@@ -552,19 +558,57 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     metric_before = {
                         name: stats.get(name, 0)
                         for name in (
-                            "reads", "read_records", "request_wire_bytes",
+                            "reads", "read_records", "writes",
+                            "request_wire_bytes",
                             "reply_wire_bytes",
                         )
                     }
                     send_console(command.encode("ascii") + b"\r")
                     ready_marker = os.environ.get(ready_name)
                     input_hex = os.environ.get(input_name)
+                    input_script = os.environ.get(script_name)
+                    if input_script and (ready_marker or input_hex):
+                        raise AssertionError(
+                            f"{script_name} is exclusive with {ready_name} "
+                            f"and {input_name}"
+                        )
                     if bool(ready_marker) != bool(input_hex):
                         raise AssertionError(
                             f"{ready_name} and {input_name} must be paired"
                         )
                     response = b""
-                    if ready_marker is not None and input_hex is not None:
+                    if input_script:
+                        steps = json.loads(input_script)
+                        require(
+                            isinstance(steps, list) and steps,
+                            f"{script_name} must be a non-empty JSON list",
+                        )
+                        for step_index, step in enumerate(steps, 1):
+                            require(
+                                isinstance(step, dict)
+                                and isinstance(step.get("wait"), str)
+                                and isinstance(step.get("hex"), str),
+                                f"{script_name} step {step_index} requires "
+                                "string wait and hex fields",
+                            )
+                            print(
+                                f"COSIM {case.name}: {command} input step "
+                                f"{step_index} waiting for {step['wait']!r}",
+                                flush=True,
+                            )
+                            response += read_until(
+                                step["wait"].encode("ascii"), command_timeout,
+                            )
+                            print(
+                                f"COSIM {case.name}: {command} input step "
+                                f"{step_index} ready",
+                                flush=True,
+                            )
+                            delay = float(step.get("delay", 0))
+                            if delay:
+                                time.sleep(delay)
+                            send_console(bytes.fromhex(step["hex"]))
+                    elif ready_marker is not None and input_hex is not None:
                         response += read_until(
                             ready_marker.encode("ascii"), command_timeout,
                         )
@@ -596,6 +640,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         - metric_before["reads"],
                         "read_records": stats.get("read_records", 0)
                         - metric_before["read_records"],
+                        "write_requests": stats.get("writes", 0)
+                        - metric_before["writes"],
                         "request_wire_bytes":
                         stats.get("request_wire_bytes", 0)
                         - metric_before["request_wire_bytes"],
