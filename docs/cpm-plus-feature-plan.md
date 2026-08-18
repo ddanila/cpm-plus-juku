@@ -280,6 +280,152 @@ a slot only after the first valid disk request proves execution. A matching
 last-known-good slot is preferred on the next run. See
 [`boot-manifest.md`](boot-manifest.md).
 
+## Priority 7: curated 8080 software and development environment
+
+Status: **PLANNED; NOT A C6 RELEASE BLOCKER**
+
+The completed C6 platform is now stable enough to grow into a curated CP/M
+Plus distribution. This is distribution work, not a reason to reopen the
+network-ROM or native-BIOS baseline. Every target binary must run on a real
+Intel 8080; "runs under CP/M" is not sufficient evidence because much later
+CP/M software silently requires a Z80.
+
+### Admission gate
+
+Before adding any third-party executable to a generated image:
+
+1. pin its upstream revision, source, license or public-domain notice, build
+   recipe, output size, and SHA-256;
+2. build it reproducibly where source permits rather than importing an
+   unexplained `.COM` file;
+3. reject Z80-only opcodes with a static instruction audit, then execute the
+   useful paths under the strict-8080 simulator;
+4. test it under this non-banked CP/M Plus 3.1 port with the 39,168-byte TPA,
+   including normal return to CCP and warm boot;
+5. measure disk allocation and runtime memory before choosing a profile;
+6. preserve license/credit text in a generated software manifest and, where
+   practical, CP/M `HELP` topics.
+
+An emulator or distribution repository may be a source of ideas and test
+cases without making every binary inside it redistributable or 8080-safe.
+"Open-source-ish" is not acceptable provenance.
+
+### First distribution slice
+
+- Add the pinned DRI `SETDEF.COM`, source mapping, help topic, and checksum to
+  the full profile. Validate drive search paths and `COM`/`SUB` search order
+  instead of inventing a Unix-like `PATH` mechanism. The current pinned CP/M
+  3.1 archives already contain `SETDEF.COM`, `setdef.plm`, and `setdef.help`,
+  but the utility is not yet in the approved extraction set.
+- Audit DRI `DUMP.COM` next. Prefer it over a new hexdump until a measured gap
+  is found; its binary, assembly source, and help topic are also present in the
+  pinned archives.
+- Audit an exact, source-available `LS` candidate only after identifying its
+  repository and license. `cpm-ls` is currently an ambiguous project name, so
+  it is a research candidate rather than an approved dependency. Compare its
+  value against CP/M `DIR`, `DIRSYS`, and any legally available `SDIR` before
+  shipping overlapping commands.
+- Evaluate `HIST` as an optional CP/M 3 RSX. Acceptance requires strict-8080
+  code, a traceable license, measured resident-memory/TPA cost, clean removal,
+  and correct interaction with both local and N4 console input across warm
+  boots. The z80pack CP/M 3 image is a useful behavior reference, not a binary
+  source to import wholesale.
+- Keep the recovery profile small. Put convenience tools in `full`; introduce
+  a separately named `dev` profile for assemblers, editors, debuggers, source,
+  and language systems.
+
+Do not duplicate established CP/M commands merely to give them Unix names:
+`TYPE` already covers the ordinary `cat` case, `PIP` copies files, `REN`
+renames them, and `ERA` removes them. After the first slice, prioritize actual
+gaps such as `CMP`, CRC/checksum, text search, `WC`, `STRINGS`, and a compact
+hex/ascii view. `HEAD` and `TAIL` remain lower priority until a real workflow
+needs them.
+
+### Machine and diagnostic tools
+
+`STATUS.COM` is already the Juku equivalent of the proposed `SYSINFO`: it
+reports CP/M/profile and build identities, protocol and ROM ABI, TPA and
+resident map, S21/video/locale state, clock status, retained boot state,
+diagnostics, capabilities, drives, and reconnect information. Extend it only
+for measured omissions rather than adding a second overlapping command.
+
+Candidate project utilities are:
+
+- a bounded `MEM`/`DUMP` view and file `CMP`/CRC tools;
+- safe timing and clock diagnostics that build on the existing TIME service;
+- an optional developer-only, allow-listed I/O probe.
+
+Do not ship an unrestricted `PORT` utility in recovery or museum profiles.
+Reads as well as writes can acknowledge, reset, or otherwise disturb real
+peripherals, so direct-I/O diagnostics must use an explicit safe-port list and
+separate destructive operations.
+
+### Optional development media
+
+- Audit the CP/M 8080 FIG-Forth 1.1 source and its complete notice. If it
+  builds and passes the strict-8080/CP/M 3 matrix, package it with its editor,
+  assembler, source, and documentation on optional development media, not the
+  recovery disk.
+- Audit the DRI `ASM`, `LOAD`, `ED`, `SID`, `RMAC`, and related sources and
+  binaries individually. Include only the subset with clear provenance that
+  fits a useful, reproducible development workflow.
+- Use z80pack as a CP/M 2.2/3 behavior and software-catalog reference. Its
+  emulator is MIT licensed, but bundled historical software still needs its
+  own source, CPU, and license audit.
+- Use RomWBW as a modern CP/M usability catalogue only. Its supported systems
+  are Z80/Z180/Z280 and its aggregate contains independently licensed pieces;
+  neither its binaries nor its hardware layer are candidates for direct Juku
+  import.
+- LokiOS is Z80-only and remains an ideas reference, not a port dependency.
+
+### Host-side compiler experiments
+
+Keep hand-written assembly and the existing tools as the trusted baseline,
+then run a small, pinned compiler comparison for new utilities:
+
+- compile the same `hello`, file-copy/`cat`, and `wc` programs with z88dk and
+  Millfork for Intel 8080 and CP/M;
+- compare `.COM` size, stack and TPA usage, BDOS ABI correctness, runtime on
+  representative files, diagnostics, reproducibility, and ease of debugging;
+- disassemble every result and fail the build on Z80-only opcodes or an
+  unapproved runtime dependency;
+- select a compiler only on evidence; generated programs remain standalone
+  and require no compiler runtime installed on the Juku.
+
+Also evaluate `uplm80` as a host-side route for rebuilding and modifying the
+existing DRI PL/M-80 utilities from their pinned sources. Its current backend
+describes Z80 output, so it must pass the same strict-8080 opcode gate before
+it can become a production tool; its ability to consume the original CP/M 3
+PL/M sources makes it worth a focused experiment.
+
+### Explicit exclusions
+
+- Do not add XMODEM. NetDisk/N4 already supplies faster, checksummed,
+  reconnectable file and disk access integrated with the host, while XMODEM
+  would compete for the same physical USART and require a second ownership
+  mode without filling a project need.
+- Keep the port non-banked. The current hardware and 39,168-byte TPA are the
+  acceptance baseline; banked CP/M Plus becomes a separate future project
+  only if real Juku memory hardware is designed, built, and characterized.
+
+### Deliverable
+
+Produce a candidate catalogue of roughly 20--30 source-available programs
+with upstream URL/revision, author, license, CPU requirement, source language,
+build method, `.COM` size, TPA use, CP/M 3 test result, and proposed profile.
+The catalogue drives selection; it does not authorize all candidates for
+redistribution. Add automated opcode, manifest, build-reproducibility, and
+strict-8080 smoke gates before expanding the generated full/dev images.
+
+Research starting points: [z80pack](https://github.com/udo-munk/z80pack),
+[z88dk](https://github.com/z88dk/z88dk),
+[Millfork](https://github.com/KarolS/millfork),
+[uplm80](https://github.com/avwohl/uplm80),
+[RomWBW](https://github.com/wwarthen/RomWBW), and the preserved
+[8080 FIG-Forth 1.1 source](https://gist.github.com/tschak909/c45014672024b15b5244576783d011c1).
+These links identify candidates and references only; the admission gate above
+still applies to every imported source and binary.
+
 ## Completion order
 
 1. Freeze and publish the physical network-first baseline.
@@ -288,6 +434,8 @@ last-known-good slot is preferred on the next run. See
 4. Implement date/time and character-device support as native CP/M 3 calls.
 5. Improve read performance and multi-volume media handling.
 6. Add further native BIOS and protocol features only with measured benefit.
+7. Curate strict-8080 utilities, then add optional development media from the
+   audited catalogue.
 
 This order keeps the already successful port usable at every milestone and
 prevents performance or convenience work from obscuring hardware regressions.
