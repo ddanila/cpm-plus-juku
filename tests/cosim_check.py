@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import pty
 import select
+import signal
 import subprocess
 import sys
 import tempfile
@@ -342,6 +343,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     diag_reports: list[dict[str, int]] = []
     boot_reports: list[dict[str, int]] = []
     command_metrics: dict[str, dict[str, int | float]] = {}
+    checkpoint_generation = 0
+    last_captured_program_start = 0
     fault_evidence: dict[str, int] = {}
     restart_armed = threading.Event()
     errors: list[BaseException] = []
@@ -539,6 +542,71 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     str(default_command_timeout),
                 ))
 
+                def capture_transient_stack() -> dict[str, int]:
+                    nonlocal checkpoint_generation
+                    nonlocal last_captured_program_start
+                    process.send_signal(signal.SIGUSR1)
+                    deadline = time.monotonic() + 5
+                    checkpoint_state: dict[str, str] = {}
+                    while time.monotonic() < deadline:
+                        state_path = case / "final.state"
+                        if state_path.is_file():
+                            checkpoint_state = dict(
+                                line.split("=", 1)
+                                for line in state_path.read_text().splitlines()
+                                if "=" in line
+                            )
+                            generation = int(checkpoint_state.get(
+                                "checkpoint_generation", "0",
+                            ))
+                            if generation > checkpoint_generation:
+                                checkpoint_generation = generation
+                                break
+                        time.sleep(0.01)
+                    else:
+                        raise AssertionError(
+                            "simulator did not produce an on-demand "
+                            "transient-stack checkpoint",
+                        )
+                    program_start = int(checkpoint_state.get(
+                        "tpa_program_starts", "0",
+                    ))
+                    require(
+                        program_start > last_captured_program_start,
+                        "checkpoint did not observe a new CP/M transient: "
+                        f"{checkpoint_state}",
+                    )
+                    require(
+                        checkpoint_state.get("tpa_measurement_frozen") == "1"
+                        and checkpoint_state.get(
+                            "tpa_measurement_armed",
+                        ) == "0",
+                        "checkpoint did not freeze the requested transient: "
+                        f"{checkpoint_state}",
+                    )
+                    last_captured_program_start = program_start
+                    return {
+                        "stack_entry_sp": int(
+                            checkpoint_state["tpa_program_entry_sp"], 16,
+                        ),
+                        "stack_anchor_sp": int(
+                            checkpoint_state[
+                                "tpa_program_stack_anchor_sp"
+                            ], 16,
+                        ),
+                        "stack_low_sp": int(
+                            checkpoint_state["tpa_program_stack_low_sp"], 16,
+                        ),
+                        "stack_bytes_observed": int(
+                            checkpoint_state["tpa_program_stack_bytes"],
+                        ),
+                        "explicit_sp_writes": int(
+                            checkpoint_state[
+                                "tpa_program_explicit_sp_writes"
+                            ],
+                        ),
+                    }
+
                 def run_extra_command(suffix: str = "") -> bytes:
                     command_name = f"CPM_PLUS_JUKU_EXTRA_COMMAND{suffix}"
                     marker_name = f"CPM_PLUS_JUKU_EXTRA_MARKER{suffix}"
@@ -563,6 +631,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             "reply_wire_bytes",
                         )
                     }
+                    capture_stack = os.environ.get(
+                        "CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK", "0",
+                    ) == "1"
+                    if capture_stack:
+                        process.send_signal(signal.SIGUSR2)
+                        # The emulator processes the signal at its next
+                        # instruction boundary; key-matrix delivery is much
+                        # slower, but this small guard makes that ordering
+                        # explicit even with non-realtime test settings.
+                        time.sleep(0.02)
                     send_console(command.encode("ascii") + b"\r")
                     ready_marker = os.environ.get(ready_name)
                     input_hex = os.environ.get(input_name)
@@ -651,6 +729,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             time.monotonic() - metric_started_at, 3,
                         ),
                     }
+                    if capture_stack:
+                        command_metrics[metric_name].update(
+                            capture_transient_stack(),
+                        )
                     print(f"COSIM {case.name}: {command}", flush=True)
                     return response
 

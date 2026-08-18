@@ -56,7 +56,25 @@ all-rights-reserved text that does not cover the missing components.
 
 ## Host compiler experiments
 
-Pinned Millfork v0.3.30 and z88dk v2.4 each reproducibly build standalone `hello`, `cat`, and `wc` fixtures; all six pass strict-8080 execution. Millfork emits much smaller images and readable Intel assembly, while z88dk remains the preferable C portability probe. See `experiments/compiler-comparison/results.json` for exact sizes, hashes, TPA accounting, commands, and timings.
+Pinned Millfork v0.3.30 and z88dk v2.4 each reproducibly build standalone `hello`, `cat`, and `wc` fixtures; all six pass strict-8080 execution. Millfork emits much smaller images and readable Intel assembly, while z88dk remains the preferable C portability probe.
+
+| Toolchain | Program | COM bytes | Observed stack bytes | TPA left | Static instructions |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Millfork | `hello` | 69 | 2 | 39,097 | 21 |
+| Millfork | `cat` | 143 | 2 | 39,023 | 56 |
+| Millfork | `wc` | 362 | 6 | 38,800 | 139 |
+| z88dk | `hello` | 363 | 78 | 38,727 | 90 |
+| z88dk | `cat` | 565 | 83 | 38,520 | 221 |
+| z88dk | `wc` | 970 | 98 | 38,100 | 449 |
+
+The flow-aware static disassembler accounts for every output byte,
+follows only reachable code, and rejects undocumented/Z80-only
+opcodes, direct hardware I/O, arbitrary `PCHL`, and control transfers
+outside the image except CP/M warm boot and BDOS. The strict simulator
+arms and freezes an SP low-water measurement around each representative
+command; its broader fetched-opcode gate independently remains clean.
+Exact listings are represented by stable SHA-256 digests in
+`experiments/compiler-comparison/results.json`.
 
 Hand-written 8080 assembly remains the production baseline. Neither
 compiler becomes a required distribution build dependency. Millfork is

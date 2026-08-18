@@ -13,6 +13,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from audit_8080_com import audit_file
+
 ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT = ROOT / "experiments" / "compiler-comparison"
 RESULTS = EXPERIMENT / "results.json"
@@ -31,7 +33,7 @@ def sha256(path: Path) -> str:
 
 def load_and_validate() -> dict:
     data = json.loads(RESULTS.read_text())
-    require(data.get("schema") == 1, "unsupported compiler result schema")
+    require(data.get("schema") == 2, "unsupported compiler result schema")
     require(data.get("target", {}).get("cpu") == "Intel 8080",
             "compiler experiment no longer targets the Intel 8080")
     require(data["target"].get("tpa_bytes") == TPA_BYTES,
@@ -55,6 +57,66 @@ def load_and_validate() -> dict:
             require(program["tpa_bytes_after_static_image"] == TPA_BYTES - size,
                     f"incorrect TPA accounting for {toolchain_name} "
                     f"{program_name}")
+            static_audit = program.get("static_8080_audit", {})
+            require(static_audit.get("origin") == "0100",
+                    f"missing static origin for {toolchain_name} "
+                    f"{program_name}")
+            require(
+                static_audit.get("reachable_code_bytes", -1)
+                + static_audit.get("data_bytes", -1) == size,
+                f"static disassembly does not account for every byte of "
+                f"{toolchain_name} {program_name}",
+            )
+            require(static_audit.get("reachable_instructions", 0) > 0,
+                    f"empty static disassembly for {toolchain_name} "
+                    f"{program_name}")
+            require(
+                static_audit.get("forbidden_reachable_opcodes") == 0
+                and static_audit.get(
+                    "unapproved_runtime_dependencies",
+                ) == 0,
+                f"static 8080/dependency gate failed for {toolchain_name} "
+                f"{program_name}",
+            )
+            require(len(static_audit.get("listing_sha256", "")) == 64,
+                    f"missing canonical disassembly digest for "
+                    f"{toolchain_name} {program_name}")
+            dependencies = static_audit.get(
+                "approved_runtime_dependencies", [],
+            )
+            require(
+                dependencies
+                and set(dependencies) <= {
+                    "0000h CP/M warm boot",
+                    "0005h CP/M BDOS call gate",
+                },
+                f"unexpected runtime dependency for {toolchain_name} "
+                f"{program_name}: {dependencies}",
+            )
+            stack = program.get("cosim_stack", {})
+            for field in ("entry_sp", "anchor_sp", "low_sp"):
+                require(
+                    len(stack.get(field, "")) == 4,
+                    f"missing simulator {field} for {toolchain_name} "
+                    f"{program_name}",
+                )
+            stack_bytes = stack.get("bytes_observed", 0)
+            require(
+                stack_bytes > 0
+                and int(stack["anchor_sp"], 16)
+                - int(stack["low_sp"], 16) == stack_bytes,
+                f"invalid stack low-water evidence for {toolchain_name} "
+                f"{program_name}: {stack}",
+            )
+            require(stack.get("explicit_sp_writes", -1) >= 0,
+                    f"missing SP-write evidence for {toolchain_name} "
+                    f"{program_name}")
+            require(
+                program.get("tpa_bytes_after_image_and_stack") ==
+                TPA_BYTES - size - stack_bytes,
+                f"incorrect image+stack TPA accounting for "
+                f"{toolchain_name} {program_name}",
+            )
             require(len(program["output_sha256"]) == 64,
                     f"missing output digest for {toolchain_name} "
                     f"{program_name}")
@@ -125,13 +187,19 @@ def reproduce(data: dict, millfork: Path, z88dk_root: Path,
                     f"{output.stat().st_size}")
             require(sha256(output) == expected["output_sha256"],
                     f"{toolchain} {program} bytes are not reproducible")
+            static_audit, _listing = audit_file(output)
+            require(
+                static_audit == expected["static_8080_audit"],
+                f"{toolchain} {program} static 8080 disassembly or "
+                "runtime-dependency evidence differs",
+            )
         if strict_cosim:
-            run_strict_cosim(work, outputs)
+            run_strict_cosim(work, outputs, data)
     print("Compiler comparison: PASS (records and rebuild are exact)")
 
 
 def run_strict_cosim(work: Path,
-                     outputs: dict[tuple[str, str], Path]) -> None:
+                     outputs: dict[tuple[str, str], Path], data: dict) -> None:
     volume = work / "compiler-comparison.img"
     shutil.copyfile(ROOT / "out" / "cpm-plus-juku-full.img", volume)
     for (toolchain, program), output in outputs.items():
@@ -141,6 +209,7 @@ def run_strict_cosim(work: Path,
             f"0:{prefix}{program}.com",
         ])
     environment = os.environ.copy()
+    metrics_path = work / "compiler-cosim-metrics.json"
     environment.update({
         "CPM_PLUS_JUKU_BOOT_PATH": "distribution",
         "CPM_PLUS_JUKU_VOLUME": str(volume),
@@ -158,9 +227,36 @@ def run_strict_cosim(work: Path,
         "CPM_PLUS_JUKU_EXTRA_COMMAND6": "ZWC README.TXT",
         "CPM_PLUS_JUKU_EXTRA_MARKER6":
             "lines=0014 words=003B bytes=01FA",
+        "CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK": "1",
+        "CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES": "1",
+        "CPM_PLUS_JUKU_METRICS_OUTPUT": str(metrics_path),
     })
     run([sys.executable, str(ROOT / "tests" / "cosim_check.py")],
         env=environment)
+    metrics = json.loads(metrics_path.read_text())
+    metric_names = ("extra", "extra2", "extra3", "extra4", "extra5", "extra6")
+    identities = tuple(
+        (toolchain, program)
+        for toolchain in ("millfork", "z88dk")
+        for program in PROGRAMS
+    )
+    for metric_name, (toolchain, program) in zip(metric_names, identities):
+        observed = metrics[metric_name]
+        expected = data["toolchains"][toolchain]["programs"][program][
+            "cosim_stack"
+        ]
+        require(
+            observed["stack_entry_sp"] == int(expected["entry_sp"], 16)
+            and observed["stack_anchor_sp"] ==
+            int(expected["anchor_sp"], 16)
+            and observed["stack_low_sp"] == int(expected["low_sp"], 16)
+            and observed["stack_bytes_observed"] ==
+            expected["bytes_observed"]
+            and observed["explicit_sp_writes"] ==
+            expected["explicit_sp_writes"],
+            f"{toolchain} {program} stack high-water differs: "
+            f"expected={expected} observed={observed}",
+        )
 
 
 def main() -> int:

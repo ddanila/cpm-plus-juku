@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "measured_at": "2026-08-18",
   "target": {
     "cpu": "Intel 8080",
@@ -34,6 +34,27 @@
           "output_bytes": 69,
           "output_sha256": "f43ff5db4b1c40b5e6c253280f24209889ecf229ce7db2ef921a5b6a0b0adb30",
           "tpa_bytes_after_static_image": 39099,
+          "static_8080_audit": {
+            "origin": "0100",
+            "reachable_instructions": 21,
+            "reachable_code_bytes": 49,
+            "data_bytes": 20,
+            "approved_runtime_dependencies": [
+              "0005h CP/M BDOS call gate"
+            ],
+            "approved_xthl_pchl_returns": 0,
+            "listing_sha256": "8ea57455675df5aa01d4b9178aead54952481613364fbbfae994dc80a12d5ec3",
+            "forbidden_reachable_opcodes": 0,
+            "unapproved_runtime_dependencies": 0
+          },
+          "cosim_stack": {
+            "entry_sp": "7CFE",
+            "anchor_sp": "7CFE",
+            "low_sp": "7CFC",
+            "bytes_observed": 2,
+            "explicit_sp_writes": 0
+          },
+          "tpa_bytes_after_image_and_stack": 39097,
           "cosim_read_requests": 14,
           "cosim_elapsed_seconds_observed": 10.143
         },
@@ -43,6 +64,27 @@
           "output_bytes": 143,
           "output_sha256": "2b89279dcde589ce1cb6be9dbbf2dd0f38ae397c824cb822509416b21bc5a5aa",
           "tpa_bytes_after_static_image": 39025,
+          "static_8080_audit": {
+            "origin": "0100",
+            "reachable_instructions": 56,
+            "reachable_code_bytes": 125,
+            "data_bytes": 18,
+            "approved_runtime_dependencies": [
+              "0005h CP/M BDOS call gate"
+            ],
+            "approved_xthl_pchl_returns": 0,
+            "listing_sha256": "c8375539cc382e3a1bff10defe99b0f4165df54d4b5cfc2427584a1fee6f96bf",
+            "forbidden_reachable_opcodes": 0,
+            "unapproved_runtime_dependencies": 0
+          },
+          "cosim_stack": {
+            "entry_sp": "7CFE",
+            "anchor_sp": "7CFE",
+            "low_sp": "7CFC",
+            "bytes_observed": 2,
+            "explicit_sp_writes": 0
+          },
+          "tpa_bytes_after_image_and_stack": 39023,
           "cosim_read_requests": 17,
           "cosim_elapsed_seconds_observed": 27.439
         },
@@ -52,6 +94,27 @@
           "output_bytes": 362,
           "output_sha256": "c08436d4276012a3ea7b84cd872a61c8299d93453034c22dce44b4aecbb319d2",
           "tpa_bytes_after_static_image": 38806,
+          "static_8080_audit": {
+            "origin": "0100",
+            "reachable_instructions": 139,
+            "reachable_code_bytes": 325,
+            "data_bytes": 37,
+            "approved_runtime_dependencies": [
+              "0005h CP/M BDOS call gate"
+            ],
+            "approved_xthl_pchl_returns": 0,
+            "listing_sha256": "e1b4f17cc16a770b149d7898eb52458e70763e54e56ab13f9115b650d4a7c24d",
+            "forbidden_reachable_opcodes": 0,
+            "unapproved_runtime_dependencies": 0
+          },
+          "cosim_stack": {
+            "entry_sp": "7CFE",
+            "anchor_sp": "7CFE",
+            "low_sp": "7CF8",
+            "bytes_observed": 6,
+            "explicit_sp_writes": 0
+          },
+          "tpa_bytes_after_image_and_stack": 38800,
           "cosim_read_requests": 17,
           "cosim_elapsed_seconds_observed": 17.72
         }
@@ -81,6 +144,28 @@
           "output_bytes": 363,
           "output_sha256": "b9e26f9084d335c485d43a913620dd460988a7cc68ac83645ac6d6824ebdc21c",
           "tpa_bytes_after_static_image": 38805,
+          "static_8080_audit": {
+            "origin": "0100",
+            "reachable_instructions": 90,
+            "reachable_code_bytes": 166,
+            "data_bytes": 197,
+            "approved_runtime_dependencies": [
+              "0000h CP/M warm boot",
+              "0005h CP/M BDOS call gate"
+            ],
+            "approved_xthl_pchl_returns": 0,
+            "listing_sha256": "8d28b14ccf2f740c6b60db3584a460c850e3302109951ee3f3dedd7d1e1c6075",
+            "forbidden_reachable_opcodes": 0,
+            "unapproved_runtime_dependencies": 0
+          },
+          "cosim_stack": {
+            "entry_sp": "7CFE",
+            "anchor_sp": "7D06",
+            "low_sp": "7CB8",
+            "bytes_observed": 78,
+            "explicit_sp_writes": 3
+          },
+          "tpa_bytes_after_image_and_stack": 38727,
           "cosim_read_requests": 14,
           "cosim_elapsed_seconds_observed": 9.412
         },
@@ -90,6 +175,28 @@
           "output_bytes": 565,
           "output_sha256": "d9e433999b3a88d8814030b717a607e69ddd433a9d2f4f5f1f663dc21b2ba8e3",
           "tpa_bytes_after_static_image": 38603,
+          "static_8080_audit": {
+            "origin": "0100",
+            "reachable_instructions": 221,
+            "reachable_code_bytes": 367,
+            "data_bytes": 198,
+            "approved_runtime_dependencies": [
+              "0000h CP/M warm boot",
+              "0005h CP/M BDOS call gate"
+            ],
+            "approved_xthl_pchl_returns": 1,
+            "listing_sha256": "5417b176587e84dcd32f1d47858169d60f068336fcf13cea85506b8db6b5e586",
+            "forbidden_reachable_opcodes": 0,
+            "unapproved_runtime_dependencies": 0
+          },
+          "cosim_stack": {
+            "entry_sp": "7CFE",
+            "anchor_sp": "7D06",
+            "low_sp": "7CB3",
+            "bytes_observed": 83,
+            "explicit_sp_writes": 3
+          },
+          "tpa_bytes_after_image_and_stack": 38520,
           "cosim_read_requests": 18,
           "cosim_elapsed_seconds_observed": 27.088
         },
@@ -99,6 +206,28 @@
           "output_bytes": 970,
           "output_sha256": "0002617a21a3a59923da16174e3d4bb8ba27475f008e839b749c60c510bb4a54",
           "tpa_bytes_after_static_image": 38198,
+          "static_8080_audit": {
+            "origin": "0100",
+            "reachable_instructions": 449,
+            "reachable_code_bytes": 746,
+            "data_bytes": 224,
+            "approved_runtime_dependencies": [
+              "0000h CP/M warm boot",
+              "0005h CP/M BDOS call gate"
+            ],
+            "approved_xthl_pchl_returns": 1,
+            "listing_sha256": "47f000033fb71c0d6b238ef7db091731a2cfff20b5345b01838c3b0de7e2e7cd",
+            "forbidden_reachable_opcodes": 0,
+            "unapproved_runtime_dependencies": 0
+          },
+          "cosim_stack": {
+            "entry_sp": "7CFE",
+            "anchor_sp": "7D06",
+            "low_sp": "7CA4",
+            "bytes_observed": 98,
+            "explicit_sp_writes": 4
+          },
+          "tpa_bytes_after_image_and_stack": 38100,
           "cosim_read_requests": 19,
           "cosim_elapsed_seconds_observed": 17.64
         }

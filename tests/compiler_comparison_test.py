@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import tempfile
 from pathlib import Path
 
@@ -13,6 +14,7 @@ MODULE_PATH = ROOT / "tools" / "compiler_comparison.py"
 
 
 def load_module():
+    sys.path.insert(0, str(ROOT / "tools"))
     spec = importlib.util.spec_from_file_location(
         "compiler_comparison", MODULE_PATH,
     )
@@ -59,11 +61,29 @@ def main() -> int:
         reject(module, path, changed, "forbidden opcode")
 
         changed = json.loads(json.dumps(original))
+        changed["toolchains"]["millfork"]["programs"]["cat"][
+            "static_8080_audit"
+        ]["unapproved_runtime_dependencies"] = 1
+        reject(module, path, changed, "static 8080/dependency gate failed")
+
+        changed = json.loads(json.dumps(original))
+        changed["toolchains"]["z88dk"]["programs"]["wc"][
+            "cosim_stack"
+        ]["bytes_observed"] += 1
+        reject(module, path, changed, "invalid stack low-water evidence")
+
+        changed = json.loads(json.dumps(original))
+        changed["toolchains"]["z88dk"]["programs"]["hello"][
+            "tpa_bytes_after_image_and_stack"
+        ] += 1
+        reject(module, path, changed, "incorrect image+stack TPA")
+
+        changed = json.loads(json.dumps(original))
         changed["decision"]["production_baseline"] = "z88dk"
         reject(module, path, changed, "must not silently replace")
 
     module.RESULTS = original_path
-    print("COMPILER-COMPARISON-TEST: PASS (four negative gates)")
+    print("COMPILER-COMPARISON-TEST: PASS (seven negative gates)")
     return 0
 
 

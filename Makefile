@@ -121,6 +121,7 @@ development-tool-audit-check:
 	$(PYTHON) tests/cpm3_development_tool_audit_test.py
 
 compiler-comparison-check:
+	$(PYTHON) tests/audit_8080_com_test.py
 	$(PYTHON) tools/compiler_comparison.py
 	$(PYTHON) tests/compiler_comparison_test.py
 

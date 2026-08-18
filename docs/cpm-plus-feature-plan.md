@@ -453,15 +453,26 @@ PL/M sources makes it worth a focused experiment.
 
 Compiler experiment completed on 2026-08-18: pinned Millfork v0.3.30 and
 z88dk v2.4 reproducibly build matching standalone `hello`, `cat`, and `wc`
-fixtures, and all six binaries pass strict-8080 CP/M 3 execution. Millfork
-produces the smallest images and clearest generated Intel assembly, so it is
-the preferred future high-level experiment; z88dk remains the C portability
-probe. Hand-written 8080 assembly remains the production baseline, and neither
-compiler is a mandatory distribution dependency. Exact DRI `SETDEF.PLM`
-compilation rejects `uplm80` as a production path: `-O2` emits 200 `JR`
-instructions, while `-O0` still emits Z80-only `SRL` and `RR`. The pinned
-fixtures, sizes, hashes, TPA accounting, rebuild command, strict simulator
-results, and negative gates are recorded under `experiments/compiler-comparison/`.
+fixtures, and all six binaries pass strict-8080 CP/M 3 execution. A flow-aware
+static disassembler now accounts for every byte as reachable code or data and
+rejects undocumented/Z80-only opcodes, direct hardware I/O, unresolved
+indirect transfers, and external control dependencies other than CP/M warm
+boot and BDOS. Its canonical complete listings are pinned by digest. A
+command-scoped simulator low-water measurement observes 2/2/6 bytes of stack
+for Millfork `hello`/`cat`/`wc` and 78/83/98 bytes for z88dk, leaving
+39,097/39,023/38,800 and 38,727/38,520/38,100 TPA bytes respectively after
+image plus observed stack. The strict rebuild gate reproduces the binaries,
+static audits, representative behavior, and exact stack results.
+
+Millfork produces the smallest images and clearest generated Intel assembly,
+so it is the preferred future high-level experiment; z88dk remains the C
+portability probe. Hand-written 8080 assembly remains the production baseline,
+and neither compiler is a mandatory distribution dependency. Exact DRI
+`SETDEF.PLM` compilation rejects `uplm80` as a production path: `-O2` emits
+200 `JR` instructions, while `-O0` still emits Z80-only `SRL` and `RR`. The
+pinned fixtures, sizes, hashes, TPA accounting, rebuild command, strict
+simulator results, and fail-closed gates are recorded under
+`experiments/compiler-comparison/`.
 
 ### Explicit exclusions
 

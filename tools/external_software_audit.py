@@ -129,6 +129,17 @@ def render(data: dict, compilers: dict) -> str:
     baseline = ls["strict_8080_cosim"]["baseline_dir"]
     millfork = compilers["toolchains"]["millfork"]
     z88dk = compilers["toolchains"]["z88dk"]
+    compiler_rows = []
+    for toolchain_name, toolchain in (("Millfork", millfork), ("z88dk", z88dk)):
+        for program_name in ("hello", "cat", "wc"):
+            program = toolchain["programs"][program_name]
+            compiler_rows.append(
+                f"| {toolchain_name} | `{program_name}` | "
+                f"{program['output_bytes']} | "
+                f"{program['cosim_stack']['bytes_observed']} | "
+                f"{program['tpa_bytes_after_image_and_stack']:,} | "
+                f"{program['static_8080_audit']['reachable_instructions']} |"
+            )
     lines = [
         "# External CP/M software and compiler audit",
         "",
@@ -217,8 +228,20 @@ def render(data: dict, compilers: dict) -> str:
          "each reproducibly build standalone `hello`, `cat`, and `wc` fixtures; "
          "all six pass strict-8080 execution. Millfork emits much smaller images "
          "and readable Intel assembly, while z88dk remains the preferable C "
-         "portability probe. See `experiments/compiler-comparison/results.json` "
-         "for exact sizes, hashes, TPA accounting, commands, and timings."),
+         "portability probe."),
+        "",
+        "| Toolchain | Program | COM bytes | Observed stack bytes | TPA left | Static instructions |",
+        "| --- | --- | ---: | ---: | ---: | ---: |",
+        *compiler_rows,
+        "",
+        "The flow-aware static disassembler accounts for every output byte,",
+        "follows only reachable code, and rejects undocumented/Z80-only",
+        "opcodes, direct hardware I/O, arbitrary `PCHL`, and control transfers",
+        "outside the image except CP/M warm boot and BDOS. The strict simulator",
+        "arms and freezes an SP low-water measurement around each representative",
+        "command; its broader fetched-opcode gate independently remains clean.",
+        "Exact listings are represented by stable SHA-256 digests in",
+        "`experiments/compiler-comparison/results.json`.",
         "",
         "Hand-written 8080 assembly remains the production baseline. Neither",
         "compiler becomes a required distribution build dependency. Millfork is",
