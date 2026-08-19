@@ -155,10 +155,16 @@ The separately named C5/C6 consumers add eight-record A:/B: caches at
 `C000h..D5FFh` container. The TPA remains `0100h..99FFh`, and C4 stays
 byte-exact.
 
-C6's complete native binding is 2,924 bytes at `C000h..CB6Bh`; its extended
-services and C6-only utilities still leave the same loader/BDOS/BIOS placement
-and `0100h..99FFh` transient span. The generated release map derives this end
-address from the actual adapter rather than copying a prose constant.
+The immutable C6 loaded-system baseline has a 2,924-byte native binding at
+`C000h..CB6Bh`. The current post-C6 loaded system uses `C5A0h..C5A1h` for
+hot-directory state, `C5C0h..C63Fh` plus `D3C0h..D4BFh` for three measured
+directory records, and `D4C0h..D570h` for its 177-byte implementation. Its
+sparse adapter container is therefore 5,489 bytes at `C000h..D570h`. This
+leaves both the fixed `D600h` ROM workspace and the standalone resident
+self-test's `D5C0h..D5FFh` stack/guards untouched, while retaining the
+loader/BDOS/BIOS placement and `0100h..99FFh` transient span. The generated
+release map derives the end address from the actual adapter and names every
+hot-cache and reserved range.
 
 ## Decisions entering resident-service migration
 

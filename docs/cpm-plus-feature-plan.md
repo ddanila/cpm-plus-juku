@@ -243,7 +243,10 @@ The immutable three-record baseline is pinned by
 [`netdisk-performance.md`](netdisk-performance.md): login costs 22 turns, the
 first interactive `DIR` costs zero further wire turns, and `TYPE README.TXT`
 costs two. C5/C6 supersede that performance result with independently bounded
-eight-record A:/B: caches and measured 10/0/1 turns. Explicit operation-26h negotiation also
+eight-record A:/B: caches and measured 10/0/1 turns. The current post-C6
+loaded system adds a measured three-record directory hot set and reaches
+8/0/1 plus B: 4/0 login/`DIR`; M4 acceptance remains pending until its recovery
+and physical timing gates close. Explicit operation-26h negotiation also
 eliminates 186 rejected N4 discovery polls from a representative disk-only
 session. The next disk experiment must therefore target initial login or
 first/alternating drive selection; steady-state `DIR` is already local.
@@ -577,7 +580,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
 | 3. S21/console/locale | **Complete** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, 53x24/64x20 CS00015 evidence, and C6 local/N4 block-output separation. |
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
-| 5. NetDisk/media safety | **Complete for the selected design** | The pinned 10/0/1 boot/DIR/TYPE counts, per-drive cache oracle, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and 64-cycle read/write/reconnect soak pass. Write-back caching remains deliberately out of scope. |
+| 5. NetDisk/media safety | **C6 baseline and M4 desk gates complete; physical timing pending** | The immutable C6 baseline pins 10/0/1 boot/DIR/TYPE, per-drive read-ahead, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and a 64-cycle soak. The current loaded system reaches 8/0/1 and B: 4/0 with a measured hot-directory cache; exact local/N4 recovery, package, runtime-memory, and 64-cycle soak gates pass. One physical timing comparison remains. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
 | 7. Curated software/development | **Complete** | The 23-program DRI catalogue, every shipped DRI executable, ED/HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST`/FIG-Forth decisions, seven individual DRI development-tool dispositions, Millfork/z88dk/uplm80 experiments, and live C6 disk/stack/RSX/TPA evidence for all 13 shipped programs are complete and fail-closed. |
 
@@ -784,7 +787,7 @@ Status on 2026-08-19:
   full/dev/demo media, all sixteen oracle surfaces are deterministic, and the
   exact C6 executable passes seven live geometry/locale cases with both cursor
   phases. Four physical display observations still wait for a working monitor.
-- M4 desk implementation is in progress. BIOS-call tracing identified the
+- M4 desk implementation and qualification are complete. BIOS-call tracing identified the
   exact repeated records rather than guessing at general protocol overhead.
   The loaded-system cache retains track 2 translated sectors 1--3 only. In the
   exact delayed/missed-ready C6 simulator, cold boot falls from 10 to 8 host
@@ -792,8 +795,11 @@ Status on 2026-08-19:
   `DIR` remains zero, `TYPE` remains one, B: login remains four, and first B:
   `DIR` falls from one to zero. Writes invalidate before the synchronous wire
   operation, failed writes leave the cache invalid, the ROM/ABI/TPA are
-  unchanged, and a dedicated count gate passes. Recovery, replay, package,
-  long-soak, and physical timing evidence remain before M4 is accepted.
+  unchanged, and a dedicated count gate passes. Exact local/N4 recovery,
+  discarded-readiness replay, reproducible packaging, runtime-memory
+  admission, and the 64-cycle read/write/server-replacement soak pass with
+  992 reads, 257 writes, zero retries, and zero overruns. One CS00015 timing
+  comparison remains before M4 is physically accepted.
 - M5 is a measured improvement, not correctness work. It starts only after the
   exact-C6 simulator admits each program and M2 makes physical smoke tests
   cheap to qualify.

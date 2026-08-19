@@ -66,8 +66,8 @@ def main() -> int:
     args = parser.parse_args()
 
     adapter = args.adapter.read_bytes()
-    if not adapter or len(adapter) > 0x1000:
-        raise ValueError("Juku CP/M Plus adapter must fit one 4 KiB window")
+    if not adapter:
+        raise ValueError("Juku CP/M Plus adapter is empty")
     if args.adapter_address + len(adapter) > args.end_address:
         raise ValueError("Juku adapter exceeds the RAM container")
     memory, system_base = unpack_sys(

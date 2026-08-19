@@ -74,16 +74,19 @@ identity.
 
 The ABI 1.2 C6 binding additionally links the bounded N4 block sender and
 requires the ROM's appended console-span, multi-request NetDisk, raw-keyboard,
-and sound features. The post-C6 system revision that restores a one-record
-BDOS count before reloading CCP has system and fast-stage SHA-256 values
-`f3dbd9c8c161a2dd13e562fe3e8824273815f3f0fbbd2f9ef4c4a79aa2217cce`
-and `20bc372f890346fe1643ac8a38b01f68251fcf97a8a082416faa27dde70b7e1a`.
+and sound features. The current post-C6 system includes the one-record BDOS
+reset before CCP reload plus the measured hot-directory cache. Its system and
+fast-stage SHA-256 values are
+`57de00733bea16a3ce6427b8e010649727c6b0d84144724c43c5114a1cf35091`
+and `3c2cf62d43b7867844b18fb142fbae8c49bdc83a148fcb22bfac9a8a26b32d67`.
 It remains compatible with the immutable C6 ROM and requires no EPROM change.
 The latter is a Fastboot V16 stream descriptor plus checked compressed system;
 its receive/decompress code is the exact 361-byte image embedded in the C6
 ROM rather than a downloaded executable extension.
-The packed adapter occupies `C000h..CB6Bh` (2,924 bytes), still within the
-existing allocation and without changing the 39,168-byte TPA.
+The current post-C6 adapter container occupies `C000h..D570h` (5,489 bytes),
+including the sparse native services, read-ahead buffers, and measured
+hot-directory cache. It remains below the fixed `D600h` ROM workspace and
+does not change the 39,168-byte TPA.
 
 The CCP loader itself is single-record code: it advances DMA by 128 bytes
 after every BDOS sequential read. It therefore calls BDOS function 44 with a
@@ -97,6 +100,12 @@ and clock result counters. Its USERF selector also emits NetDisk-v3 operation
 24h, so the host records the same S21, video, feature, and clock-status tuple.
 The operation is idempotent, bounded, and optional: an absent N4 host cannot
 starve the local status display or disk service.
+
+The displayed map names the actual `0100h..99FFh` TPA and separate
+`9A00h..9CFFh` loader; the older `0100h..9CFFh` text incorrectly included the
+loader in the TPA. It also reports the BIOS and the complete `C000h..D5FFh`
+adapter/state container. The native-services regression requires these exact
+lines rather than accepting the title alone.
 
 `DIAG.COM` 0.5 uses USERF selector 2 to emit NetDisk-v3 operation 25h after
 each completed safe suite. The host logs and counts the result without adding
@@ -155,6 +164,17 @@ at D7DAh..D7DFh;
 the alternating-drive regression loads B:, returns to A:, reloads an A:
 transient, and proves both counts remain nonzero with the expected distinct
 pointers. The immutable C4/native binding and memory map remain unchanged.
+
+The current post-C6 loaded system adds a conservative directory hot set above
+those buffers: validity/drive state at `C5A0h..C5A1h`, three 128-byte records
+at `C5C0h..C63Fh` plus `D3C0h..D4BFh`, and 177 bytes of code at
+`D4C0h..D570h`. This preserves the ROM resident self-test stack/guards at
+`D5C0h..D5FFh`. BIOS-call tracing
+showed that translated track-2 sectors 1--3 are reread after the initial login
+scan and after first B: selection. Only those records are retained. Any write
+to the cached drive invalidates the set before the resident synchronous write;
+a failed write therefore leaves no stale cache entry. No TPA or ROM address
+changes.
 
 `NATIVE.COM` calls the actual high-memory BIOS vectors on the emulated 8080.
 It verifies the device table, FLUSH, A-register MULTIO convention, USERF

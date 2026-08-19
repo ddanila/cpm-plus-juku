@@ -67,6 +67,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 	external-software-audit-check external-software-rebuild-check \
 	dev-utility-rebuild-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check \
+	netdisk-performance-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check release-candidate \
 	release-candidate-check c6-release-candidate c6-release-candidate-check \
@@ -116,6 +117,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	release-candidate-check cpm3-system-check native-services-check \
 	distribution-cosim-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check \
+	netdisk-performance-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
@@ -343,6 +345,8 @@ network-rom-locale-cosim-check: all
 	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
 	$(PYTHON) tests/cosim_check.py
 
+netdisk-performance-check: network-rom-extended-local-cosim-check
+
 network-rom-extended-local-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke CPM_PLUS_JUKU_NETWORK_ROM=\
 	../8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.2-c6.bin \
@@ -359,9 +363,11 @@ network-rom-extended-local-cosim-check: all
 	CPM_PLUS_JUKU_EXTRA_MARKER2='KEYRAW.COM' \
 	CPM_PLUS_JUKU_EXPECT_PER_DRIVE_CACHE=1 \
 	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
-	CPM_PLUS_JUKU_EXPECT_BOOT_READS=10 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_READS=8 \
 	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
 	CPM_PLUS_JUKU_EXPECT_TYPE_READS=1 \
+	CPM_PLUS_JUKU_EXPECT_B_LOGIN_READS=4 \
+	CPM_PLUS_JUKU_EXPECT_B_DIR_READS=0 \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
@@ -387,9 +393,11 @@ network-rom-extended-cosim-check: network-rom-extended-local-cosim-check
 	CPM_PLUS_JUKU_EXPECT_CONSOLE_BULK=1 \
 	CPM_PLUS_JUKU_EXPECT_PER_DRIVE_CACHE=1 \
 	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
-	CPM_PLUS_JUKU_EXPECT_BOOT_READS=10 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_READS=8 \
 	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
 	CPM_PLUS_JUKU_EXPECT_TYPE_READS=1 \
+	CPM_PLUS_JUKU_EXPECT_B_LOGIN_READS=4 \
+	CPM_PLUS_JUKU_EXPECT_B_DIR_READS=0 \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
@@ -555,6 +563,9 @@ $(BUILD)/cpm3-native-services-extended.rel: src/cpm3-native-services.asm \
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
 		-DROM_ABI_EXTENDED -I$(COMMON)/platform -o $@ $<
 
+$(BUILD)/cpm3-hot-directory.rel: src/cpm3-hot-directory.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
+
 $(BUILD)/ram-keyboard.rel: $(COMMON)/platform/ram-keyboard.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
 
@@ -630,16 +641,19 @@ $(BUILD)/adapter-romabi-locale-native.bin: \
 $(BUILD)/adapter-romabi-extended-native.all: \
 		$(BUILD)/platform-adapter-romabi-extended-native.rel \
 		$(BUILD)/netconsole-romabi-extended-native.rel \
-		$(BUILD)/cpm3-native-services-extended.rel $(LD80)
+		$(BUILD)/cpm3-native-services-extended.rel \
+		$(BUILD)/cpm3-hot-directory.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
 		-P0xc000 $(BUILD)/platform-adapter-romabi-extended-native.rel \
-		-P0xc2a0 $(BUILD)/netconsole-romabi-extended-native.rel \
-		-P0xca00 $(BUILD)/cpm3-native-services-extended.rel
+		-P0xc2c0 $(BUILD)/netconsole-romabi-extended-native.rel \
+		-P0xca00 $(BUILD)/cpm3-native-services-extended.rel \
+		-P0xd4c0 $(BUILD)/cpm3-hot-directory.rel
 
 $(BUILD)/adapter-romabi-extended-native.bin: \
 		$(BUILD)/adapter-romabi-extended-native.all
 	tail -c+49153 $< >$@
-	test $$(stat -c %s $@) -le 4096
+	# D5C0h..D5FFh belongs to the ROM resident-entry self-test stack/guards.
+	test $$(stat -c %s $@) -le 5568
 
 # The stock-ROM/RAM-BIOS C4 baseline is immutable. Its exact source boundary
 # is cpm-plus-juku 6ce52d8 plus juku-common aeee23d; later common font and
@@ -971,7 +985,7 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
 	CPM_PLUS_JUKU_EXTRA_COMMAND=STATUS \
 	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Status 1.3' \
-	CPM_PLUS_JUKU_EXTRA_MARKERS='ROM: Juku ABI 01.00 network-first|S21 raw: 06  video: 03 (80x24)|Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00|Bootstrap stage: 00  CRC retries: 00  protocol: 00|Host caps: NetDisk v03  read-ahead: 03  features: 2E  drives: 01' \
+	CPM_PLUS_JUKU_EXTRA_MARKERS='Map: TPA 0100-99FF, loader 9A00-9CFF|adapter/state C000-D5FF|framebuffer D800-FD7F|ROM: Juku ABI 01.00 network-first|S21 raw: 06  video: 03 (80x24)|Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00|Bootstrap stage: 00  CRC retries: 00  protocol: 00|Host caps: NetDisk v03  read-ahead: 03  features: 2E  drives: 01' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND2='DIAG IO' \
 	CPM_PLUS_JUKU_EXTRA_MARKER2='Keyboard/S21: PASS' \
 	CPM_PLUS_JUKU_EXTRA_COMMAND3='DEVICE NAMES' \
@@ -980,7 +994,7 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
 	CPM_PLUS_JUKU_EXPECT_BOOT_READS=24 \
 	CPM_PLUS_JUKU_EXPECT_DIR_READS=3 \
-	CPM_PLUS_JUKU_EXPECT_TYPE_READS=3 \
+	CPM_PLUS_JUKU_EXPECT_TYPE_READS=4 \
 	CPM_PLUS_JUKU_EXPECT_STATUS_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_BOOT_REPORTS=1 \
 	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \

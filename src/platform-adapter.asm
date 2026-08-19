@@ -62,6 +62,12 @@ BBASE:
         extrn   NSTIME
         extrn   NSUSERF
 .endif
+.ifdef ROM_ABI_EXTENDED
+        extrn   HDINIT
+        extrn   HDLOOK
+        extrn   HDSAVE
+        extrn   HDINVAL
+.endif
 
 ; Public CP/M 2.2 BIOS jump table.
         jmp     BOOT
@@ -206,6 +212,9 @@ BOOT:
         sta     NATIVEPOST
         mvi     a,04eh
         sta     NATIVEMARK
+.endif
+.ifdef ROM_ABI_EXTENDED
+        call    HDINIT
 .endif
 .ifndef CPM3ADAPTER
         lxi     sp,0100h
@@ -672,8 +681,20 @@ SETDMA:
 READ:
 .ifdef NETWORKV3
 .ifdef ROMABI
+.ifdef ROM_ABI_EXTENDED
+        call    HDLOOK
+        rnc
+        xra     a
+        call    ROMRWDISK
+        ora     a
+        rnz
+        call    HDSAVE
+        xra     a
+        ret
+.else
         xra     a
         jmp     ROMRWDISK
+.endif
 .else
         call    N3READ
         ret
@@ -760,6 +781,9 @@ ROMRWDISKRET:
 
 WRITE:
 .ifdef ROMABI
+.ifdef ROM_ABI_EXTENDED
+        call    HDINVAL
+.endif
         mvi     a,JROMNETOPWRITE
         jmp     ROMRWDISK
 .else

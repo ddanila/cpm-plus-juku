@@ -340,9 +340,10 @@ dotmsg: db      '.$'
 romsuffix:
         db      ' network-first',13,10,'$'
 mapmsg:
-        db      'Map: TPA 0100-9CFF, BDOS 9D00-BB9B, SCB BB9C-BBFF',13,10
-        db      '     Core C000-C52A, state C640-C95F, native CA00-CB80 max',13,10
-        db      '     ROM gate/work D600-D7FF, framebuffer D800-FFFF',13,10,'$'
+        db      'Map: TPA 0100-99FF, loader 9A00-9CFF',13,10
+        db      '     BDOS 9D00-BB9B, SCB BB9C-BBFF, BIOS BC00-BFFF',13,10
+        db      '     adapter/state C000-D5FF, ROM gate/work D600-D7FF',13,10
+        db      '     framebuffer D800-FD7F (mode 3 RAM)',13,10,'$'
 s21msg: db      'S21 raw: $'
 videomsg:
         db      '  video: $'

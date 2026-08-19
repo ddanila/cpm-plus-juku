@@ -10,12 +10,12 @@
     "system": {
       "name": "cpm-plus-juku-network-rom-extended-native-system.bin",
       "bytes": 18432,
-      "sha256": "f3dbd9c8c161a2dd13e562fe3e8824273815f3f0fbbd2f9ef4c4a79aa2217cce"
+      "sha256": "57de00733bea16a3ce6427b8e010649727c6b0d84144724c43c5114a1cf35091"
     },
     "fastboot": {
       "name": "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin",
-      "bytes": 8035,
-      "sha256": "20bc372f890346fe1643ac8a38b01f68251fcf97a8a082416faa27dde70b7e1a"
+      "bytes": 8178,
+      "sha256": "3c2cf62d43b7867844b18fb142fbae8c49bdc83a148fcb22bfac9a8a26b32d67"
     }
   },
   "tpa": {

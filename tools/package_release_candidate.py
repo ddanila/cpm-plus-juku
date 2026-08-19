@@ -156,6 +156,31 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
 
         build_map_path = temporary / "memory-map.json"
         adapter_end = 0xC000 + adapter.stat().st_size - 1
+        ram_map = {
+            "transient": "0100h..99FFh (39168 bytes)",
+            "loader": "9A00h..9CFFh",
+            "bdos": "9D00h..BB9Bh",
+            "scb": "BB9Ch..BBFFh",
+            "bios": "BC00h..BFFFh",
+            "adapter": (
+                f"C000h..{adapter_end:04X}h "
+                f"({adapter.stat().st_size} bytes)"
+            ),
+            "resident_work": "D600h..D7FFh (512 bytes)",
+            "call_gate": "D620h",
+            "framebuffer_helper": "D700h",
+            "resident_state": "D780h",
+            "framebuffer": "D800h..FD7Fh (9600 bytes, mode 3 RAM)",
+        }
+        if variant == "c6":
+            ram_map.update({
+                "netdisk_hot_directory_state": "C5A0h..C5A1h (2 bytes)",
+                "netdisk_hot_directory_data": (
+                    "C5C0h..C63Fh + D3C0h..D4BFh (384 bytes)"
+                ),
+                "netdisk_hot_directory_code": "D4C0h..D570h (177 bytes)",
+                "resident_self_test_stack_guard": "D5C0h..D5FFh (reserved)",
+            })
         build_map_path.write_text(json.dumps({
             "schema": "cpm-plus-juku-memory-map-v1",
             "candidate": config["candidate"],
@@ -167,22 +192,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
                 "resident_bytes": rom_metadata_record["resident_bytes"],
                 "abi_vectors": rom_metadata_record["abi_vectors"],
             },
-            "ram": {
-                "transient": "0100h..99FFh (39168 bytes)",
-                "loader": "9A00h..9CFFh",
-                "bdos": "9D00h..BB9Bh",
-                "scb": "BB9Ch..BBFFh",
-                "bios": "BC00h..BFFFh",
-                "adapter": (
-                    f"C000h..{adapter_end:04X}h "
-                    f"({adapter.stat().st_size} bytes)"
-                ),
-                "resident_work": "D600h..D7FFh (512 bytes)",
-                "call_gate": "D620h",
-                "framebuffer_helper": "D700h",
-                "resident_state": "D780h",
-                "framebuffer": "D800h..FD7Fh (9600 bytes, mode 3 RAM)",
-            },
+            "ram": ram_map,
             "tpa_gain_over_frozen_ram_bios": 8192,
             "bindings": {
                 "rom_sha256": sha256(rom),

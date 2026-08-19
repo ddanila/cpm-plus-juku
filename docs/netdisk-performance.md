@@ -98,12 +98,59 @@ the existing translated predictor already fills the eight-record cache before
 the next individual `READ`. Such a protocol is deferred until a real workload
 shows benefit beyond these counts.
 
+## Post-C6 measured hot-directory cache
+
+The immutable C6 ROM and resident eight-record A:/B: read-ahead remain
+unchanged. A nonintrusive BIOS-call trace of the exact C6 loaded system showed
+why cold login still needed ten host turns:
+
+- records 1--32 scan the initial directory;
+- record 33 rereads translated track-2 sector 1;
+- records 34--58 load CCP from track-2 sector 29 through track-3 sector 33;
+- records 59--61 reread translated track-2 sectors 1, 2, and 3.
+
+Those repeats occur after the resident eight-record reply has legitimately
+been displaced. The current post-C6 system therefore retains only translated
+track-2 sectors 1--3 in a three-record high-RAM hot set. It is not a general
+predictor and does not alter the NetDisk-v3 wire protocol. Validity/drive state
+uses `C5A0h..C5A1h`, the three records use `C5C0h..C63Fh` plus
+`D3C0h..D4BFh`, and the 177-byte implementation uses `D4C0h..D570h`.
+This leaves the ROM self-test's `D5C0h..D5FFh` stack/guards untouched. Any
+write to the cached drive invalidates before the resident synchronous wire
+operation; failed writes leave the cache invalid. Switching drives safely
+misses and rebinds the shared hot set.
+
+A controlled exact-C6 comparison with the same paced host measured:
+
+| Phase | Immutable C6 system | Current post-C6 system |
+| --- | ---: | ---: |
+| reset through first `A>` | 10 requests / 80 records / 4,414 reply bytes / 9.823 s | 8 / 64 / 3,798 / 9.490 s |
+| first A:`DIR` | 0 requests | 0 requests |
+| A:`TYPE README.TXT` | 1 request | 1 request |
+| first B: selection/login | 4 requests | 4 requests |
+| first B:`DIR` after login | 1 request | 0 requests |
+
+The gain is two cold wire turns and roughly 0.33 seconds in this setup, plus a
+local first B: `DIR`. It changes neither the immutable C6 ROM/ABI nor the
+39,168-byte TPA. The measured artifact identities are:
+
+- loaded system: `57de00733bea16a3ce6427b8e010649727c6b0d84144724c43c5114a1cf35091`;
+- Fastboot V16 stream: `3c2cf62d43b7867844b18fb142fbae8c49bdc83a148fcb22bfac9a8a26b32d67`;
+- sparse adapter container: `7f1ba57b25f9524a2f16785d4c8221551e1dab9dd46da72d580b07991b6a9830`.
+
+`make netdisk-performance-check` pins 8/0/1 and B: 4/0 through the delayed,
+discarded-readiness exact-C6 path. The local and N4 matrices additionally
+exercise warm boot, diagnostics, a synchronous write/erase, and A:/B:
+switching with zero clean-path retry or overrun. A short CS00015 timing
+comparison remains the physical acceptance gate; no EPROM burn is required.
+
 ## C6 bounded operations and soak
 
 ABI 1.2 supplies an ordered list service for 1..8 ordinary ten-byte resident
 NetDisk requests. It is not silently substituted into the production BIOS:
-the measured eight-record translated predictor already achieves the pinned
-10/0/1 boot/`DIR`/`TYPE` request counts without another buffer/copy contract.
+the immutable C6 system already achieved 10/0/1 through the measured
+eight-record translated predictor, and the current loaded-system hot set
+improves this to 8/0/1 without another wire or bulk-DMA contract.
 The executable C6 fixture rejects zero and oversized lists and executes mixed
 valid descriptors through the same single-request implementation, preserving
 synchronous write and invalidation semantics. A later workload may adopt it
@@ -117,8 +164,10 @@ identified as a host-test defect rather than misreported as target disk decay.
 The release gate requires every cycle, the reconnect marker, exact diagnostic
 count, one write cycle per requested cycle, zero unrecovered retries, and zero
 resident USART overruns.
-The accepted C6 run records 1,193 read requests, 257 synchronous writes, zero
-retries, and zero resident/bootstrap overruns across all 64 cycles.
+The immutable C6 run recorded 1,193 read requests and 257 synchronous writes.
+The current post-C6 hot-directory system records 992 reads and the same 257
+synchronous writes across all 64 cycles. Both have zero retries and zero
+resident/bootstrap overruns, including a mid-session server replacement.
 
 ABI 1.2 also adds bounded N4 output operation `28h`. This improves unattended
 observability, not disk timing. Capability bit `40h` advertises it, the request

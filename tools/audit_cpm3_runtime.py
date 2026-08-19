@@ -19,7 +19,7 @@ EXPECTED_ARTIFACTS = {
     "network_rom": ("juku-network-rom-abi1.2-c6.bin", 16384),
     "system": ("cpm-plus-juku-network-rom-extended-native-system.bin", 18432),
     "fastboot": (
-        "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin", 8035,
+        "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin", 8178,
     ),
 }
 ADDRESS_FIELDS = (

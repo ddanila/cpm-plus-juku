@@ -62,8 +62,9 @@ NetDisk v3 and uses resident platform services:
 9D00h..BB9Bh  BDOS
 BB9Ch..BBFFh  SCB
 BC00h..BFFFh  BIOS
-C000h..CB6Bh  C6 native binding and transport
-CB80h..D3B7h  independent A:/B: read-ahead buffers
+C000h..D3B7h  C6 binding/services and independent A:/B: read-ahead
+C5A0h..C63Fh  post-C6 hot state and first retained record
+D3C0h..D570h  post-C6 retained records and cache code
 D600h..D7FFh  ROM gate, helper, status, and mutable resident state
 D800h..FFFFh  resident ROM window / underlying framebuffer RAM
 ```
@@ -167,7 +168,9 @@ must be byte-identical.
 - `STATUS`, `DIAG`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`, and `N4BULK` provide bounded
   target and machine-readable observability.
 
-Measured recovery-A request counts remain 10/0/1 for boot/first `DIR`/`TYPE`.
+The immutable C5/C6 loaded-system baseline measures 10/0/1 requests for
+boot/first `DIR`/`TYPE`. The current post-C6 system retains three measured hot
+directory records and improves that to 8/0/1; B: login/first `DIR` is 4/0.
 The visible `TYPE` delay is dominated by framebuffer output and paging, not
 disk serialization. Write-back caching, cryptographic authentication, and
 production baud rates above 19,200 are intentionally outside C6 until a

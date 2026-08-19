@@ -54,6 +54,16 @@ def main() -> int:
         memory_map = json.loads((first / manifest["build_map"]).read_text())
         if memory_map["ram"].get("transient") != \
                 "0100h..99FFh (39168 bytes)" or \
+                memory_map["ram"].get("adapter") != \
+                "C000h..D570h (5489 bytes)" or \
+                memory_map["ram"].get("netdisk_hot_directory_state") != \
+                "C5A0h..C5A1h (2 bytes)" or \
+                memory_map["ram"].get("netdisk_hot_directory_data") != \
+                "C5C0h..C63Fh + D3C0h..D4BFh (384 bytes)" or \
+                memory_map["ram"].get("netdisk_hot_directory_code") != \
+                "D4C0h..D570h (177 bytes)" or \
+                memory_map["ram"].get("resident_self_test_stack_guard") != \
+                "D5C0h..D5FFh (reserved)" or \
                 memory_map.get("tpa_gain_over_frozen_ram_bios") != 8192 or \
                 memory_map["rom"].get("abi_vectors", {}).get("keyboard_raw") != \
                 "FF59":

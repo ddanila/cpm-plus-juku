@@ -46,7 +46,7 @@ gate; it is not a substitute for the broader Priority-7 admission matrix.
 | DIR, sequential read, DIAG, warm boot, reconnect | Local and N4 C6 runs execute the full command matrix; long soak replaces the host mid-session. |
 | Original failure fixtures remain meaningful | Legacy drain/PIC/host-guard and compound serial faults still fail or recover for their original modeled cause, without synthetic CP/M errors. |
 | Programmer images and maps are reproducible | C6 release test concatenates D15+D16, checks every hash and manifest record, and builds two byte-identical tar archives. |
-| 39,168-byte TPA retained | Live page-zero loader/BDOS vectors and generated RAM map assert `0100h..99FFh`; adapter ends at `CB6Bh`. |
+| 39,168-byte TPA retained | Live page-zero loader/BDOS vectors and generated RAM map assert `0100h..99FFh`; the immutable C6 adapter ended at `CB6Bh`, while the current sparse post-C6 container ends at `D570h` and preserves the ROM self-test stack/guards from `D5C0h`. |
 
 ## CP/M Plus feature priorities
 
@@ -57,7 +57,7 @@ gate; it is not a substitute for the broader Priority-7 admission matrix.
 | 2 | Native character table, TIME, MULTIO, FLUSH, MOVE, USERF | `tests/native_services_test.py`, `NATIVE.COM`, exact status transcript, production cosim | Complete; bank calls remain truthful stubs because hardware is non-banked. |
 | 3 | S21, video modes, locales, pseudographics, remap, console block | locale/source oracles, ABI C5/C6 fixtures, `KEYTEST`, `KEYRAW`, operation 28h | Complete; connected UI cells use five edge pixels and local I/O remains authoritative. |
 | 4 | Shared safe diagnostics and observability | Diag 0.5, Status 1.3, retained D610h..D613h record, operations 24h/25h/27h, generated memory map | Complete; destructive live-CP/M tests are explicitly rejected. |
-| 5 | Measured NetDisk performance and safe media | pinned 10/0/1 request counts, per-drive cache fixture, capability operation 26h, multi-request fixture, copy/snapshot/read-only tests, long write/reconnect soak | Complete for selected synchronous design. |
+| 5 | Measured NetDisk performance and safe media | immutable 10/0/1 baseline, current 8/0/1 and B: 4/0 count gate, per-drive and hot-directory cache fixtures, capability operation 26h, multi-request fixture, copy/snapshot/read-only tests, local/N4 recovery and 64-cycle write/reconnect soak | C6 baseline and post-C6 M4 desk qualification complete; one physical timing comparison remains. |
 | 6 | Manifest, identity-free media, fallback slots and recovery | C6 boot manifest, last-known-good tests, C4 fallback, reproducible package | Complete. |
 | 7 | Curated strict-8080 software and development environment | generated 23-program catalogue, full/development profile reports, static component listings, current-C6 full/dev/video cosimulation, runtime-memory manifest, external/compiler audits and negative tests | Complete; 13 admitted DRI programs, six gap tools, and VIDTEST execute on the C6 native path, while every rejected or deferred candidate has a measured disposition. |
 
@@ -96,11 +96,16 @@ disposition is part of completion:
 - **Write-back cache:** rejected for this release. Measured read gains do not
   justify new flush, disconnect, and power-loss risk; FLUSH truthfully succeeds
   because no dirty target data exists.
-- **Second directory cache:** rejected. The first interactive recovery `DIR`
-  already costs zero disk turns after BDOS login state is populated.
+- **General directory cache:** rejected. The first interactive recovery `DIR`
+  already costs zero disk turns after BDOS login state is populated. The
+  current post-C6 system instead retains only three BIOS-call-traced records
+  that are reread after the resident eight-record reply is displaced; this
+  reduces cold boot to 8 turns and first B: `DIR` to zero.
 - **Replace predictor with MULTIO bulk DMA:** deferred after measurement. The
-  existing eight-record predictor yields 10/0/1 boot/DIR/TYPE turns. ABI 1.2
-  nevertheless supplies the bounded ordered primitive for a future workload.
+  immutable eight-record predictor yields 10/0/1 boot/DIR/TYPE turns and the
+  current three-record hot set yields 8/0/1 without a new wire contract. ABI
+  1.2 nevertheless supplies the bounded ordered primitive for a future
+  workload.
 - **Cryptographic authentication:** deliberately out of C6. Whole-image hashes,
   CRC/Fletcher guards, manifest validation, and reproducible identity are
   mandatory; cryptography requires a separately measured 8080/EPROM/wire design.

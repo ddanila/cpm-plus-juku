@@ -51,9 +51,12 @@ exchange recovers without RESET.
 
 Every older vector retains its address and contract. The low-RAM gate still
 fits its 214-byte window and the mode-3 framebuffer helper remains exactly 128
-bytes. The extended adapter is 2,924 bytes at `C000h..CB6Bh`; the transient
-area remains `0100h..99FFh`, 39,168 bytes and 8 KiB above the frozen RAM-BIOS
-system.
+bytes. The immutable C6 loaded-system baseline used 2,924 bytes through
+`CB6Bh`. The current post-C6 system adds a measured three-record directory hot
+set and spans `C000h..D570h` as a sparse 5,489-byte adapter container. It stays
+below the ROM self-test stack/guards at `D5C0h` and fixed workspace at `D600h`;
+the transient area remains
+`0100h..99FFh`, 39,168 bytes and 8 KiB above the frozen RAM-BIOS system.
 
 ## Simulator acceptance
 
@@ -68,8 +71,9 @@ system.
    raw-key presence, block N4 output, warm boot, synchronous write/erase, and
    zero-overrun checks;
 6. runs 64 read/diagnostic/write cycles across a deliberate stateless server
-   replacement, with no manual reset (1,193 reads, 257 writes, zero retries
-   and zero resident/bootstrap overruns in the accepted run);
+   replacement, with no manual reset (the immutable baseline recorded 1,193
+   reads; the current hot-directory system records 992; both perform 257
+   writes with zero retries or resident/bootstrap overruns);
 7. creates the package twice and requires byte-identical tar bytes, then
    rechecks every manifest file hash, ROM split, system slot, ABI service, TPA,
    and vector-map value.

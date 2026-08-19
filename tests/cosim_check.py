@@ -1135,11 +1135,16 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                 f"CP/M Plus issued no NetDisk reads: {stats}")
         require(stats.get("writes", 0) >= 1,
                 f"CP/M Plus issued no NetDisk writes: {stats}")
-        for name in ("boot", "dir", "type"):
+        for name in ("boot", "dir", "type", "b_login", "b_dir"):
             expected = os.environ.get(
                 f"CPM_PLUS_JUKU_EXPECT_{name.upper()}_READS",
             )
             if expected is not None:
+                require(
+                    name in command_metrics,
+                    f"{name.upper()} read-request baseline requested "
+                    "without a matching workload phase",
+                )
                 require(
                     command_metrics[name]["read_requests"] == int(expected),
                     f"{name.upper()} read-request baseline differs: "
