@@ -190,3 +190,10 @@ C6 release-candidate gate. The latter retained the exact 64-cycle result of
 reproduced archive SHA-256 `1a4f963315252596`. The audit leaves the full/dev,
 controlled M4, and analog-display CS00015 runs explicitly physical rather than
 promoting them from simulator evidence.
+
+The four remaining blind result bundles now have one closure auditor. It
+rehashes and independently audits each retained run, then requires exact
+current full/development artifacts, both PIP/CRC `4613` copies, the development
+workflow, the controlled M4 decision, and one shared CS00015/C6-ROM/host
+identity. Its report keeps the analog four-mode display gate open rather than
+mistaking remote-console success for a visual observation.

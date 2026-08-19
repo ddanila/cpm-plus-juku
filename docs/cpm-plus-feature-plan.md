@@ -700,6 +700,12 @@ auditor before reserving bench time:
 cd ~/fun/cpm-plus-juku && make physical-performance-check
 ```
 
+Once all four blind runs exist, `tools/physical_closure.py` cross-checks them
+as one result set. It requires the same CS00015, C6 ROM, and host; exact current
+full/development and M4 artifacts; both PIP/CRC `4613` copies; the complete
+development workflow; and the controlled cache decision. The combined report
+cannot close M3 and names the four analog-display observations as remaining.
+
 M5 is now complete at the desk: history and the pseudographic panel are both
 admitted. The current bench target is the automated full/development
 acceptance pair, followed by one M4 timing comparison. The display queue is
@@ -864,6 +870,9 @@ Status on 2026-08-19:
   structured request traces must reproduce 10/0/1 plus B: 4/1 versus 8/0/1
   plus B: 4/0; both must complete synchronous erase writes without retry and
   finish with `DIAG USART` reporting clean D11 PE/OE/FE state.
+  A combined closure auditor now rejects a four-run set if its board, ROM,
+  host, current system/media, PIP/CRC evidence, development coverage, or M4
+  decision differs; it leaves the visual gate explicitly open.
 - M5 is complete at the desk. The build reproduces the licensed DRI CCP
   exactly before applying the Juku patch; `!!` plus `HIST.COM` pass exact-C6
   reload, blank/overlong retention, clear, stack, and strict-8080 gates.

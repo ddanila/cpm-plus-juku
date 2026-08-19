@@ -87,6 +87,20 @@ cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 
 cd ~/fun/cpm-plus-juku && python3 tools/physical_performance.py out/physical-CS00015-m4-control out/physical-CS00015-m4-optimized --output out/physical-CS00015-m4-comparison.json
 ```
 
+After the full, development, control, and optimized runs all exist, close the
+entire blind hardware queue with one independent cross-run audit:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_closure.py out/physical-CS00015-full out/physical-CS00015-development out/physical-CS00015-m4-control out/physical-CS00015-m4-optimized --output out/physical-CS00015-closure.json
+```
+
+This final report does more than concatenate four passes. It requires the
+current full/development systems and media, both successful PIP/CRC `4613`
+copies, every development workflow, the controlled M4 decision, and identical
+CS00015, C6 ROM, and host-server identities across all four retained bundles.
+It deliberately reports the four-mode analog display observation as remaining;
+blind N4 evidence cannot close that separate visual gate.
+
 The control is not a fallback or release image. It is built from the same
 current sources and immutable C6 recovery A: as the optimized run, with only
 `HOT_DIRECTORY` omitted. Its exact system/Fastboot identities are
@@ -146,7 +160,12 @@ status, or post-run volume invalidates the result.
 
 `make physical-acceptance-check` exercises paging, interactive input, timeout
 diagnostics, a complete fake-host lifecycle, clean shutdown, evidence audit,
-tamper rejection, all three real workload definitions, and the current C6 manifest.
+tamper rejection, all four real workload definitions, and the current C6
+manifest.
+
+`make physical-closure-check` additionally proves the exact four-bundle
+identity/coverage contract and rejects wrong systems, missing CRC evidence,
+incomplete development coverage, mixed hosts, or mixed boards.
 The already established exact-C6 full and development cosim suites remain the
 runtime authority until the two corresponding CS00015 result directories have
 also passed this physical audit.

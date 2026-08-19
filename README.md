@@ -131,6 +131,7 @@ make external-software-audit-check
 make compiler-comparison-check
 make physical-acceptance-check
 make physical-performance-check
+make physical-closure-check
 make vidtest-cosim-check
 make history-cosim-check panel-cosim-check
 ```
