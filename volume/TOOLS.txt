@@ -34,6 +34,12 @@ VIDTEST
   Draw the S21-selected screen boundary, ASCII, active locale, and CP437 UI
   samples. The real underline cursor keeps blinking; press any key to exit.
 
+PANEL
+  Show a compact 80x24 control panel using connected CP437 border glyphs
+  where the selected locale permits, with a collision-safe ASCII fallback
+  and the shared native status ABI. Press any key to return to CP/M. Other
+  S21 video modes receive a short explanatory message instead of a bad frame.
+
 STATUS, DIAG, and DATE already provide system, safe hardware, timing, and
 host-clock information. No unrestricted port-access tool is shipped because
 even reads can acknowledge or reset Juku peripherals.

@@ -14,6 +14,7 @@ CP/M Plus commands. Recovery profiles remain unchanged.
 | `STRINGS file` | printable ASCII runs | minimum length four; scans physical records and treats 1Ah as binary data |
 | `HIST [CLEAR]` | inspect or clear one persistent CCP command | validates bounded state; two exclamation marks at the CCP repeat the entry |
 | `VIDTEST` | geometry/font/cursor acceptance page | read-only; derives S21 through CP/M 3, waits for one key, and never writes framebuffer memory directly |
+| `PANEL` | compact machine/network status screen | read-only; uses the shared JNS1 status ABI and connected CP437 borders in 80x24 mode, with a collision-safe Estonian ASCII frame; waits for one key |
 
 The volume includes `TOOLS.TXT` with the target-side synopsis. `TYPE`, `PIP`,
 `REN`, `ERA`, and DRI `DUMP` retain their established CP/M names and are not
@@ -44,6 +45,11 @@ independent oracle covers all sixteen video/locale combinations. See
 [`cpm3-video-acceptance.md`](cpm3-video-acceptance.md).
 The separately licensed CCP derivative and exact-C6 history admission are in
 [`cpm3-command-history.md`](cpm3-command-history.md).
+`make panel-cosim-check` executes `PANEL` through local and N4 console paths,
+captures both cursor phases, and compares all 9,600 framebuffer bytes with the
+source-glyph oracle. Its machine values come from the same versioned JNS1
+record as `STATUS.COM`; it contains no direct peripheral reads or duplicated
+diagnostic implementation. See [`cpm3-panel.md`](cpm3-panel.md).
 
 `STATUS`, `DATE`, `DIAG PIT`, and the native-service test already cover the
 safe clock/timing requirement. No unrestricted `PORT` command is shipped:

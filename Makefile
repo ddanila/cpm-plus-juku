@@ -60,6 +60,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 HISTORY_CCP := $(BUILD)/cpm3-history/CCP.COM
 HISTORY_CCP_MANIFEST := $(BUILD)/cpm3-history/manifest.json
 HISTORY_RUNTIME_METRICS := $(BUILD)/cpm3-history-runtime.json
+PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
 	network-rom-cosim-check network-rom-soak-check \
@@ -72,6 +73,7 @@ HISTORY_RUNTIME_METRICS := $(BUILD)/cpm3-history-runtime.json
 	dev-utility-rebuild-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check \
 	history-check history-cosim-check \
+	panel-check panel-cosim-check \
 	netdisk-performance-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check release-candidate \
@@ -122,7 +124,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	release-candidate-check cpm3-system-check native-services-check \
 	distribution-cosim-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check history-check \
-	history-cosim-check \
+	history-cosim-check panel-check panel-cosim-check \
 	netdisk-performance-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
@@ -209,6 +211,71 @@ history-cosim-check: all
 	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 	$(PYTHON) tests/cpm3_history_runtime_test.py
+
+panel-check: $(BUILD)/panel.cim distribution
+	$(PYTHON) tools/audit_8080_com.py $(BUILD)/panel.cim >/dev/null
+	$(PYTHON) tools/panel_oracle.py
+	$(PYTHON) tests/cpm3_panel_test.py
+
+panel-cosim-check: all panel-check
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C6_ROM) \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(EXTENDED_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(EXTENDED_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x01 \
+	CPM_PLUS_JUKU_EXTRA_COMMAND=PANEL \
+	CPM_PLUS_JUKU_EXTRA_READY_MARKER='PANEL READY' \
+	CPM_PLUS_JUKU_EXTRA_INPUT_HEX=0d \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Panel 1.0 DONE' \
+	CPM_PLUS_JUKU_CAPTURE_PANEL=1 \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK=1 \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK_METRICS=extra \
+	CPM_PLUS_JUKU_METRICS_OUTPUT=$(PANEL_RUNTIME_METRICS) \
+	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
+	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_PROTOCOL=16 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=2 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
+	$(PYTHON) tests/cpm3_panel_runtime_test.py
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C6_ROM) \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(EXTENDED_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(EXTENDED_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x09 \
+	CPM_PLUS_JUKU_EXTRA_COMMAND=PANEL \
+	CPM_PLUS_JUKU_EXTRA_READY_MARKER='PANEL READY' \
+	CPM_PLUS_JUKU_EXTRA_INPUT_HEX=0d \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Juku Panel 1.0 DONE' \
+	CPM_PLUS_JUKU_CAPTURE_PANEL=1 \
+	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
+	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_PROTOCOL=16 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=2 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-remote $(PYTHON) tests/cosim_check.py
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C6_ROM) \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(EXTENDED_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(EXTENDED_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	CPM_PLUS_JUKU_VIDEO_MODE=1 CPM_PLUS_JUKU_S21_EXTRA=0x01 \
+	CPM_PLUS_JUKU_EXTRA_COMMAND=PANEL \
+	CPM_PLUS_JUKU_EXTRA_MARKER='PANEL requires S21 video mode 3 (80x24).' \
+	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
+	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_PROTOCOL=16 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=2 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 
 compiler-comparison-check:
 	$(PYTHON) tests/audit_8080_com_test.py
@@ -849,6 +916,9 @@ $(BUILD)/keytest.cim: src/keytest.asm $(ZMAC) | $(BUILD)
 $(BUILD)/vidtest.cim: src/vidtest.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/panel.cim: src/panel.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
 $(BUILD)/history.cim: src/history.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
@@ -922,7 +992,8 @@ $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) &: \
 
 $(FULL_VOLUME) $(FULL_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
-		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/history.cim \
+		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/panel.cim \
+		$(BUILD)/history.cim \
 		$(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
 		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
@@ -945,7 +1016,8 @@ $(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
 
 $(DEMO_VOLUME) $(DEMO_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
-		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/history.cim \
+		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/panel.cim \
+		$(BUILD)/history.cim \
 		$(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
 		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \

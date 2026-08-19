@@ -127,6 +127,7 @@ make external-software-audit-check
 make compiler-comparison-check
 make physical-acceptance-check
 make vidtest-cosim-check
+make history-cosim-check panel-cosim-check
 ```
 
 ## Generated outputs
@@ -165,11 +166,15 @@ must be byte-identical.
   synchronous write-through and invalidate cache before their first attempt.
 - A: defaults read-only with explicit copy/snapshot/write-through modes; B:
   remains read-only and uses native Juku cylinder/head geometry.
-- `STATUS`, `DIAG`, `HIST`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`, and `N4BULK` provide bounded
-  target and machine-readable observability.
+- `STATUS`, `DIAG`, `HIST`, `PANEL`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`,
+  and `N4BULK` provide bounded target and machine-readable observability.
 - Full, development, and demo media retain one command across CCP reloads;
   `!!` repeats it and `HIST [CLEAR]` inspects or clears it. Recovery media keep
   the exact unmodified DRI CCP.
+- `PANEL` is a compact 80x24 status front end for the shared JNS1 record. It
+  uses the exact-C6 connected CP437 border where the locale permits, falls
+  back to an ASCII frame for Estonian, and returns on any key; other video
+  modes receive a safe explanatory message.
 
 The immutable C5/C6 loaded-system baseline measures 10/0/1 requests for
 boot/first `DIR`/`TYPE`. The current post-C6 system retains three measured hot

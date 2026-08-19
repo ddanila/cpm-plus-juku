@@ -60,6 +60,7 @@ from creep_console_oracle import (  # noqa: E402
     render_transcript as render_console_transcript,
 )
 from vidtest_oracle import framebuffer as vidtest_framebuffer  # noqa: E402
+from panel_oracle import framebuffer as panel_framebuffer  # noqa: E402
 
 ram_console_reference: bytes | None = None
 
@@ -293,6 +294,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         video_mode: int = 3, locale: int | None = None,
         remote_console: bool = False,
         drive_b: Path | None = DRIVE_B) -> None:
+    if "CPM_PLUS_JUKU_VIDEO_MODE" in os.environ:
+        video_mode = int(os.environ["CPM_PLUS_JUKU_VIDEO_MODE"], 0)
     require(not network_rom or direct_core,
             "network ROM requires direct-core fastboot")
     require(video_mode in range(4), "video mode must be 0..3")
@@ -749,6 +752,74 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         flush=True,
                     )
 
+                def capture_panel() -> None:
+                    values = {
+                        "s21": s21_raw,
+                        "abi_major": 1,
+                        "abi_minor": int(os.environ.get(
+                            "CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR", "2",
+                        ), 0),
+                        "boot_stage": int(os.environ.get(
+                            "CPM_PLUS_JUKU_EXPECT_BOOT_STAGE", "0x50",
+                        ), 0),
+                        "boot_retries": int(os.environ.get(
+                            "CPM_PLUS_JUKU_EXPECT_BOOT_RETRIES", "0",
+                        ), 0),
+                        "reconnects": int(os.environ.get(
+                            "CPM_PLUS_JUKU_EXPECT_PANEL_RECONNECTS", "0",
+                        ), 0),
+                        "disk_status": 0,
+                    }
+                    expected = {
+                        "hidden": panel_framebuffer(
+                            cursor=False, **values,
+                        ),
+                        "visible": panel_framebuffer(
+                            cursor=True, **values,
+                        ),
+                    }
+                    seen: set[str] = set()
+                    samples = 0
+                    last_screen = b""
+                    deadline = time.monotonic() + 8
+                    time.sleep(0.05)
+                    while time.monotonic() < deadline and len(seen) < 2:
+                        _state, checkpoint_ram = request_checkpoint()
+                        last_screen = checkpoint_ram[0xD800:0xD800 + 9600]
+                        samples += 1
+                        for phase, frame in expected.items():
+                            if last_screen == frame:
+                                seen.add(phase)
+                                (case / f"panel-{phase}.bin").write_bytes(
+                                    last_screen,
+                                )
+                        if len(seen) < 2:
+                            time.sleep(0.04)
+                    if len(seen) != 2:
+                        (case / "panel-last.bin").write_bytes(last_screen)
+                        for phase, frame in expected.items():
+                            (case / f"panel-expected-{phase}.bin").write_bytes(
+                                frame,
+                            )
+                        differences = {
+                            phase: next((
+                                index for index, pair in enumerate(
+                                    zip(last_screen, frame)
+                                ) if pair[0] != pair[1]
+                            ), None)
+                            for phase, frame in expected.items()
+                        }
+                        raise AssertionError(
+                            "PANEL did not reproduce both exact cursor phases; "
+                            f"values={values} seen={sorted(seen)} "
+                            f"samples={samples} first_differences={differences}",
+                        )
+                    print(
+                        f"COSIM {case.name}: PANEL exact hidden/visible "
+                        f"frames ({samples} checkpoints)",
+                        flush=True,
+                    )
+
                 def run_extra_command(suffix: str = "") -> bytes:
                     command_name = f"CPM_PLUS_JUKU_EXTRA_COMMAND{suffix}"
                     marker_name = f"CPM_PLUS_JUKU_EXTRA_MARKER{suffix}"
@@ -849,6 +920,14 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                 "VIDTEST capture was armed for another command",
                             )
                             capture_vidtest()
+                        if os.environ.get(
+                            "CPM_PLUS_JUKU_CAPTURE_PANEL", "0",
+                        ) == "1":
+                            require(
+                                command == "PANEL",
+                                "PANEL capture was armed for another command",
+                            )
+                            capture_panel()
                         input_delay = float(os.environ.get(
                             input_delay_name, "0",
                         ))
