@@ -190,7 +190,11 @@ through N4. `N4BULK.COM` invokes USERF selector 5 and the host must record
 exactly one operation-28h block containing `N4 BULK PASS`; returning locally
 without a console-advertising host is intentionally a successful best-effort
 no-op. `KEYRAW.COM` is also present only in the C6 recovery profile and proves
-that the extended binding is installed before physical promotion.
+that the extended binding is installed before physical promotion. The frozen
+C6 scanner is authoritative for unmodified contacts only: source review found
+that a global SHIFT/CTRL return can make it report column zero before reaching
+the ordinary modified key's column. `juku-common` master fixes that ordering,
+but adoption requires a separately named ROM successor; C6 is not regenerated.
 
 The CP/M Plus System Guide is the interface authority, including the TIME
 requirement to preserve HL/DE and the standard device-table layout. The pinned

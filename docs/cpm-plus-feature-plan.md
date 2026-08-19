@@ -154,7 +154,11 @@ ABI 1.2 C6 completes the conditional console work: one gate call renders a
 span when the host advertises it. Separate local-only and N4-complete CP/M
 runs prove that remote service cannot replace or starve the authoritative
 local display and keyboard. The raw-key vector and `KEYRAW.COM` expose
-untranslated matrix state without weakening the translated console path.
+untranslated matrix state without weakening the translated console path. The
+immutable C6 implementation is now explicitly limited to unmodified contacts:
+source review found that global SHIFT/CTRL can end its scan at column zero
+before the ordinary modified key is visited. The corrected `juku-common`
+scanner is ready for a separately named ROM successor; C6 bytes stay frozen.
 
 ## Priority 4: diagnostics and observability
 
@@ -579,7 +583,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 
 | Priority | State | Authoritative evidence |
 | --- | --- | --- |
-| 0. Frozen baseline | **Complete** | C4/C5 are immutable and hash-pinned; C5 booted CS00015 in 6.268 s. The exact C6 pair later passed the CS00015 blind boot, keyboard, sound, disk, diagnostic, write, warm-boot, soak, and reconnect matrix; display/cursor observation remains separate. |
+| 0. Frozen baseline | **Complete** | C4/C5 are immutable and hash-pinned; C5 booted CS00015 in 6.268 s. The exact C6 pair later passed the CS00015 blind boot, translated keyboard/unmodified raw-key, sound, disk, diagnostic, write, warm-boot, soak, and reconnect matrix. Modified raw keys have a documented C6 scan-order limitation already fixed in shared source for a newly named successor; display/cursor observation remains separate. |
 | 1. Distribution | **Complete** | `distribution-check`, deterministic profile reports, provenance checks, native B: conversion, and distribution cosimulation pass. |
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
 | 3. S21/console/locale | **Complete** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, 53x24/64x20 CS00015 evidence, and C6 local/N4 block-output separation. |
@@ -999,7 +1003,12 @@ means the named evidence exists; an attractive prototype alone is not enough.
    resident service only when measurement proves that host, loaded BIOS, or a
    transient cannot supply it safely. Automatic network-first boot, resident
    console/keyboard/sound/diagnostics, and 19,200-baud Fastboot already exist
-   in C6, so they are not reasons by themselves for another EPROM burn.
+   in C6, so they are not reasons by themselves for another EPROM burn. The
+   first accepted C7 correction is already bounded: take the modified-raw-key
+   scan-order fix from `juku-common` master, retain the C6 vector/ABI contract,
+   add Shift-F8 and Ctrl-Up/Home executable cases, and publish new hashes and
+   names. Prefer bundling that burn with another justified ROM improvement
+   unless physical software needs modified raw contacts sooner.
 7. **Keep research separate.** Higher baud rates or intermediate PIT divisors,
    a lower-overhead protocol, predictive host reads, and compression may be
    explored in simulator-first branches with end-to-end timing. RLE or another

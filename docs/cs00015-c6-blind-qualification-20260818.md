@@ -90,6 +90,14 @@ the corresponding codes, printed `DONE`, and returned to `A>`. This is a
 bounded local-input sample rather than another exhaustive contact survey; the
 earlier C5 session already covered the full alphanumeric set.
 
+Later source review narrowed that acceptance statement: translated input and
+unmodified raw contacts remain proven, but the immutable C6 `JCGKEYRAW`
+scanner can stop at column zero on the global SHIFT/CTRL return before reaching
+the modified ordinary key's column. No physical modified-raw-key case was
+claimed by this session. `juku-common` master corrects the scan order; a future
+ROM must carry it under a new candidate name rather than alter the fitted C6
+hashes above.
+
 The normal C6 startup diagnostic phrase was audible, proving the physical
 speaker and D57 channel-1 path. A 136-byte transient then called the public
 low-RAM `JCGSOUND` gate at `D641h` with A=1. The same phrase played, the call
@@ -106,9 +114,10 @@ required.
 ## Result and remaining boundary
 
 The C6 blind physical matrix passes on CS00015, and the exact C6 ROM pair is
-now the fitted firmware. Automatic V16 boot, resident services, sound, local
-keyboard, A:/B:, diagnostics, write safety, warm boot, soak, and host-loss
-recovery agree with the simulator claims.
+now the fitted firmware. Automatic V16 boot, resident services other than the
+bounded modified-raw-key limitation above, sound, translated local keyboard,
+unmodified raw keys, A:/B:, diagnostics, write safety, warm boot, soak, and
+host-loss recovery agree with the simulator claims.
 
 Physical promotion remains deliberately incomplete only for what could not be
 observed without a working display: exact selected geometry, rendered glyphs
