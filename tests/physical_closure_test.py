@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 import sys
+import tempfile
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -107,6 +110,45 @@ def rejected(full: dict[str, object], development: dict[str, object],
     raise AssertionError(f"physical closure accepted {label}")
 
 
+def retained_report_test() -> None:
+    with tempfile.TemporaryDirectory(prefix="physical-closure.") as name:
+        base = Path(name)
+        results = {
+            "full": profile_result("full"),
+            "development": profile_result("development"),
+            "control": performance_result("control"),
+            "optimized": performance_result("optimized"),
+        }
+        directories = {}
+        for role, result in results.items():
+            directory = base / role
+            directory.mkdir()
+            (directory / "result.json").write_text(
+                json.dumps(result, indent=2) + "\n",
+            )
+            directories[role] = directory
+        with patch.object(closure.acceptance, "audit_directory", return_value=[]):
+            report = closure.build_report(directories)
+            if closure.audit_report(report) != report:
+                raise AssertionError("retained closure report changed")
+            broken = copy.deepcopy(report)
+            broken["decision"] = "edited"
+            try:
+                closure.audit_report(broken)
+            except closure.ClosureError:
+                pass
+            else:
+                raise AssertionError("edited closure report was accepted")
+            original = (directories["full"] / "result.json").read_text()
+            (directories["full"] / "result.json").write_text(original + " ")
+            try:
+                closure.audit_report(report)
+            except closure.ClosureError:
+                pass
+            else:
+                raise AssertionError("changed closure input was accepted")
+
+
 def main() -> int:
     full = profile_result("full")
     development = profile_result("development")
@@ -133,6 +175,7 @@ def main() -> int:
     broken = copy.deepcopy(control)
     broken["board"] = "CS00024"
     rejected(full, development, broken, optimized, "mixed board set")
+    retained_report_test()
     print("PHYSICAL-CLOSURE-TEST: PASS (identity, coverage, pair negatives)")
     return 0
 

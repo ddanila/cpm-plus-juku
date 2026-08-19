@@ -75,6 +75,7 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	external-software-audit-check external-software-rebuild-check \
 	dev-utility-rebuild-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check display-acceptance-check \
+	physical-promotion-check \
 	history-check history-cosim-check \
 	panel-check panel-cosim-check \
 	netdisk-performance-check physical-performance-check physical-closure-check \
@@ -128,7 +129,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	distribution-cosim-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check display-acceptance-check history-check \
 	history-cosim-check panel-check panel-cosim-check \
-	netdisk-performance-check physical-closure-check \
+	netdisk-performance-check physical-closure-check physical-promotion-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
@@ -181,6 +182,9 @@ physical-closure-check: physical-performance-check
 
 display-acceptance-check: physical-acceptance-check vidtest-cosim-check
 	$(PYTHON) tests/display_acceptance_test.py
+
+physical-promotion-check: physical-closure-check display-acceptance-check
+	$(PYTHON) tests/physical_promotion_test.py
 
 vidtest-cosim-check: all $(BUILD)/vidtest.cim
 	$(PYTHON) tools/vidtest_oracle.py

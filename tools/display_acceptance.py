@@ -223,14 +223,8 @@ def accept(document: dict[str, Any], results: dict[int, dict[str, Any]],
     }
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("observations", type=Path)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
-    observation_path = args.observations.resolve()
-    document = json.loads(observation_path.read_text())
-    require(isinstance(document, dict), "display observations are not an object")
+def observation_directories(document: dict[str, Any], base: Path) \
+        -> dict[int, Path]:
     observations = document.get("observations")
     require(isinstance(observations, list), "display observations are absent")
     directories: dict[int, Path] = {}
@@ -239,10 +233,18 @@ def main() -> int:
                 and isinstance(record.get("result_directory"), str),
                 "display result-directory record is malformed")
         directories[record["mode"]] = bundled_path(
-            observation_path.parent, record["result_directory"],
+            base, record["result_directory"],
             f"display mode {record['mode']} result directory",
         )
     require(set(directories) == set(MODES), "display result directories differ")
+    return directories
+
+
+def build_report(observation_path: Path) -> dict[str, Any]:
+    observation_path = observation_path.resolve()
+    document = json.loads(observation_path.read_text())
+    require(isinstance(document, dict), "display observations are not an object")
+    directories = observation_directories(document, observation_path.parent)
     for mode, directory in directories.items():
         failures = acceptance.audit_directory(directory)
         require(not failures, f"display mode {mode} audit failed: {failures}")
@@ -269,6 +271,34 @@ def main() -> int:
             for mode, directory in directories.items()
         },
     }
+    return report
+
+
+def audit_report(report: dict[str, Any]) -> dict[str, Any]:
+    require(report.get("schema") == REPORT_SCHEMA and
+            report.get("status") == "pass",
+            "display acceptance report identity differs")
+    inputs = report.get("inputs")
+    require(isinstance(inputs, dict), "display acceptance inputs are absent")
+    observations = inputs.get("observations")
+    require(isinstance(observations, dict) and
+            isinstance(observations.get("path"), str) and
+            isinstance(observations.get("sha256"), str),
+            "display observation input is malformed")
+    path = Path(observations["path"]).resolve()
+    require(sha256(path) == observations["sha256"],
+            "display observation hash differs")
+    expected = build_report(path)
+    require(report == expected, "display acceptance report differs from evidence")
+    return expected
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("observations", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    report = build_report(args.observations)
     temporary = args.output.with_name(args.output.name + ".tmp")
     temporary.write_text(json.dumps(report, indent=2) + "\n")
     temporary.replace(args.output)

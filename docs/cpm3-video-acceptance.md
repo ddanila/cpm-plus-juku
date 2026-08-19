@@ -101,4 +101,7 @@ It accepts a cropped analog edge only with an explicit monitor note; it never
 turns a correct pixel oracle into a claim about the monitor. Only a passing
 four-mode report closes M3. `make display-acceptance-check` exercises this
 contract and its tamper cases without claiming that the physical observations
-already exist.
+already exist. The resulting report is then combined with the independent
+blind closure by `tools/physical_promotion.py`, as documented in
+[`cpm3-physical-acceptance.md`](cpm3-physical-acceptance.md); neither evidence
+class substitutes for the other.

@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +77,39 @@ def rejected(doc: dict[str, object], results: dict[int, dict[str, object]],
     raise AssertionError(f"display acceptance accepted {label}")
 
 
+def retained_report_test(base: Path) -> None:
+    doc = document(base)
+    observation_path = base / "observations.json"
+    observation_path.write_text(json.dumps(doc, indent=2) + "\n")
+    for mode in display.MODES:
+        result, transcript = run(mode)
+        directory = base / f"mode{mode}"
+        directory.mkdir()
+        (directory / "result.json").write_text(
+            json.dumps(result, indent=2) + "\n",
+        )
+        (directory / "console.bin").write_bytes(transcript)
+    with patch.object(display.acceptance, "audit_directory", return_value=[]):
+        report = display.build_report(observation_path)
+        if display.audit_report(report) != report:
+            raise AssertionError("retained display report changed")
+        broken = copy.deepcopy(report)
+        broken["modes"][0]["geometry"] = "edited"
+        try:
+            display.audit_report(broken)
+        except display.DisplayError:
+            pass
+        else:
+            raise AssertionError("edited display report was accepted")
+        observation_path.write_text(observation_path.read_text() + " ")
+        try:
+            display.audit_report(report)
+        except display.DisplayError:
+            pass
+        else:
+            raise AssertionError("changed display observation was accepted")
+
+
 def main() -> int:
     schema = json.loads((
         ROOT / "physical/display-observation.schema.json"
@@ -117,6 +151,8 @@ def main() -> int:
         photo = base / "mode0.jpg"
         photo.write_bytes(b"tampered")
         rejected(doc, results, transcripts, base, "changed photograph")
+    with tempfile.TemporaryDirectory(prefix="display-report.") as name:
+        retained_report_test(Path(name))
     print("DISPLAY-ACCEPTANCE-TEST: PASS (modes, observations, photo negatives)")
     return 0
 

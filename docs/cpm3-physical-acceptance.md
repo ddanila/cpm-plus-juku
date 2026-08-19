@@ -108,6 +108,18 @@ report and display acceptance report are intentionally separate: the first
 proves target behavior visible over N4, while the second proves what the named
 analog monitor actually showed.
 
+Once both reports pass, produce the one final physical-promotion decision:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_promotion.py out/physical-CS00015-closure.json out/physical-CS00015-display-acceptance.json --output out/physical-CS00015-promotion.json
+```
+
+This command does not trust two `status: pass` strings. It follows their exact
+input paths, rehashes and re-audits all eight retained runs plus the observation
+document and photographs, reconstructs both lower-level decisions, and then
+requires one CS00015, C6 ROM, optimized system/Fastboot, and host identity.
+Only that report has an empty `remaining` list.
+
 The control is not a fallback or release image. It is built from the same
 current sources and immutable C6 recovery A: as the optimized run, with only
 `HOT_DIRECTORY` omitted. Its exact system/Fastboot identities are
@@ -176,6 +188,9 @@ incomplete development coverage, mixed hosts, or mixed boards.
 `make display-acceptance-check` proves the four-mode human-observation schema,
 exact transcript/artifact binding, monitor-cropping policy, photograph hashes,
 and representative negative cases.
+`make physical-promotion-check` proves that neither lower-level report can be
+omitted, prematurely closed, or mixed across board, ROM, system, host, or
+display mode.
 The already established exact-C6 full and development cosim suites remain the
 runtime authority until the two corresponding CS00015 result directories have
 also passed this physical audit.

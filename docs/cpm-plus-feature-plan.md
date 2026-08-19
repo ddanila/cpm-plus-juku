@@ -705,6 +705,11 @@ as one result set. It requires the same CS00015, C6 ROM, and host; exact current
 full/development and M4 artifacts; both PIP/CRC `4613` copies; the complete
 development workflow; and the controlled cache decision. The combined report
 cannot close M3 and names the four analog-display observations as remaining.
+When the four structured display observations also exist,
+`tools/physical_promotion.py` re-audits both complete evidence trees and emits
+the only final report whose `remaining` list is empty. This keeps simulator,
+blind N4, and analog-monitor claims distinct while still providing one
+machine-readable promotion decision.
 
 M5 is now complete at the desk: history and the pseudographic panel are both
 admitted. The current bench target is the automated full/development
@@ -854,7 +859,9 @@ Status on 2026-08-19:
   phases. A structured observation schema and independent auditor now bind
   each photograph and human result to its exact C6 run, S21 mode, monitor,
   target transcript, and artifact hashes. Four physical display observations
-  still wait for a working monitor.
+  still wait for a working monitor. The final promotion auditor is also ready:
+  it re-audits the blind and visual evidence trees and closes the plan only
+  when their board, ROM, system/Fastboot, and host identities match.
 - M4 desk implementation and qualification are complete. BIOS-call tracing identified the
   exact repeated records rather than guessing at general protocol overhead.
   The loaded-system cache retains track 2 translated sectors 1--3 only. In the
@@ -1044,7 +1051,7 @@ board cannot block useful desk work:
 | Queue | Goal | Remaining acceptance evidence |
 |---|---|---|
 | Reference hardware | Close the repeatable CS00015 baseline | Retain audited full and development M2 runs, including PIP/CRC `4613`; record one M4 cache timing comparison. These use the fitted C6 ROM and network-loaded media, so no EPROM burn is required. |
-| Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases; retain photographs and pass the structured display auditor. Simulator framebuffer oracles remain authoritative for pixels. |
+| Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases; retain photographs, pass the structured display auditor, then combine it with the blind closure in the final promotion report. Simulator framebuffer oracles remain authoritative for pixels. |
 | Distribution | Make everyday CP/M more pleasant | History and `PANEL.COM` are admitted. Consider further shared status/diagnostic presentation only for a measured workflow; admit only licensed, source-available strict-8080 programs. |
 | Performance | Improve only demonstrated bottlenecks | Physically accept the M4 directory cache, then profile alternating drives and longer sequential reads. Consider request coalescing, predictive reads, a lower-overhead protocol, or compression only from end-to-end measurements. |
 | Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's suspected USART fault and CS00024's RAM/refresh/D57 path on those boards. CS00015 remains the known-good reference configuration. |

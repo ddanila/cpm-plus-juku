@@ -206,3 +206,10 @@ the exact physical runner artifacts and target transcript for every mode and
 rejects mixed hosts, wrong modes, unexplained cropping, stale photographs, or
 an absent cursor phase. This completes the desk plan for display evidence; it
 does not claim the four pending CS00015 observations have been performed.
+
+A final physical-promotion auditor now joins those two evidence classes
+without weakening either one. It re-audits every retained blind and display
+input, then requires the same CS00015, C6 ROM, optimized system/Fastboot, and
+host before emitting the only report with no remaining physical work. Its desk
+regression rejects missing modes, mixed hosts, changed systems or ROMs, and a
+blind report that claims the analog gate was already closed.

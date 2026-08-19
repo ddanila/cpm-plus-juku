@@ -43,7 +43,9 @@ full and one development CS00015 bundle, the controlled M4 physical pair, and
 the four display-mode observations listed in the feature plan. The blind
 four-run closure and the separate four-mode display observation now each have
 fail-closed auditors; neither tool manufactures the still-missing hardware
-evidence.
+evidence. A third, final promotion auditor re-executes both evidence audits and
+requires matching board, ROM, optimized system/Fastboot, and host identities;
+it alone may emit an empty remaining-work list.
 
 ## Network-first execution plan
 
@@ -187,3 +189,9 @@ generated profile reports, `cpm3-utility-catalogue.md`,
 `cpm3-development-tools.md`, `cpm3-runtime-memory.md`, and
 `external-software-audit.md`; `make check` cross-validates them against their
 machine-readable manifests and current-C6 execution evidence.
+
+Physical promotion remains separate from that simulator/package release. Its
+final authority is `physical-CS00015-promotion.json`, produced by
+`tools/physical_promotion.py` only after the blind full/development/M4 closure
+and the four-mode analog display acceptance both independently pass. That
+report does not yet exist and is not inferred from the desk gates above.

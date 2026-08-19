@@ -152,6 +152,52 @@ def load_result(directory: Path) -> dict[str, Any]:
     return result
 
 
+def build_report(directories: dict[str, Path]) -> dict[str, Any]:
+    require(set(directories) == {"full", "development", "control", "optimized"},
+            "physical closure input roles differ")
+    resolved = {role: directory.resolve()
+                for role, directory in directories.items()}
+    for role, directory in resolved.items():
+        failures = acceptance.audit_directory(directory)
+        require(not failures, f"{role} audit failed: {failures}")
+    results = {role: load_result(directory)
+               for role, directory in resolved.items()}
+    report = close(
+        results["full"], results["development"],
+        results["control"], results["optimized"],
+    )
+    report["inputs"] = {
+        role: {
+            "directory": str(directory),
+            "result_sha256": sha256(directory / "result.json"),
+        }
+        for role, directory in resolved.items()
+    }
+    return report
+
+
+def audit_report(report: dict[str, Any]) -> dict[str, Any]:
+    require(report.get("schema") == SCHEMA and report.get("status") == "pass",
+            "physical closure report identity differs")
+    inputs = report.get("inputs")
+    require(isinstance(inputs, dict) and
+            set(inputs) == {"full", "development", "control", "optimized"},
+            "physical closure report inputs differ")
+    directories: dict[str, Path] = {}
+    for role, record in inputs.items():
+        require(isinstance(record, dict) and
+                isinstance(record.get("directory"), str) and
+                isinstance(record.get("result_sha256"), str),
+                f"physical closure {role} input is malformed")
+        directory = Path(record["directory"]).resolve()
+        require(sha256(directory / "result.json") == record["result_sha256"],
+                f"physical closure {role} result hash differs")
+        directories[role] = directory
+    expected = build_report(directories)
+    require(report == expected, "physical closure report differs from evidence")
+    return expected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("full", type=Path)
@@ -166,22 +212,7 @@ def main() -> int:
         "control": args.control.resolve(),
         "optimized": args.optimized.resolve(),
     }
-    for role, directory in directories.items():
-        failures = acceptance.audit_directory(directory)
-        require(not failures, f"{role} audit failed: {failures}")
-    results = {role: load_result(directory)
-               for role, directory in directories.items()}
-    report = close(
-        results["full"], results["development"],
-        results["control"], results["optimized"],
-    )
-    report["inputs"] = {
-        role: {
-            "directory": str(directory),
-            "result_sha256": sha256(directory / "result.json"),
-        }
-        for role, directory in directories.items()
-    }
+    report = build_report(directories)
     temporary = args.output.with_name(args.output.name + ".tmp")
     temporary.write_text(json.dumps(report, indent=2) + "\n")
     temporary.replace(args.output)
