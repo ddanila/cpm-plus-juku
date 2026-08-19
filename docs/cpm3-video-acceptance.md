@@ -79,6 +79,26 @@ that interval observe:
 Use a distinct result directory for every S21 setting. The retained runner
 bundle proves that the exact C6 target produced and exited the corresponding
 page; the human observation or photograph is the separate physical/analog
-evidence. Record the monitor model, raw S21, visible geometry, cursor result,
-cropping, and any photo hash beside each bundle. Only four passing observations
-close M3.
+evidence.
+
+Record all four observations in one JSON document conforming to
+[`physical/display-observation.schema.json`](../physical/display-observation.schema.json).
+Keep the document, photographs, and four result directories below the same
+directory so their relative paths remain a portable evidence bundle. It binds
+each observation to the raw S21 value and geometry, records monitor identity,
+edge visibility or explained monitor cropping, readable glyphs, stable locale,
+both cursor phases, the 80x24 joined CP437 sample, and every photograph hash.
+Then produce the independent decision:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/display_acceptance.py out/physical-CS00015-display-observations.json --output out/physical-CS00015-display-acceptance.json
+```
+
+The auditor rechecks each physical result, reconstructs the exact `VIDTEST`
+reply from `console.bin`, and requires the current system, V16 Fastboot, C6
+ROM, full volume, display workload, and one shared host across all four runs.
+It accepts a cropped analog edge only with an explicit monitor note; it never
+turns a correct pixel oracle into a claim about the monitor. Only a passing
+four-mode report closes M3. `make display-acceptance-check` exercises this
+contract and its tamper cases without claiming that the physical observations
+already exist.

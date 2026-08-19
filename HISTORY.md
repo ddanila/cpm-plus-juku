@@ -197,3 +197,12 @@ current full/development artifacts, both PIP/CRC `4613` copies, the development
 workflow, the controlled M4 decision, and one shared CS00015/C6-ROM/host
 identity. Its report keeps the analog four-mode display gate open rather than
 mistaking remote-console success for a visual observation.
+
+The remaining visual boundary now has an equally explicit but separate
+record. A machine-readable four-mode schema retains monitor identity, raw S21,
+geometry, edge/cropping notes, readable glyphs, locale stability, both cursor
+phases, joined 80x24 CP437 lines, and hashed photographs. Its auditor rechecks
+the exact physical runner artifacts and target transcript for every mode and
+rejects mixed hosts, wrong modes, unexplained cropping, stale photographs, or
+an absent cursor phase. This completes the desk plan for display evidence; it
+does not claim the four pending CS00015 observations have been performed.

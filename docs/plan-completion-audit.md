@@ -40,14 +40,17 @@ resident/bootstrap overruns. Its independently reproduced archive SHA-256 is
 This closes the current desk implementation audit; it does not convert missing
 physical observations into passes. The remaining acceptance evidence is one
 full and one development CS00015 bundle, the controlled M4 physical pair, and
-the four display-mode observations listed in the feature plan.
+the four display-mode observations listed in the feature plan. The blind
+four-run closure and the separate four-mode display observation now each have
+fail-closed auditors; neither tool manufactures the still-missing hardware
+evidence.
 
 ## Network-first execution plan
 
 | step | requirement | authoritative evidence | result |
 | ---: | --- | --- | --- |
 | 1 | Freeze stock/RAM-BIOS reference and reproducible artifacts | `verify-prebuilt`, C4 package checks, C5 pinned ROM/system hashes, `tests/c5_boot_manifest_test.py` | Complete; C6 rebuild proves C5 ROM and system byte identity. |
-| 2 | Native compact console in RAM, exact fonts, cursor, four modes | `creep_console_oracle.py`, `vidtest_oracle.py`, `VIDTEST.COM`, seven live C6 cases and sixteen independent 9,600-byte surface pairs | Complete at desk; four analog display observations remain a separate physical gate. |
+| 2 | Native compact console in RAM, exact fonts, cursor, four modes | `creep_console_oracle.py`, `vidtest_oracle.py`, `VIDTEST.COM`, seven live C6 cases, sixteen independent 9,600-byte surface pairs, and `display_acceptance.py` | Complete at desk; the structured auditor is ready, while four analog display observations remain a separate physical gate. |
 | 3 | 6 KiB/10 KiB inventory and call/size budget | `tools/rom_budget.py --check`, generated ROM metadata | Complete; both windows and copied-helper/gate sizes fail closed. |
 | 4 | Fixed versioned ABI and safe call gate | `juku-common/platform/ROM-ABI.md`, `sync/network_first_rom_abi_check.sh`, `tests/network_first_rom_{abi,locale,extended}_test.py` | Complete through ABI 1.2; full fixed vector map, register/stack/DI/PIC/memory-mode/overlay checks pass. |
 | 5 | Automatic 19,200-baud keyless boot, quick POST, identity-free host | `tests/network_first_rom_boot_test.py`, real C6 CP/M cosimulation, generated stage dictionary | Complete; valid host reaches `A>` and missed/absent/corrupt host paths retry without a required reset. |

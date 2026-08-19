@@ -101,6 +101,13 @@ CS00015, C6 ROM, and host-server identities across all four retained bundles.
 It deliberately reports the four-mode analog display observation as remaining;
 blind N4 evidence cannot close that separate visual gate.
 
+After all four display runs and photographs exist, record their human
+observations with the schema and run the independent display auditor described
+in [`cpm3-video-acceptance.md`](cpm3-video-acceptance.md). The blind closure
+report and display acceptance report are intentionally separate: the first
+proves target behavior visible over N4, while the second proves what the named
+analog monitor actually showed.
+
 The control is not a fallback or release image. It is built from the same
 current sources and immutable C6 recovery A: as the optimized run, with only
 `HOT_DIRECTORY` omitted. Its exact system/Fastboot identities are
@@ -166,6 +173,9 @@ manifest.
 `make physical-closure-check` additionally proves the exact four-bundle
 identity/coverage contract and rejects wrong systems, missing CRC evidence,
 incomplete development coverage, mixed hosts, or mixed boards.
+`make display-acceptance-check` proves the four-mode human-observation schema,
+exact transcript/artifact binding, monitor-cropping policy, photograph hashes,
+and representative negative cases.
 The already established exact-C6 full and development cosim suites remain the
 runtime authority until the two corresponding CS00015 result directories have
 also passed this physical audit.

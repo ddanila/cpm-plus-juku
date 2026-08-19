@@ -133,6 +133,7 @@ make physical-acceptance-check
 make physical-performance-check
 make physical-closure-check
 make vidtest-cosim-check
+make display-acceptance-check
 make history-cosim-check panel-cosim-check
 ```
 

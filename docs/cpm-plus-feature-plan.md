@@ -689,7 +689,7 @@ contracts and evidence below remain authoritative.
 | 2 | Finish the repeatable CS00015 baseline | Run the manifest-bound full and development M2 workloads. The full workload includes the corrected multi-record PIP copy and CRC `4613`, closing M1 at the same time. | Two independently audited physical result bundles; no inference from disk traffic and no new EPROM. |
 | 3 | Physically accept the M4 cache | Run the manifest-bound cache-off and cache-on `performance` workloads on CS00015, then apply the independent pair auditor. | One retained comparison proving 10/0/1 plus B: 4/1 becomes 8/0/1 plus B: 4/0, with zero retries, final clean D11 status, and synchronous erase writes in both runs. |
 | 4 | M5 text-interface tool — desk complete | Keep `PANEL.COM` behind its shared-JNS1, strict-8080, local/N4, locale-aware framebuffer, memory, and recovery-integrity gates. | Reproducible source/license/hash, exact-C6 execution, English connected-CP437 and Estonian ASCII-fallback cursor frames, disk/TPA/stack accounting, warm boot/reconnect, and unchanged recovery images pass; one optional hardware smoke remains. |
-| 5 | Close visual promotion | Run `VIDTEST.COM` in all four S21 modes when a working display is available. | Geometry, joined pseudographics, glyph spacing, cropping, and both cursor phases recorded with monitor identity and photographs. |
+| 5 | Close visual promotion | Run `VIDTEST.COM` in all four S21 modes when a working display is available, then apply the structured display auditor. | One portable four-mode report binds geometry, joined pseudographics, glyph spacing, cropping, both cursor phases, monitor identity, photographs, and exact run hashes. |
 | 6 | Maintain the physical fleet | Investigate CS00000's suspected USART path and CS00024's RAM/refresh/D57 path only when the corresponding board is available. | Machine-specific captures and diagnoses; CS00015 remains the unmodified known-good reference. |
 | 7 | Profile later performance ideas | After M4 physical acceptance, measure alternating-drive and long sequential workloads before trying request coalescing, prediction, a lower-overhead protocol, compression, or experimental baud rates. | End-to-end wire, target, console, and host timings demonstrate a benefit without weakening recovery or data integrity. |
 
@@ -851,7 +851,10 @@ Status on 2026-08-19:
 - M3's desk implementation is complete. `VIDTEST.COM` is admitted to the
   full/dev/demo media, all sixteen oracle surfaces are deterministic, and the
   exact C6 executable passes seven live geometry/locale cases with both cursor
-  phases. Four physical display observations still wait for a working monitor.
+  phases. A structured observation schema and independent auditor now bind
+  each photograph and human result to its exact C6 run, S21 mode, monitor,
+  target transcript, and artifact hashes. Four physical display observations
+  still wait for a working monitor.
 - M4 desk implementation and qualification are complete. BIOS-call tracing identified the
   exact repeated records rather than guessing at general protocol overhead.
   The loaded-system cache retains track 2 translated sectors 1--3 only. In the
@@ -912,7 +915,10 @@ repeating the old failing image would add no evidence.
    C6 ROM, inspect raw S21 `01h`, `03h`, `05h`, and `07h` for 40x24, 53x24,
    64x20, and 80x24 respectively. This is the only outstanding C6 physical
    promotion boundary; framebuffer oracles remain the software authority and
-   monitor cropping must be recorded separately.
+   monitor cropping must be recorded separately. Store the four observations
+   in `physical/display-observation.schema.json` form and require a passing
+   `tools/display_acceptance.py` report; this prevents photographs, monitor
+   notes, or transcripts from being mixed between runs.
 3. **Measured NetDisk performance.** Finish qualifying the three-record
    loaded-system hot-directory cache. Preserve separate wire, target, console,
    and host timings, independent eight-record resident A:/B: read-ahead, and
@@ -1038,7 +1044,7 @@ board cannot block useful desk work:
 | Queue | Goal | Remaining acceptance evidence |
 |---|---|---|
 | Reference hardware | Close the repeatable CS00015 baseline | Retain audited full and development M2 runs, including PIP/CRC `4613`; record one M4 cache timing comparison. These use the fitted C6 ROM and network-loaded media, so no EPROM burn is required. |
-| Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases. Simulator framebuffer oracles remain authoritative for pixels. |
+| Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases; retain photographs and pass the structured display auditor. Simulator framebuffer oracles remain authoritative for pixels. |
 | Distribution | Make everyday CP/M more pleasant | History and `PANEL.COM` are admitted. Consider further shared status/diagnostic presentation only for a measured workflow; admit only licensed, source-available strict-8080 programs. |
 | Performance | Improve only demonstrated bottlenecks | Physically accept the M4 directory cache, then profile alternating drives and longer sequential reads. Consider request coalescing, predictive reads, a lower-overhead protocol, or compression only from end-to-end measurements. |
 | Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's suspected USART fault and CS00024's RAM/refresh/D57 path on those boards. CS00015 remains the known-good reference configuration. |
