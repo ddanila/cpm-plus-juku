@@ -1,0 +1,122 @@
+--- ccp3.asm
++++ ccp3.asm
+@@ -139,0 +140,9 @@
++
++; Juku one-entry command history. The network-loaded system image clears this
++; otherwise unused high-RAM range on cold boot; transient programs and CCP
++; reloads do not touch it. D5C0h starts the ROM resident self-test guard.
++histmagic0	equ	0d571h
++histmagic1	equ	0d572h
++histlen		equ	0d573h
++histdata	equ	0d574h
++histmax		equ	76
+@@ -1439,0 +1449 @@
++	call	history		;expand repeat token or save command
+@@ -1445,0 +1456,107 @@
++
++; Preserve one command across ordinary CCP reloads. The repeat token expands to
++; the retained line. Blank and overlong lines do not replace useful history.
++; HIST commands are not saved, allowing the companion utility to inspect and
++; clear the preceding command.
++history:
++	lda	cbufl
++	cpi	2
++	jnz	histnotrepeat
++	lxi	h,cbuf
++	mov	a,m
++	cpi	'!'
++	jnz	histnotrepeat
++	inx	h
++	mov	a,m
++	cpi	'!'
++	jnz	histnotrepeat
++	lda	histmagic0
++	cpi	'J'
++	rnz
++	lda	histmagic1
++	cpi	'H'
++	rnz
++	lda	histlen
++	ora	a
++	rz
++	cpi	histmax+1
++	rnc
++	sta	cbufl
++	mov	b,a
++	lxi	h,histdata
++	lxi	d,cbuf
++histload:
++	mov	a,m
++	stax	d
++	inx	h
++	inx	d
++	dcr	b
++	jnz	histload
++	ret
++
++histnotrepeat:
++	lda	cbufl
++	cpi	4
++	jc	histsave
++	lxi	h,cbuf
++	mov	a,m
++	ani	5fh
++	cpi	'H'
++	jnz	histsave
++	inx	h
++	mov	a,m
++	ani	5fh
++	cpi	'I'
++	jnz	histsave
++	inx	h
++	mov	a,m
++	ani	5fh
++	cpi	'S'
++	jnz	histsave
++	inx	h
++	mov	a,m
++	ani	5fh
++	cpi	'T'
++	jnz	histsave
++	inx	h
++	lda	cbufl
++	cpi	4
++	rz
++	mov	a,m
++	cpi	' '
++	rz
++
++histsave:
++	lda	cbufl
++	ora	a
++	rz
++	cpi	histmax+1
++	rnc
++	mov	b,a
++	lxi	h,cbuf
++histblank:
++	mov	a,m
++	cpi	' '
++	jnz	histnonblank
++	inx	h
++	dcr	b
++	jnz	histblank
++	ret
++histnonblank:
++	lda	cbufl
++	mov	b,a
++	sta	histlen
++	lxi	h,cbuf
++	lxi	d,histdata
++histstore:
++	mov	a,m
++	stax	d
++	inx	h
++	inx	d
++	dcr	b
++	jnz	histstore
++	mvi	a,'J'
++	sta	histmagic0
++	mvi	a,'H'
++	sta	histmagic1
++	ret

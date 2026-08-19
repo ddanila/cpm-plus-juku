@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import tarfile
@@ -260,7 +261,10 @@ def main() -> int:
         "--output", type=Path,
     )
     parser.add_argument(
-        "--cosim", type=Path, default=ROOT.parent / "8080-cosim",
+        "--cosim", type=Path,
+        default=Path(os.environ.get(
+            "JUKU_COSIM_ROOT", ROOT.parent / "8080-cosim",
+        )),
     )
     args = parser.parse_args()
     config = VARIANTS[args.variant]

@@ -401,6 +401,8 @@ the representative full disk versus three reads and 6.222 seconds for `DIR`;
 `LS -L` takes 188 reads and 69.955 seconds, while the ported executable itself
 uses 14,913 bytes. The z80pack `HIST` behavior-reference binaries are rejected
 because matching source, license, CPU contract, and build recipe are absent.
+This does not preclude the separately sourced project-owned CCP/history
+implementation described in the post-C6 M5 roadmap.
 The FIG-Forth core listing builds, starts, accepts `BYE`, and returns to CCP
 under strict simulation, but its optional package remains deferred because the
 editor, assembler, documentation, and a clear complete-package notice are
@@ -677,6 +679,31 @@ or ABI and cannot be implemented safely by the host, BIOS, or transient
 program. Do not spend physical runs on catalogue exploration or changes that
 have not already passed the simulator and fault-injection gates.
 
+### Current working plan at a glance
+
+This is the short operational view of the remaining work. The detailed M1--M6
+contracts and evidence below remain authoritative.
+
+| Order | Goal | Next action | Completion evidence |
+|---:|---|---|---|
+| 1 | M5 history checkpoint — complete | Keep the licensed CCP derivative, `!!`, and `HIST.COM` behind their full/development exact-C6 and recovery-integrity regressions. | Deterministic rebuild, strict-8080 audit, exact-C6 reload/repeat/clear test, memory/stack accounting, unchanged recovery CCP, and reproducible package all pass. |
+| 2 | Finish the repeatable CS00015 baseline | Run the manifest-bound full and development M2 workloads. The full workload includes the corrected multi-record PIP copy and CRC `4613`, closing M1 at the same time. | Two independently audited physical result bundles; no inference from disk traffic and no new EPROM. |
+| 3 | Physically accept the M4 cache | Measure the current 8/0/1 A: and 4/0 B: behavior once on CS00015 against the pinned C6 baseline. | One retained before/after timing bundle with zero retries/overruns and unchanged synchronous-write behavior. |
+| 4 | Finish M5 distribution usability | Build one useful project-owned pseudographic text-interface tool, sharing status/diagnostic presentation where practical instead of copying hardware logic. | Reproducible source/license/hash, strict-8080 and exact-C6 execution, framebuffer oracle, disk/TPA/stack accounting, warm boot/reconnect, and a short hardware smoke. |
+| 5 | Close visual promotion | Run `VIDTEST.COM` in all four S21 modes when a working display is available. | Geometry, joined pseudographics, glyph spacing, cropping, and both cursor phases recorded with monitor identity and photographs. |
+| 6 | Maintain the physical fleet | Investigate CS00000's suspected USART path and CS00024's RAM/refresh/D57 path only when the corresponding board is available. | Machine-specific captures and diagnoses; CS00015 remains the unmodified known-good reference. |
+| 7 | Profile later performance ideas | After M4 physical acceptance, measure alternating-drive and long sequential workloads before trying request coalescing, prediction, a lower-overhead protocol, compression, or experimental baud rates. | End-to-end wire, target, console, and host timings demonstrate a benefit without weakening recovery or data integrity. |
+
+The current software target is therefore the pseudographic M5 tool after the
+history checkpoint is published. The current bench target is the automated
+full/development acceptance pair, followed by one M4 timing comparison. The
+display queue is independent and waits only for usable display hardware.
+
+No current item requires a new ROM. A future C7 is opened only for a measured
+resident service or ABI need that cannot safely be implemented in the loaded
+BIOS, a transient, or the host. Higher baud rates, write-back caching,
+authenticated boot, and banked CP/M Plus remain separate research projects.
+
 The repository-wide M1 regression also made the C4 build boundary explicit:
 the stock-ROM/RAM-BIOS and network-ROM C4 system/V15 pairs are consumed from
 their hash-checked prebuilt files, whose source boundary is cpm-plus-juku
@@ -770,7 +797,7 @@ before its own evidence exists.
 | M2 | Automate physical acceptance | A paging-aware runner records commands, target replies, timeouts, volume mutations, host lifecycle, and artifact hashes without optimistic inference from disk traffic. | One full and one development-profile run; the operator supplies only power/reset and requested keys. |
 | M3 | Close display acceptance | `VIDTEST.COM` and exact framebuffer oracles cover boundaries, glyph banks, joined box drawing, and both cursor phases in all four S21 modes. | Observe 40x24, 53x24, 64x20, and 80x24 on a working display; record any monitor-specific cropping separately. |
 | M4 | Improve NetDisk responsiveness | The measured three-record hot-directory cache reduces exact-C6 cold boot from 10 to 8 wire requests and first B: `DIR` from 1 to 0, while retaining synchronous invalidating writes. Complete the recovery, replay, package, and long-soak gates. | One short CS00015 before/after timing comparison; the change is network-loaded and requires no EPROM burn. |
-| M5 | Improve the distribution | Prototype strict-8080 history and text-interface tools, retain reproducible source/license/size/runtime admission, and keep the recovery profile small. | Hardware smoke only for programs admitted by the exact-C6 simulator; no manual catalogue trawl on the bench. |
+| M5 | Improve the distribution | The strict-8080 history slice is implemented and exact-C6 qualified; implement one concrete pseudographic text-interface tool next. Retain reproducible source/license/size/runtime admission and keep the recovery profile small. | Optional short history smoke, then hardware smoke only for the text tool after exact-C6 admission; no manual catalogue trawl on the bench. |
 | M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 USART and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
 
 Status on 2026-08-19:
@@ -800,12 +827,12 @@ Status on 2026-08-19:
   admission, and the 64-cycle read/write/server-replacement soak pass with
   992 reads, 257 writes, zero retries, and zero overruns. One CS00015 timing
   comparison remains before M4 is physically accepted.
-- M5 is a measured improvement, not correctness work. Its first desk prototype
-  is in progress: rebuild the licensed DRI CCP reproducibly, add a small
-  project-owned strict-8080 history extension, and keep the recovery CCP
-  untouched. No M5 program is admitted until exact-C6 execution, memory, size,
-  provenance, and deterministic-build gates pass; M2 then makes any physical
-  smoke test cheap to qualify.
+- M5 is a measured improvement, not correctness work. Its history slice is
+  complete at the desk: the build reproduces the licensed DRI CCP exactly
+  before applying the Juku patch, `!!` plus `HIST.COM` pass exact-C6 reload,
+  blank/overlong retention, clear, stack, and strict-8080 gates, and every
+  recovery profile retains the original CCP. The pseudographic text-interface
+  example remains the next M5 deliverable.
 - M6 is an evidence ledger rather than a shared-machine workaround: CS00015
   remains the reference while CS00000 and CS00024 keep independent diagnoses.
 
@@ -942,9 +969,12 @@ The command-history implementation should use the DRI source grant already
 recorded under `third_party/cpm3`, not the previously investigated `HIST` RSX
 binary whose source and distribution terms could not be established. A clean
 unmodified rebuild matching the pinned 3,200-byte `CCP.COM` is a prerequisite,
-not merely a helpful comparison. The current prototype indicates that a
-one-entry `!!` facility fits below `1000h`; those measurements remain
-provisional until reproduced by a checked-in build tool and regression.
+not merely a helpful comparison. The admitted derivative is 3,379 bytes and
+ends at `0E33h`; the checked-in builder first reproduces the 3,200-byte
+upstream CCP exactly. `HIST.COM` is 286 bytes, uses 2--6 measured stack bytes,
+and the exact-C6 regression covers CCP reload, repeat, blank/overlong
+retention, inspect, and clear. See
+[`cpm3-command-history.md`](cpm3-command-history.md).
 
 ### Remaining physical and desk queues
 
@@ -955,7 +985,7 @@ board cannot block useful desk work:
 |---|---|---|
 | Reference hardware | Close the repeatable CS00015 baseline | Retain audited full and development M2 runs, including PIP/CRC `4613`; record one M4 cache timing comparison. These use the fitted C6 ROM and network-loaded media, so no EPROM burn is required. |
 | Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases. Simulator framebuffer oracles remain authoritative for pixels. |
-| Distribution | Make everyday CP/M more pleasant | Finish M5 history and the text-interface example, then consider shared `SYSINFO`/diagnostic presentation. Admit only measured, licensed, source-available strict-8080 programs. |
+| Distribution | Make everyday CP/M more pleasant | History is admitted; finish the M5 text-interface example, then consider shared `SYSINFO`/diagnostic presentation. Admit only measured, licensed, source-available strict-8080 programs. |
 | Performance | Improve only demonstrated bottlenecks | Physically accept the M4 directory cache, then profile alternating drives and longer sequential reads. Consider request coalescing, predictive reads, a lower-overhead protocol, or compression only from end-to-end measurements. |
 | Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's suspected USART fault and CS00024's RAM/refresh/D57 path on those boards. CS00015 remains the known-good reference configuration. |
 | Future ROM | Add resident code only when it unlocks a measured need | C7 requires a service or ABI change that cannot safely live in the host, loaded BIOS, or a transient. Ordinary M4/M5 work does not justify another burn. |

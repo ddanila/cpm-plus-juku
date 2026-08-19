@@ -12,6 +12,7 @@ CP/M Plus commands. Recovery profiles remain unchanged.
 | `WC textfile` | line, word, and byte counts | stops at CP/M text EOF 1Ah; six-digit hexadecimal counts |
 | `FIND textfile token` | case-insensitive matching lines | one token up to 31 characters; displayed lines are capped at 120 characters |
 | `STRINGS file` | printable ASCII runs | minimum length four; scans physical records and treats 1Ah as binary data |
+| `HIST [CLEAR]` | inspect or clear one persistent CCP command | validates bounded state; two exclamation marks at the CCP repeat the entry |
 | `VIDTEST` | geometry/font/cursor acceptance page | read-only; derives S21 through CP/M 3, waits for one key, and never writes framebuffer memory directly |
 
 The volume includes `TOOLS.TXT` with the target-side synopsis. `TYPE`, `PIP`,
@@ -32,12 +33,17 @@ The regression pins these independent results:
 - `WC README.TXT` reports 14h lines, 3Bh words, and 1FAh bytes;
 - `FIND README.TXT Juku` returns four known matching lines;
 - `STRINGS README.TXT` returns the known NetDisk description.
+- a large `SHOW` command survives CCP reload, repeats through `!!`, remains
+  retained across blank/overlong input, and is then displayed and cleared by
+  `HIST`.
 
 `make vidtest-cosim-check` separately validates `VIDTEST` because its useful
 result is a live framebuffer rather than a text reply. Seven exact-C6 runs
 cover every geometry and locale bank and capture both cursor phases; the
 independent oracle covers all sixteen video/locale combinations. See
 [`cpm3-video-acceptance.md`](cpm3-video-acceptance.md).
+The separately licensed CCP derivative and exact-C6 history admission are in
+[`cpm3-command-history.md`](cpm3-command-history.md).
 
 `STATUS`, `DATE`, `DIAG PIT`, and the native-service test already cover the
 safe clock/timing requirement. No unrestricted `PORT` command is shipped:

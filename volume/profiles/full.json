@@ -6,7 +6,8 @@
   "image_bytes": 409600,
   "allocation_block_bytes": 2048,
   "files": [
-    { "source": "third_party/cpm3/ccp.com", "destination": "0:CCP.COM", "sha256": "f1837073d217075223d17dd81d068481819665273b59fbb3502c2f9068e8a671", "attributes": "rs", "provenance": { "source": "Digital Research CP/M 3.1 release", "version": "CP/M 3 CCP", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/cpm3-history/CCP.COM", "destination": "0:CCP.COM", "sha256": "e27c1fcc2b185eaac395069b0e77575a026cff9d87130cd9bd117711746eedb7", "attributes": "rs", "provenance": { "source": "pinned Digital Research CP/M 3.1 CCP plus patches/ccp3-history.patch", "version": "Juku CP/M 3 CCP History 1.0", "license": "third_party/cpm3/LICENSE.md" } },
+    { "source": "build/history.cim", "destination": "0:HIST.COM", "sha256": "3f3754e41bb7a501fdb6a8951a108287409a8efb6b03360de1ba0bf6d960faf2", "provenance": { "source": "src/history.asm", "version": "Juku History 1.0", "license": "LICENSE" } },
     { "source": "build/diag.cim", "destination": "0:DIAG.COM", "provenance": { "source": "src/diag.asm and pinned juku-common diagnostics", "version": "cpm-plus-juku build", "license": "LICENSE and third_party/juku-common notices" } },
     { "source": "build/wboot-user.cim", "destination": "0:WBOOT.COM", "provenance": { "source": "src/wboot-user.asm", "version": "cpm-plus-juku nonzero-user warm-boot test", "license": "LICENSE" } },
     { "source": "build/status.cim", "destination": "0:STATUS.COM", "provenance": { "source": "src/status.asm", "version": "Juku Status 1.3", "license": "LICENSE" } },

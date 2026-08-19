@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-COSIM = ROOT.parent / "8080-cosim"
+COSIM = Path(os.environ.get("JUKU_COSIM_ROOT", ROOT.parent / "8080-cosim"))
 MANIFEST = ROOT / "out/cpm-plus-juku-c5-manifest.json"
 
 

@@ -629,10 +629,27 @@ def run(trace: Path, work: Path, *, direct_core: bool,
 
                 def capture_transient_stack() -> dict[str, int]:
                     nonlocal last_captured_program_start
-                    checkpoint_state, _ram = request_checkpoint()
-                    program_start = int(checkpoint_state.get(
-                        "tpa_program_starts", "0",
-                    ))
+                    # The console hook exposes a byte when the target enters
+                    # CONOUT, so an accelerated run can observe the final A>
+                    # before that BDOS call returns and freezes the transient
+                    # measurement. Poll the authoritative CPU state instead
+                    # of treating a host-visible prompt byte as completion.
+                    deadline = time.monotonic() + 5
+                    checkpoint_state: dict[str, str] = {}
+                    program_start = 0
+                    while time.monotonic() < deadline:
+                        checkpoint_state, _ram = request_checkpoint()
+                        program_start = int(checkpoint_state.get(
+                            "tpa_program_starts", "0",
+                        ))
+                        if program_start > last_captured_program_start and \
+                                checkpoint_state.get(
+                                    "tpa_measurement_frozen",
+                                ) == "1" and checkpoint_state.get(
+                                    "tpa_measurement_armed",
+                                ) == "0":
+                            break
+                        time.sleep(0.01)
                     require(
                         program_start > last_captured_program_start,
                         "checkpoint did not observe a new CP/M transient: "

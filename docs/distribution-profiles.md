@@ -9,9 +9,9 @@ beside each one:
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
 | `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.5 | 372 KiB | `899fface833e53d06634bb7d2291d7e675d43a101911fbc225fc0ccd2831570a` |
 | `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 366 KiB | `67d0a99b2979642d6f7d5d9c20ef705be685c99f1ab7846b8cf4f3ea383a54b0` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | native recovery and DRI files plus CRC, CMP, MEM, WC, FIND, STRINGS, VIDTEST, and `TOOLS.TXT` | 226 KiB | `a6d7724fbc3358c33a3b2375e0c32035d42c27752b24368f9e0d13da30b5a03d` |
-| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus ED, HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 198 KiB | `ebb0550e7ed72adccb7affef60cca8439144fb88d745600294039cb35d75a433` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 224 KiB | `1f6a354b4534642e58d7300e66b5b89b8afdfe312ba0d14f157a9045cca778b3` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | licensed history CCP, HIST, DRI files, gap tools, VIDTEST, and `TOOLS.TXT` | 224 KiB | `767288b55e9688017399a007c3c4ee8c59f07a12db04172538e2a7ad239ed87b` |
+| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus ED, HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 196 KiB | `d82327cf2b9081eb2defa5d50b6dcb49c1b89351ff21a8d6fe4d420b7e02f5e2` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 222 KiB | `a1d0c5981ac22007ef4aaa12e349638d399cdee04fe00989c2593ed082808743` |
 | `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
@@ -25,6 +25,12 @@ The C6 recovery profile is separately named because `KEYRAW.COM` and
 `N4BULK.COM` require ABI 1.2. `SOAK.COM` provides one deterministic
 read/diagnostic/write cycle for the long reconnect harness. None of these
 files is inserted into the immutable C4 or physically established C5 images.
+
+Full, development, and demo replace only their user-facing CCP with the
+reproducible Juku history derivative and add `HIST.COM`. The build first proves
+the unmodified DRI CCP byte-for-byte; all recovery profiles continue to carry
+that exact original. See
+[`cpm3-command-history.md`](cpm3-command-history.md).
 
 The development profile is deliberately separate from the ordinary full
 profile. `HEXCOM.COM`, `PATCH.COM`, and `SID.COM` are rebuilt byte-for-byte
@@ -89,6 +95,7 @@ make distribution-check
 make distribution-cosim-check
 make development-cosim-check
 make vidtest-cosim-check
+make history-cosim-check
 ```
 
 ## Initial command policy

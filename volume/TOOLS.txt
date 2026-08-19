@@ -25,6 +25,11 @@ STRINGS filename
   Print ASCII runs of at least four characters from all physical file
   records. Unlike text tools, 1Ah is treated as an ordinary binary byte.
 
+HIST [CLEAR]
+  Show or clear the last CCP command. Enter two exclamation marks at A> to
+  repeat the retained command. Blank, overlong, and HIST commands do not
+  replace it.
+
 VIDTEST
   Draw the S21-selected screen boundary, ASCII, active locale, and CP437 UI
   samples. The real underline cursor keeps blinking; press any key to exit.

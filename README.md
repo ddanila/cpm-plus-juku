@@ -165,8 +165,11 @@ must be byte-identical.
   synchronous write-through and invalidate cache before their first attempt.
 - A: defaults read-only with explicit copy/snapshot/write-through modes; B:
   remains read-only and uses native Juku cylinder/head geometry.
-- `STATUS`, `DIAG`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`, and `N4BULK` provide bounded
+- `STATUS`, `DIAG`, `HIST`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`, and `N4BULK` provide bounded
   target and machine-readable observability.
+- Full, development, and demo media retain one command across CCP reloads;
+  `!!` repeats it and `HIST [CLEAR]` inspects or clears it. Recovery media keep
+  the exact unmodified DRI CCP.
 
 The immutable C5/C6 loaded-system baseline measures 10/0/1 requests for
 boot/first `DIR`/`TYPE`. The current post-C6 system retains three measured hot

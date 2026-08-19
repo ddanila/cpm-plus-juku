@@ -15,6 +15,7 @@ ZXCC_SOURCE := $(BUILD)/zxcc-0.5.7
 ZXCC_PREFIX := $(BUILD)/zxcc-install
 COMMON := third_party/juku-common
 export JUKU_COMMON_ROOT := $(abspath $(COMMON))
+JUKU_COSIM_ROOT ?= ../8080-cosim
 
 SYSTEM := $(OUT)/cpm-plus-juku-system.bin
 FASTBOOT := $(OUT)/cpm-plus-juku-fastboot-v15.bin
@@ -46,7 +47,7 @@ DRI_FULL_RUNTIME_METRICS := $(BUILD)/cpm3-dri-full-runtime.json
 DRI_DEV_RUNTIME_METRICS := $(BUILD)/cpm3-dri-dev-runtime.json
 BOOT_MANIFEST := $(OUT)/cpm-plus-juku-native-manifest.json
 C5_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c5-manifest.json
-C5_ROM_DIR := ../8080-cosim/spinoffs/jukuravi/network-rom
+C5_ROM_DIR := $(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom
 C5_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.1-c5.bin
 C5_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.1-c5.json
 C5_RELEASE := $(OUT)/cpm-plus-3.1-juku-c5-desk
@@ -56,6 +57,9 @@ C6_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c6.bin
 C6_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c6.json
 C6_RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-c6-recovery.img
 C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
+HISTORY_CCP := $(BUILD)/cpm3-history/CCP.COM
+HISTORY_CCP_MANIFEST := $(BUILD)/cpm3-history/manifest.json
+HISTORY_RUNTIME_METRICS := $(BUILD)/cpm3-history-runtime.json
 
 .PHONY: all check clean tools verify-prebuilt rom-budget-check \
 	network-rom-cosim-check network-rom-soak-check \
@@ -67,6 +71,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 	external-software-audit-check external-software-rebuild-check \
 	dev-utility-rebuild-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check \
+	history-check history-cosim-check \
 	netdisk-performance-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check release-candidate \
@@ -116,7 +121,8 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	c6-manifest-check c6-release-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
 	distribution-cosim-check development-cosim-check \
-	physical-acceptance-check vidtest-cosim-check \
+	physical-acceptance-check vidtest-cosim-check history-check \
+	history-cosim-check \
 	netdisk-performance-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
@@ -160,6 +166,49 @@ vidtest-cosim-check: all $(BUILD)/vidtest.cim
 	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
 	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=vidtest $(PYTHON) tests/cosim_check.py
+
+history-check: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
+		$(BUILD)/history.cim distribution
+	$(PYTHON) tools/audit_8080_com.py $(BUILD)/history.cim >/dev/null
+	$(PYTHON) tests/cpm3_history_test.py
+
+history-cosim-check: all
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C6_ROM) \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(EXTENDED_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(EXTENDED_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x01 \
+	CPM_PLUS_JUKU_EXTRA_COMMAND='SHOW A:[SPACE]' \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Space:' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND2=HIST \
+	CPM_PLUS_JUKU_EXTRA_MARKERS2='Juku History 1.0|Last: SHOW A:[SPACE]|Repeat with !!' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND3='!!' \
+	CPM_PLUS_JUKU_EXTRA_MARKER3='Space:' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND4=' ' \
+	CPM_PLUS_JUKU_EXTRA_MARKER4='A>' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND5=HIST \
+	CPM_PLUS_JUKU_EXTRA_MARKER5='Last: SHOW A:[SPACE]' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND6='XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' \
+	CPM_PLUS_JUKU_EXTRA_MARKER6='A>' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND7=HIST \
+	CPM_PLUS_JUKU_EXTRA_MARKER7='Last: SHOW A:[SPACE]' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND8='HIST CLEAR' \
+	CPM_PLUS_JUKU_EXTRA_MARKER8='History cleared' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND9=HIST \
+	CPM_PLUS_JUKU_EXTRA_MARKER9='History is empty' \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK=1 \
+	CPM_PLUS_JUKU_CAPTURE_EXTRA_STACK_METRICS='extra2,extra5,extra7,extra8,extra9' \
+	CPM_PLUS_JUKU_METRICS_OUTPUT=$(HISTORY_RUNTIME_METRICS) \
+	CPM_PLUS_JUKU_EXPECT_STRICT_TPA_OPCODES=1 \
+	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_STAGE=0x50 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_PROTOCOL=16 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=2 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=1 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
+	$(PYTHON) tests/cpm3_history_runtime_test.py
 
 compiler-comparison-check:
 	$(PYTHON) tests/audit_8080_com_test.py
@@ -307,9 +356,9 @@ release-candidate-check: $(C5_BOOT_MANIFEST)
 	$(PYTHON) tests/release_candidate_test.py
 
 c6-release-candidate:
-	$(PYTHON) ../8080-cosim/spinoffs/jukuravi/network-rom/build_network_rom.py
-	../8080-cosim/sync/network_first_rom_abi_check.sh
-	../8080-cosim/sync/network_first_rom_hdl_check.sh
+	$(PYTHON) $(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/build_network_rom.py
+	$(JUKU_COSIM_ROOT)/sync/network_first_rom_abi_check.sh
+	$(JUKU_COSIM_ROOT)/sync/network_first_rom_hdl_check.sh
 	$(MAKE) c6-manifest-check
 	$(MAKE) network-rom-extended-cosim-check
 	$(MAKE) network-rom-long-soak-check
@@ -324,7 +373,7 @@ network-rom-cosim-check: all
 
 network-rom-locale-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke CPM_PLUS_JUKU_NETWORK_ROM=\
-	../8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.1-c5.bin \
+	$(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.1-c5.bin \
 	CPM_PLUS_JUKU_ROM_SYSTEM=$(LOCALE_NATIVE_ROM_SYSTEM) \
 	CPM_PLUS_JUKU_ROM_FASTBOOT=$(LOCALE_NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_RECOVERY_VOLUME) \
@@ -349,7 +398,7 @@ netdisk-performance-check: network-rom-extended-local-cosim-check
 
 network-rom-extended-local-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke CPM_PLUS_JUKU_NETWORK_ROM=\
-	../8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.2-c6.bin \
+	$(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.2-c6.bin \
 	CPM_PLUS_JUKU_BOOT_HOST_DELAY=2 \
 	CPM_PLUS_JUKU_DISCARD_BOOT_READY=1 \
 	CPM_PLUS_JUKU_EXPECT_AUTO_READY_SEEN=0 \
@@ -379,7 +428,7 @@ network-rom-extended-local-cosim-check: all
 
 network-rom-extended-cosim-check: network-rom-extended-local-cosim-check
 	CPM_PLUS_JUKU_BOOT_PATH=network-remote CPM_PLUS_JUKU_NETWORK_ROM=\
-	../8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.2-c6.bin \
+	$(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.2-c6.bin \
 	CPM_PLUS_JUKU_ROM_SYSTEM=$(EXTENDED_NATIVE_ROM_SYSTEM) \
 	CPM_PLUS_JUKU_ROM_FASTBOOT=$(EXTENDED_NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(C6_RECOVERY_VOLUME) \
@@ -409,7 +458,7 @@ network-rom-extended-cosim-check: network-rom-extended-local-cosim-check
 
 bootstrap-observability-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke CPM_PLUS_JUKU_NETWORK_ROM=\
-	../8080-cosim/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.1-c5.bin \
+	$(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.1-c5.bin \
 	CPM_PLUS_JUKU_ROM_SYSTEM=$(LOCALE_NATIVE_ROM_SYSTEM) \
 	CPM_PLUS_JUKU_ROM_FASTBOOT=$(LOCALE_NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(NATIVE_RECOVERY_VOLUME) \
@@ -453,8 +502,8 @@ network-rom-long-soak-check: all $(C6_RECOVERY_VOLUME)
 	$(PYTHON) tests/cosim_check.py
 
 bench-candidate: check
-	$(PYTHON) ../8080-cosim/spinoffs/jukuravi/network-rom/build_network_rom.py --check
-	../8080-cosim/sync/network_first_rom_hdl_check.sh
+	$(PYTHON) $(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/build_network_rom.py --check
+	$(JUKU_COSIM_ROOT)/sync/network_first_rom_hdl_check.sh
 	$(PYTHON) tools/package_bench_candidate.py
 	$(PYTHON) tests/physical_qualification_test.py
 
@@ -800,6 +849,16 @@ $(BUILD)/keytest.cim: src/keytest.asm $(ZMAC) | $(BUILD)
 $(BUILD)/vidtest.cim: src/vidtest.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/history.cim: src/history.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) &: \
+		third_party/cpm3/releases/cpm3src_unix-20260607.zip \
+		third_party/cpm3/ccp.com third_party/cpm3/LICENSE.md \
+		patches/ccp3-history.patch tools/build_cpm3_history_ccp.py \
+		$(ZXCC) | $(BUILD)
+	$(PYTHON) tools/build_cpm3_history_ccp.py --output $(HISTORY_CCP)
+
 $(BUILD)/keyraw.cim: src/keyraw.asm $(COMMON)/platform/rom-abi.inc \
 		$(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -DROM_ABI_LOCALE -DROM_ABI_EXTENDED \
@@ -861,9 +920,9 @@ $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) &: \
 		--profile volume/profiles/c6-recovery.json \
 		--output $(C6_RECOVERY_VOLUME) --report $(C6_RECOVERY_REPORT)
 
-$(FULL_VOLUME) $(FULL_REPORT) &: third_party/cpm3/ccp.com \
+$(FULL_VOLUME) $(FULL_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
-		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim \
+		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/history.cim \
 		$(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
 		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
@@ -884,9 +943,9 @@ $(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/apps.json \
 		--output $(APPS_VOLUME) --report $(APPS_REPORT)
 
-$(DEMO_VOLUME) $(DEMO_REPORT) &: third_party/cpm3/ccp.com \
+$(DEMO_VOLUME) $(DEMO_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
-		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim \
+		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/history.cim \
 		$(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
 		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
