@@ -213,3 +213,11 @@ input, then requires the same CS00015, C6 ROM, optimized system/Fastboot, and
 host before emitting the only report with no remaining physical work. Its desk
 regression rejects missing modes, mixed hosts, changed systems or ROMs, and a
 blind report that claims the analog gate was already closed.
+
+Source state `fb61a06` then passed the complete ordinary `make check` against
+the clean pinned `8080-cosim` host at `59034760`, without a skipped target. The
+run covered immutable artifacts, ROM budgets, all admitted source/binary and
+strict-8080 gates, full/development media, every boot/recovery route, all
+display/locale/cursor cases, history, panel, controlled NetDisk performance,
+and all three physical-evidence auditors. This is desk-completion evidence;
+the named CS00015 runs and analog observations remain physical work.

@@ -37,6 +37,15 @@ cycles with 992 reads, 257 synchronous writes, zero retries, and zero modeled
 resident/bootstrap overruns. Its independently reproduced archive SHA-256 is
 `1a4f96331525259635fabe3e4c7faa7a1dedfb23a49a234b77b17cf0ef14d990`.
 
+After adding the retained visual-evidence and final physical-promotion
+auditors, source state `fb61a06` was revalidated with the same clean pinned
+host using the complete ordinary command above. It again passed without a
+skipped target. In addition to the original matrix, `make check` now re-audits
+retained blind/display report inputs, rejects edited reports and photographs,
+and proves that only a matching eight-run physical evidence set can produce an
+empty remaining-work list. This later desk-only tooling does not change or
+relabel the previously reproduced C6 simulator archive.
+
 This closes the current desk implementation audit; it does not convert missing
 physical observations into passes. The remaining acceptance evidence is one
 full and one development CS00015 bundle, the controlled M4 physical pair, and
