@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  distribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: ghcr.io/ddanila/cpm-plus-juku-ci@sha256:63e277e27f22bd4632af48b2805877197e68a117de948544a306a7b7d3ea4acf
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - name: Check Python sources
+        run: python3 -m compileall -q tools tests
+
+      - name: Build and verify distributions
+        run: make distribution-check
+
+      - name: Boot CP/M and run DIR and VER
+        run: make network-smoke-check

@@ -17,6 +17,12 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_SCHEMA = "cpm-plus-juku-volume-profile-v1"
 REPORT_SCHEMA = "cpm-plus-juku-volume-report-v1"
+LOCAL_CPMTOOLS = ROOT / "build/cpmtools-install/bin"
+
+
+def cpmtool(name: str) -> str:
+    local = LOCAL_CPMTOOLS / name
+    return str(local) if local.is_file() else name
 
 
 def digest(data: bytes) -> str:
@@ -154,7 +160,7 @@ def source_bytes(record: dict[str, object]) -> tuple[Path, bytes]:
 def inspect_volume(path: Path, geometry: str,
                    environment: dict[str, str]) -> tuple[str, int, int]:
     result = subprocess.run(
-        ["cpmls", "-f", geometry, "-D", str(path)], cwd=ROOT,
+        [cpmtool("cpmls"), "-f", geometry, "-D", str(path)], cwd=ROOT,
         env=environment, check=True, text=True, capture_output=True,
     )
     listing = result.stdout
@@ -199,10 +205,10 @@ def build(output: Path, profile_path: Path,
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
             prefix="cpm-plus-juku-volume.", dir=output.parent) as name:
-        temporary = Path(name) / output.name
+        temporary = (Path(name) / output.name).resolve()
         subprocess.run(["truncate", "-s", "0", str(temporary)], check=True)
         subprocess.run(
-            ["mkfs.cpm", "-f", geometry, str(temporary)],
+            [cpmtool("mkfs.cpm"), "-f", geometry, str(temporary)],
             cwd=ROOT, env=environment, check=True,
         )
         subprocess.run(
@@ -214,14 +220,14 @@ def build(output: Path, profile_path: Path,
             copy = staging / f"{index:03d}.bin"
             copy.write_bytes(data)
             subprocess.run(
-                ["cpmcp", "-f", geometry, str(temporary), str(copy),
+                [cpmtool("cpmcp"), "-f", geometry, str(temporary), str(copy),
                  str(record["destination"])],
                 cwd=ROOT, env=environment, check=True,
             )
             attributes = str(record.get("attributes", ""))
             if attributes:
                 subprocess.run(
-                    ["cpmchattr", "-f", geometry, str(temporary),
+                    [cpmtool("cpmchattr"), "-f", geometry, str(temporary),
                      attributes, str(record["destination"])],
                     cwd=ROOT, env=environment, check=True,
                 )

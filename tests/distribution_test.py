@@ -30,7 +30,7 @@ CASES = {
             "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
             "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP", "STATUS.COM",
             "KEYTEST.COM", "VIDTEST.COM", "PANEL.COM", "CRC.COM", "CMP.COM", "MEM.COM", "WC.COM",
-            "FIND.COM", "STRINGS.COM", "HIST.COM", "TOOLS.TXT",
+            "FIND.COM", "STRINGS.COM", "HIST.COM", "VER.COM", "TOOLS.TXT",
         },
         409600,
     ),
@@ -43,7 +43,7 @@ CASES = {
             "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
             "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP", "STATUS.COM",
             "KEYTEST.COM", "VIDTEST.COM", "PANEL.COM", "CRC.COM", "CMP.COM", "MEM.COM", "WC.COM",
-            "FIND.COM", "STRINGS.COM", "HIST.COM", "TOOLS.TXT", "HEXCOM.COM",
+            "FIND.COM", "STRINGS.COM", "HIST.COM", "VER.COM", "TOOLS.TXT", "HEXCOM.COM",
             "PATCH.COM", "SID.COM", "ED.COM",
             "HELLO.ASM", "HELLO.HEX",
         },
@@ -75,7 +75,7 @@ CASES = {
             "SHOW.COM", "SET.COM", "DEVICE.COM", "DATE.COM", "SUBMIT.COM",
             "SETDEF.COM", "DUMP.COM", "HELP.COM", "HELP.HLP", "STATUS.COM",
             "KEYTEST.COM", "VIDTEST.COM", "PANEL.COM", "CRC.COM", "CMP.COM", "MEM.COM", "WC.COM",
-            "FIND.COM", "STRINGS.COM", "HIST.COM", "TOOLS.TXT",
+            "FIND.COM", "STRINGS.COM", "HIST.COM", "VER.COM", "TOOLS.TXT",
             "PROFILE.SUB",
         },
         409600,
@@ -94,8 +94,10 @@ def require(condition: bool, message: str) -> None:
 
 def cpm_names(image: Path, geometry: str) -> set[str]:
     environment = {**os.environ, "DISKDEFS": str(ROOT / "diskdefs")}
+    local_cpmls = ROOT / "build/cpmtools-install/bin/cpmls"
     result = subprocess.run(
-        ["cpmls", "-f", geometry, "-d", str(image)],
+        [str(local_cpmls) if local_cpmls.is_file() else "cpmls",
+         "-f", geometry, "-d", str(image)],
         cwd=ROOT, env=environment, check=True, capture_output=True, text=True,
     )
     names: set[str] = set()

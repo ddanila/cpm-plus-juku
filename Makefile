@@ -69,6 +69,7 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	network-rom-cosim-check network-rom-soak-check \
 	network-rom-long-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
+	network-smoke-check \
 	distribution-input-check utility-catalogue-check \
 	development-tool-audit-check \
 	compiler-comparison-check compiler-comparison-rebuild-check \
@@ -91,7 +92,7 @@ all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
 	$(EXTENDED_NATIVE_ROM_SYSTEM) $(EXTENDED_NATIVE_ROM_FASTBOOT) \
 	distribution $(BOOT_MANIFEST)
 
-distribution: $(RECOVERY_VOLUME) $(RECOVERY_REPORT) \
+distribution: $(RECOVERY_VOLUME) $(RECOVERY_REPORT) $(VOLUME) \
 	$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) \
 	$(FULL_VOLUME) $(FULL_REPORT) $(DEV_VOLUME) $(DEV_REPORT) \
 	$(APPS_VOLUME) $(APPS_REPORT) \
@@ -343,6 +344,12 @@ dev-utility-rebuild-check: $(ZXCC)
 
 distribution-check: distribution
 	$(PYTHON) tests/distribution_test.py
+
+network-smoke-check: all
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke \
+	CPM_PLUS_JUKU_QUICK_SMOKE=1 \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	$(PYTHON) tests/cosim_check.py
 
 distribution-cosim-check: all
 	CPM_PLUS_JUKU_NETWORK_ROM=$(C6_ROM) \
@@ -761,7 +768,7 @@ $(BUILD)/adapter.all: $(BUILD)/platform-adapter.rel \
 
 $(BUILD)/adapter.bin: $(BUILD)/adapter.all
 	tail -c+40961 $< >$@
-	test $$(stat -c %s $@) -le 4096
+	test $$(wc -c < $@) -le 4096
 
 $(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
 		$(BUILD)/netconsole-romabi.rel $(LD80)
@@ -771,7 +778,7 @@ $(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
 
 $(BUILD)/adapter-romabi.bin: $(BUILD)/adapter-romabi.all
 	tail -c+49153 $< >$@
-	test $$(stat -c %s $@) -le 4096
+	test $$(wc -c < $@) -le 4096
 
 $(BUILD)/adapter-romabi-native.all: \
 		$(BUILD)/platform-adapter-romabi-native.rel \
@@ -784,7 +791,7 @@ $(BUILD)/adapter-romabi-native.all: \
 
 $(BUILD)/adapter-romabi-native.bin: $(BUILD)/adapter-romabi-native.all
 	tail -c+49153 $< >$@
-	test $$(stat -c %s $@) -le 4096
+	test $$(wc -c < $@) -le 4096
 
 $(BUILD)/adapter-romabi-locale-native.all: \
 		$(BUILD)/platform-adapter-romabi-locale-native.rel \
@@ -798,7 +805,7 @@ $(BUILD)/adapter-romabi-locale-native.all: \
 $(BUILD)/adapter-romabi-locale-native.bin: \
 		$(BUILD)/adapter-romabi-locale-native.all
 	tail -c+49153 $< >$@
-	test $$(stat -c %s $@) -le 4096
+	test $$(wc -c < $@) -le 4096
 
 $(BUILD)/adapter-romabi-extended-native.all: \
 		$(BUILD)/platform-adapter-romabi-extended-native.rel \
@@ -815,7 +822,7 @@ $(BUILD)/adapter-romabi-extended-native.bin: \
 		$(BUILD)/adapter-romabi-extended-native.all
 	tail -c+49153 $< >$@
 	# D5C0h..D5FFh belongs to the ROM resident-entry self-test stack/guards.
-	test $$(stat -c %s $@) -le 5568
+	test $$(wc -c < $@) -le 5568
 
 $(BUILD)/adapter-romabi-extended-control.all: \
 		$(BUILD)/platform-adapter-romabi-extended-control.rel \
@@ -829,7 +836,7 @@ $(BUILD)/adapter-romabi-extended-control.all: \
 $(BUILD)/adapter-romabi-extended-control.bin: \
 		$(BUILD)/adapter-romabi-extended-control.all
 	tail -c+49153 $< >$@
-	test $$(stat -c %s $@) -le 5568
+	test $$(wc -c < $@) -le 5568
 
 # The stock-ROM/RAM-BIOS C4 baseline is immutable. Its exact source boundary
 # is cpm-plus-juku 6ce52d8 plus juku-common aeee23d; later common font and
@@ -1014,6 +1021,9 @@ $(BUILD)/disksoak.cim: src/disksoak.asm $(ZMAC) | $(BUILD)
 $(BUILD)/n4bulk.cim: src/n4bulk.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/ver.cim: src/ver.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
 $(NATIVE_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
 		$(BUILD)/wboot-user.cim $(BUILD)/status.cim $(BUILD)/keytest.cim \
 		$(BUILD)/nativecheck.cim \
@@ -1070,7 +1080,7 @@ $(FULL_VOLUME) $(FULL_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/history.cim \
 		$(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
-		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
+		$(BUILD)/strings.cim $(BUILD)/ver.cim volume/README.txt volume/TOOLS.txt \
 		$(BUILD)/cpm3-utilities/manifest.json volume/profiles/full.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/full.json \
@@ -1094,7 +1104,7 @@ $(DEMO_VOLUME) $(DEMO_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/history.cim \
 		$(BUILD)/crc.cim $(BUILD)/cmp.cim \
 		$(BUILD)/mem.cim $(BUILD)/wc.cim $(BUILD)/find.cim \
-		$(BUILD)/strings.cim volume/README.txt volume/TOOLS.txt \
+		$(BUILD)/strings.cim $(BUILD)/ver.cim volume/README.txt volume/TOOLS.txt \
 		volume/PROFILE.sub $(BUILD)/cpm3-utilities/manifest.json \
 		volume/profiles/full.json volume/profiles/demo.json \
 		tools/build_volume.py diskdefs | $(OUT)

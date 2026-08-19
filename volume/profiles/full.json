@@ -20,6 +20,7 @@
     { "source": "build/wc.cim", "destination": "0:WC.COM", "provenance": { "source": "src/wc.asm", "version": "Juku WC 1.0", "license": "LICENSE" } },
     { "source": "build/find.cim", "destination": "0:FIND.COM", "provenance": { "source": "src/find.asm", "version": "Juku FIND 1.0", "license": "LICENSE" } },
     { "source": "build/strings.cim", "destination": "0:STRINGS.COM", "provenance": { "source": "src/strings.asm", "version": "Juku STRINGS 1.0", "license": "LICENSE" } },
+    { "source": "build/ver.cim", "destination": "0:VER.COM", "provenance": { "source": "src/ver.asm", "version": "cpm-plus-juku build", "license": "LICENSE" } },
     { "source": "volume/README.txt", "destination": "0:README.TXT", "mode": "text", "provenance": { "source": "volume/README.txt", "version": "cpm-plus-juku build", "license": "LICENSE" } },
     { "source": "volume/TOOLS.txt", "destination": "0:TOOLS.TXT", "mode": "text", "provenance": { "source": "volume/TOOLS.txt", "version": "Juku CP/M Plus full-profile tools", "license": "LICENSE" } },
     { "source": "build/cpm3-utilities/PIP.COM", "destination": "0:PIP.COM", "sha256": "b0b40eada6cebd512333989fdc65f8fa9e2321e2565a633063ae7cac9b02005d", "provenance": { "source": "third_party/cpm3/releases/provenance.json", "version": "CP/M 3 PIP 3.0", "license": "third_party/cpm3/LICENSE.md" } },
