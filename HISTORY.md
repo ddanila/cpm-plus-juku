@@ -166,3 +166,13 @@ The legacy timing regressions also stopped reusing shared adapter objects: each
 fixture now builds private platform, keyboard, NetDisk, and console modules
 from Make's exact `juku-common` selection, so an unrelated local rebuild cannot
 silently change or break the frozen failure oracle.
+
+On 2026-08-19 the remaining M4 physical gate became a controlled executable
+experiment. The current source now builds a 2,924-byte cache-off control and
+the ordinary 5,489-byte cache-on adapter against the same C6 ROM, V16 protocol,
+recovery A:, native B:, and workload. Exact simulation pins 10/0/1 plus B: 4/1
+against 8/0/1 plus B: 4/0. A structured host request trace and the physical
+runner's shared monotonic command boundaries produce independently audited
+read, record, write, retry, wire-byte, and first-disk-request timing evidence;
+the pair auditor rejects mismatched systems, hosts, media, workloads, counts,
+retries, or absent synchronous erase writes.

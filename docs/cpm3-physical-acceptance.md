@@ -1,7 +1,7 @@
 # CP/M Plus physical acceptance runner
 
 `tools/physical_acceptance.py` is the C6 acceptance path for the full,
-development, and display workloads. It is separate from the immutable C4 promotion
+development, display, and performance workloads. It is separate from the immutable C4 promotion
 recorder: C4 retains its historical candidate, checklist, and hashes, while
 this runner binds each new physical run to the current post-C6 loaded system
 and the unchanged C6 ROM.
@@ -38,7 +38,8 @@ definitions are:
 
 - `physical/workloads/full.json`;
 - `physical/workloads/development.json`;
-- `physical/workloads/display.json`.
+- `physical/workloads/display.json`;
+- `physical/workloads/performance.json`.
 
 Every `Press RETURN to Continue` is handled automatically. Interactive input
 steps are explicit hex payloads in the workload, recorded by hash, and sent
@@ -70,6 +71,30 @@ For one display mode (repeat with the four documented S21 settings):
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 --profile display --output out/physical-CS00015-display-40x24
 ```
+
+For the controlled M4 comparison, start the cache-off run, cold-power or reset
+CS00015, and let all nine commands finish:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 --profile performance --manifest out/cpm-plus-juku-c6-control-manifest.json --output out/physical-CS00015-m4-control
+```
+
+Then stop/power-cycle the target, run the otherwise identical cache-on system,
+and audit the pair:
+
+```sh
+cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 --profile performance --output out/physical-CS00015-m4-optimized
+cd ~/fun/cpm-plus-juku && python3 tools/physical_performance.py out/physical-CS00015-m4-control out/physical-CS00015-m4-optimized --output out/physical-CS00015-m4-comparison.json
+```
+
+The control is not a fallback or release image. It is built from the same
+current sources and immutable C6 recovery A: as the optimized run, with only
+`HOT_DIRECTORY` omitted. Its exact system/Fastboot identities are
+`e68158497438b19c` / `294e85b80ce824fc`; the optimized identities are
+`57de00733bea16a3` / `3c2cf62d43b78678`. The audit requires 10/0/1 and B: 4/1
+for the control, 8/0/1 and B: 4/0 for the optimized system, zero retries, and
+synchronous erase writes in both. It records—but does not manufacture a pass
+from—elapsed timing from the first disk request to `A>`.
 
 The default 30-minute operator wait is a host-side bench policy. It prevents a
 human power/reset delay from consuming the server's short normal startup
@@ -111,6 +136,8 @@ from its byte offsets in `console.bin`, and requires every marker and prompt.
 It independently rebuilds per-boot and per-command read, record, write, retry,
 and wire-byte counts from `requests.jsonl`; the host and runner share the
 kernel monotonic clock, so request attribution does not depend on log text.
+Boot timing additionally records the interval from the first real disk request
+to `A>`, excluding how long the operator took to power or reset the machine.
 Changing a transcript, workload, host log, boot result, artifact, command
 status, or post-run volume invalidates the result.
 

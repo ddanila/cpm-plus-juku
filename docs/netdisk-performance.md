@@ -144,6 +144,17 @@ exercise warm boot, diagnostics, a synchronous write/erase, and A:/B:
 switching with zero clean-path retry or overrun. A short CS00015 timing
 comparison remains the physical acceptance gate; no EPROM burn is required.
 
+That comparison now has a controlled implementation rather than relying on an
+unrelated historical image. `make physical-performance-check` builds a
+2,924-byte cache-off adapter from the current source, its manifest-bound V16
+stream, and the ordinary optimized pair; strict simulation pins cache-off
+10/0/1 plus B: 4/1 against cache-on 8/0/1 plus B: 4/0. The physical
+`performance` workload uses the same immutable C6 recovery A:, native B:, ROM,
+host, baud, and command sequence for both runs. Structured request timestamps
+make the comparison independent of parsing human log text and exclude operator
+power-on delay from the boot interval. See
+[`cpm3-physical-acceptance.md`](cpm3-physical-acceptance.md).
+
 ## C6 bounded operations and soak
 
 ABI 1.2 supplies an ordered list service for 1..8 ordinary ten-byte resident

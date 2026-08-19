@@ -62,7 +62,7 @@ BBASE:
         extrn   NSTIME
         extrn   NSUSERF
 .endif
-.ifdef ROM_ABI_EXTENDED
+.ifdef HOT_DIRECTORY
         extrn   HDINIT
         extrn   HDLOOK
         extrn   HDSAVE
@@ -213,7 +213,7 @@ BOOT:
         mvi     a,04eh
         sta     NATIVEMARK
 .endif
-.ifdef ROM_ABI_EXTENDED
+.ifdef HOT_DIRECTORY
         call    HDINIT
 .endif
 .ifndef CPM3ADAPTER
@@ -681,7 +681,7 @@ SETDMA:
 READ:
 .ifdef NETWORKV3
 .ifdef ROMABI
-.ifdef ROM_ABI_EXTENDED
+.ifdef HOT_DIRECTORY
         call    HDLOOK
         rnc
         xra     a
@@ -781,7 +781,7 @@ ROMRWDISKRET:
 
 WRITE:
 .ifdef ROMABI
-.ifdef ROM_ABI_EXTENDED
+.ifdef HOT_DIRECTORY
         call    HDINVAL
 .endif
         mvi     a,JROMNETOPWRITE

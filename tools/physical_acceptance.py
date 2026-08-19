@@ -43,6 +43,7 @@ PROFILE_VOLUMES = {
     "full": "full-a",
     "development": "development-a",
     "display": "full-a",
+    "performance": "c6-recovery-a",
 }
 
 
@@ -259,6 +260,8 @@ def load_workload(profile: str, path: Path | None = None) \
     admitted: set[str] = set()
     if profile == "display":
         admitted = {"VIDTEST.COM"}
+    elif profile == "performance":
+        admitted = {"DIAG.COM", "WBOOT.COM"}
     elif isinstance(programs, dict):
         admitted = {
             name for name, record in programs.items()
@@ -345,8 +348,8 @@ def response_record(name: str, command: str, start: int, end: int,
         "command": command,
         "result": "pass",
         "started_at_utc": utc_now(),
-        "started_monotonic": round(started, 6),
-        "ended_monotonic": round(ended, 6),
+        "started_monotonic": started,
+        "ended_monotonic": ended,
         "elapsed_seconds": round(ended - started, 6),
         "response_start": start,
         "response_end": end,
@@ -380,8 +383,8 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
         )
     boot = {
         "result": "pass",
-        "started_monotonic": round(boot_started, 6),
-        "ended_monotonic": round(boot_ended, 6),
+        "started_monotonic": boot_started,
+        "ended_monotonic": boot_ended,
         "elapsed_seconds": round(boot_ended - boot_started, 6),
         "response_start": 0,
         "response_end": boot_end,
@@ -442,8 +445,8 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
                 "name": name,
                 "command": command,
                 "result": "fail",
-                "started_monotonic": round(started, 6),
-                "ended_monotonic": round(ended, 6),
+                "started_monotonic": started,
+                "ended_monotonic": ended,
                 "elapsed_seconds": round(ended - started, 6),
                 "response_start": start,
                 "response_end": len(transcript),
@@ -511,15 +514,20 @@ def load_request_trace(path: Path) -> list[dict[str, Any]]:
 
 
 def request_metrics(records: list[dict[str, Any]], start: float,
-                    end: float) -> dict[str, int]:
+                    end: float) -> dict[str, Any]:
     selected = [
         record for record in records
-        if start <= float(record["monotonic_seconds"]) <= end
+        if start <= float(record["monotonic_seconds"]) < end
     ]
     reads = [record for record in selected
              if record["operation"] in DISK_READ_OPERATIONS]
     writes = [record for record in selected
               if record["operation"] in DISK_WRITE_OPERATIONS]
+    disk = [*reads, *writes]
+    first_disk = min(
+        (float(record["monotonic_seconds"]) for record in disk),
+        default=None,
+    )
     return {
         "requests": len(selected),
         "disk_read_requests": len(reads),
@@ -527,14 +535,22 @@ def request_metrics(records: list[dict[str, Any]], start: float,
                                  for record in reads),
         "disk_write_requests": len(writes),
         "disk_retries": sum(
-            1 for record in (*reads, *writes) if record.get("duplicate") is True
+            1 for record in disk if record.get("duplicate") is True
         ),
         "request_wire_bytes": sum(int(record.get("request_bytes", 0))
                                   for record in selected),
         "reply_wire_bytes": sum(int(record.get("reply_bytes", 0))
                                 for record in selected),
+        "disk_request_wire_bytes": sum(int(record.get("request_bytes", 0))
+                                       for record in disk),
+        "disk_reply_wire_bytes": sum(int(record.get("reply_bytes", 0))
+                                     for record in disk),
         "reads_a": sum(1 for record in reads if record.get("drive") == 0),
         "reads_b": sum(1 for record in reads if record.get("drive") == 1),
+        "first_disk_request_monotonic": first_disk,
+        "elapsed_from_first_disk_request": (
+            round(end - first_disk, 6) if first_disk is not None else None
+        ),
     }
 
 

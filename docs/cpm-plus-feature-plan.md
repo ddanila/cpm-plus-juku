@@ -687,11 +687,18 @@ contracts and evidence below remain authoritative.
 |---:|---|---|---|
 | 1 | M5 history checkpoint — complete | Keep the licensed CCP derivative, `!!`, and `HIST.COM` behind their full/development exact-C6 and recovery-integrity regressions. | Deterministic rebuild, strict-8080 audit, exact-C6 reload/repeat/clear test, memory/stack accounting, unchanged recovery CCP, and reproducible package all pass. |
 | 2 | Finish the repeatable CS00015 baseline | Run the manifest-bound full and development M2 workloads. The full workload includes the corrected multi-record PIP copy and CRC `4613`, closing M1 at the same time. | Two independently audited physical result bundles; no inference from disk traffic and no new EPROM. |
-| 3 | Physically accept the M4 cache | Measure the current 8/0/1 A: and 4/0 B: behavior once on CS00015 against the pinned C6 baseline. | One retained before/after timing bundle with zero retries/overruns and unchanged synchronous-write behavior. |
+| 3 | Physically accept the M4 cache | Run the manifest-bound cache-off and cache-on `performance` workloads on CS00015, then apply the independent pair auditor. | One retained comparison proving 10/0/1 plus B: 4/1 becomes 8/0/1 plus B: 4/0, with zero retries and synchronous erase writes in both runs. |
 | 4 | M5 text-interface tool — desk complete | Keep `PANEL.COM` behind its shared-JNS1, strict-8080, local/N4, locale-aware framebuffer, memory, and recovery-integrity gates. | Reproducible source/license/hash, exact-C6 execution, English connected-CP437 and Estonian ASCII-fallback cursor frames, disk/TPA/stack accounting, warm boot/reconnect, and unchanged recovery images pass; one optional hardware smoke remains. |
 | 5 | Close visual promotion | Run `VIDTEST.COM` in all four S21 modes when a working display is available. | Geometry, joined pseudographics, glyph spacing, cropping, and both cursor phases recorded with monitor identity and photographs. |
 | 6 | Maintain the physical fleet | Investigate CS00000's suspected USART path and CS00024's RAM/refresh/D57 path only when the corresponding board is available. | Machine-specific captures and diagnoses; CS00015 remains the unmodified known-good reference. |
 | 7 | Profile later performance ideas | After M4 physical acceptance, measure alternating-drive and long sequential workloads before trying request coalescing, prediction, a lower-overhead protocol, compression, or experimental baud rates. | End-to-end wire, target, console, and host timings demonstrate a benefit without weakening recovery or data integrity. |
+
+Prepare the pinned M4 control and optimized artifacts and validate the pair
+auditor before reserving bench time:
+
+```sh
+cd ~/fun/cpm-plus-juku && make physical-performance-check
+```
 
 M5 is now complete at the desk: history and the pseudographic panel are both
 admitted. The current bench target is the automated full/development
@@ -821,7 +828,7 @@ before its own evidence exists.
 | M1 | Fix multi-record PIP | Reproduce the first failing record count; capture the control transfer into `0080h`; fix it; make four-record copy/CRC, repetitions, warm boot, reconnect, and all release tests pass. | One C6/N4 load on CS00015: copy `README.TXT`, CRC `4613`, prompt returns. No EPROM burn expected. |
 | M2 | Automate physical acceptance | A paging-aware runner records commands, target replies, timeouts, volume mutations, host lifecycle, and artifact hashes without optimistic inference from disk traffic. | One full and one development-profile run; the operator supplies only power/reset and requested keys. |
 | M3 | Close display acceptance | `VIDTEST.COM` and exact framebuffer oracles cover boundaries, glyph banks, joined box drawing, and both cursor phases in all four S21 modes. | Observe 40x24, 53x24, 64x20, and 80x24 on a working display; record any monitor-specific cropping separately. |
-| M4 | Improve NetDisk responsiveness | The measured three-record hot-directory cache reduces exact-C6 cold boot from 10 to 8 wire requests and first B: `DIR` from 1 to 0, while retaining synchronous invalidating writes. Complete the recovery, replay, package, and long-soak gates. | One short CS00015 before/after timing comparison; the change is network-loaded and requires no EPROM burn. |
+| M4 | Improve NetDisk responsiveness | The measured three-record hot-directory cache reduces exact-C6 cold boot from 10 to 8 wire requests and first B: `DIR` from 1 to 0, while retaining synchronous invalidating writes. Its same-source cache-off control, structured request capture, pair auditor, recovery, replay, package, and long-soak gates pass. | Run the two short manifest-bound `performance` workloads on CS00015 and retain their passing comparison; no EPROM burn is required. |
 | M5 | Improve the distribution | The strict-8080 history slice and project-owned pseudographic `PANEL.COM` are exact-C6 qualified. Retain their reproducible source/license/size/runtime admission and keep the recovery profile small. | Optional short history/panel smoke only; no manual catalogue trawl on the bench. |
 | M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 USART and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
 
@@ -851,7 +858,11 @@ Status on 2026-08-19:
   discarded-readiness replay, reproducible packaging, runtime-memory
   admission, and the 64-cycle read/write/server-replacement soak pass with
   992 reads, 257 writes, zero retries, and zero overruns. One CS00015 timing
-  comparison remains before M4 is physically accepted.
+  comparison remains before M4 is physically accepted. The comparison is now
+  fully scripted: a same-source cache-off control and cache-on build use the
+  same C6 ROM, recovery A:, native B:, host, and nine-command workload. Their
+  structured request traces must reproduce 10/0/1 plus B: 4/1 versus 8/0/1
+  plus B: 4/0, and both must complete synchronous erase writes without retry.
 - M5 is complete at the desk. The build reproduces the licensed DRI CCP
   exactly before applying the Juku patch; `!!` plus `HIST.COM` pass exact-C6
   reload, blank/overlong retention, clear, stack, and strict-8080 gates.

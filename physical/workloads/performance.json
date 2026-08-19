@@ -1,0 +1,18 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "performance",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": ["DIAG.COM", "WBOOT.COM"],
+  "commands": [
+    {"name": "dir-a", "command": "DIR", "expect": ["DIAG", "README"]},
+    {"name": "type-readme", "command": "TYPE README.TXT", "expect": ["host-backed NetDisk-v3"]},
+    {"name": "select-b", "command": "B:", "prompt": "B>"},
+    {"name": "dir-b", "command": "DIR", "prompt": "B>", "expect": ["DIAG"]},
+    {"name": "select-a", "command": "A:", "prompt": "A>"},
+    {"name": "diag-cpu", "command": "DIAG CPU", "expect": ["CPU: PASS"], "coverage": ["DIAG.COM"]},
+    {"name": "warm-boot", "command": "WBOOT", "coverage": ["WBOOT.COM"]},
+    {"name": "erase-readme", "command": "ERA README.TXT"},
+    {"name": "dir-after-erase", "command": "DIR", "expect": ["DIAG"]}
+  ]
+}

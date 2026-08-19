@@ -225,7 +225,10 @@ def lifecycle_and_audit_test() -> None:
         if not result["host"]["clean_shutdown"] or \
                 result["host"]["shutdown_signal"] != "SIGINT" or \
                 result["commands"][0]["page_returns"] != 1 or \
-                result["boot"]["request_metrics"]["disk_read_requests"] != 1:
+                result["boot"]["request_metrics"]["disk_read_requests"] != 1 or \
+                result["boot"]["request_metrics"][
+                    "elapsed_from_first_disk_request"
+                ] is None:
             raise AssertionError(
                 "host lifecycle, paging, or request metrics differ"
             )
@@ -253,6 +256,7 @@ def lifecycle_and_audit_test() -> None:
 def main() -> int:
     for profile, minimum_commands in (
         ("full", 29), ("development", 10), ("display", 1),
+        ("performance", 9),
     ):
         artifacts = acceptance.verify_manifest(
             acceptance.DEFAULT_MANIFEST, acceptance.DEFAULT_COSIM, profile,
