@@ -7,13 +7,14 @@
     "CRC.COM", "CMP.COM", "DATE.COM", "DEVICE.COM", "DIAG.COM",
     "DUMP.COM", "FIND.COM", "HELP.COM", "KEYTEST.COM", "MEM.COM",
     "PIP.COM", "SET.COM", "SETDEF.COM", "SHOW.COM", "STATUS.COM",
-    "STRINGS.COM", "SUBMIT.COM", "WBOOT.COM", "WC.COM"
+    "STRINGS.COM", "SUBMIT.COM", "VER.COM", "WBOOT.COM", "WC.COM"
   ],
   "commands": [
     {"name": "dir-a", "command": "DIR", "expect": ["DIAG", "PIP"]},
     {"name": "type-readme", "command": "TYPE README.TXT", "expect": ["host-backed NetDisk-v3", "Project:"]},
     {"name": "diag-cpu", "command": "DIAG CPU", "expect": ["CPU: PASS"], "coverage": ["DIAG.COM"]},
     {"name": "status", "command": "STATUS", "expect": ["Juku Status 1.3", "NetDisk v03"], "coverage": ["STATUS.COM"]},
+    {"name": "ver", "command": "VER", "expect": ["CP/M Plus 3.1 for Juku"], "coverage": ["VER.COM"]},
     {
       "name": "keytest-remote",
       "command": "KEYTEST B",

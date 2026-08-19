@@ -27,7 +27,7 @@ accepted only when the N4 transcript also contains every expected target
 reply and the final CCP prompt for every command. Disk traffic alone cannot
 turn a command into a pass.
 
-The full workload runs 29 commands covering all 19 nonvisual acceptance
+The full workload runs 30 commands covering all 20 nonvisual acceptance
 programs. It includes paginated reads, Status, buffered Keytest,
 every admitted DRI utility, both four-record PIP/CRC copies, the nonzero-user
 warm boot, and native B:. The development workload runs the baseline plus all
