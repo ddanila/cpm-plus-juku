@@ -135,6 +135,24 @@ boot = {
 }
 open(option("--boot-result-json"), "w").write(json.dumps(boot) + "\n")
 print("Advertising N4 remote console on fake; awaiting target", flush=True)
+time.sleep(0.05)
+trace = {
+    "schema": "juku-netdisk-request-trace-v1",
+    "monotonic_seconds": time.monotonic(),
+    "elapsed_seconds": 0.125,
+    "operation": 0x14,
+    "sequence": 1,
+    "drive": 0,
+    "track": 2,
+    "sector": 1,
+    "status": 0,
+    "records": 8,
+    "request_bytes": 10,
+    "reply_bytes": 549,
+    "encoding": "v3-ahead-8",
+    "duplicate": False,
+}
+open(option("--request-trace-jsonl"), "w").write(json.dumps(trace) + "\n")
 os.write(fd, b"CP/M Plus 3.1 Juku\r\nN3 19200\r\nA>")
 
 def read_command():
@@ -206,8 +224,11 @@ def lifecycle_and_audit_test() -> None:
         result = json.loads((output / "result.json").read_text())
         if not result["host"]["clean_shutdown"] or \
                 result["host"]["shutdown_signal"] != "SIGINT" or \
-                result["commands"][0]["page_returns"] != 1:
-            raise AssertionError("host lifecycle or paging record differs")
+                result["commands"][0]["page_returns"] != 1 or \
+                result["boot"]["request_metrics"]["disk_read_requests"] != 1:
+            raise AssertionError(
+                "host lifecycle, paging, or request metrics differ"
+            )
         console = output / "console.bin"
         original = console.read_bytes()
         console.write_bytes(original + b"tampered")
@@ -215,6 +236,13 @@ def lifecycle_and_audit_test() -> None:
                    for failure in acceptance.audit_directory(output)):
             raise AssertionError("changed console evidence was accepted")
         console.write_bytes(original)
+        request_trace = output / "requests.jsonl"
+        trace_original = request_trace.read_bytes()
+        request_trace.write_bytes(trace_original + b"{}\n")
+        if not any("requests evidence changed" in failure
+                   for failure in acceptance.audit_directory(output)):
+            raise AssertionError("changed request trace was accepted")
+        request_trace.write_bytes(trace_original)
         result["commands"][0]["result"] = "fail"
         write_json(output / "result.json", result)
         if not any("command did not pass" in failure

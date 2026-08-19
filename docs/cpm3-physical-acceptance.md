@@ -6,6 +6,10 @@ recorder: C4 retains its historical candidate, checklist, and hashes, while
 this runner binds each new physical run to the current post-C6 loaded system
 and the unchanged C6 ROM.
 
+The runner requires `8080-cosim` commit `59034760` or later. That host records
+the structured request stream consumed by the independent timing audit; an
+older server which merely prints request lines is intentionally insufficient.
+
 ## What a passing run proves
 
 The runner verifies the C6 boot manifest before opening the serial device. It
@@ -84,6 +88,7 @@ boot.json      bootstrap and first-NetDisk timing evidence
 console.bin    raw target N4 replies
 host.log       complete Janet/NetDisk/N4 server log
 events.jsonl   timestamped host, target, command, input, and shutdown events
+requests.jsonl timestamped structured NetDisk/N4 request trace
 working-a.img  private post-run writable A:
 inputs/        exact manifest, binaries, media, workload, host, and runner
 ```
@@ -103,6 +108,9 @@ cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py audit out/physica
 The audit rehashes every bound artifact and evidence file, validates the boot
 identity, verifies the private volume chain, reconstructs each command reply
 from its byte offsets in `console.bin`, and requires every marker and prompt.
+It independently rebuilds per-boot and per-command read, record, write, retry,
+and wire-byte counts from `requests.jsonl`; the host and runner share the
+kernel monotonic clock, so request attribution does not depend on log text.
 Changing a transcript, workload, host log, boot result, artifact, command
 status, or post-run volume invalidates the result.
 

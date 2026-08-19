@@ -23,7 +23,9 @@ from typing import Any, Callable
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_COSIM = ROOT.parent / "8080-cosim"
+DEFAULT_COSIM = Path(os.environ.get(
+    "JUKU_COSIM_ROOT", str(ROOT.parent / "8080-cosim"),
+))
 DEFAULT_MANIFEST = ROOT / "out/cpm-plus-juku-c6-manifest.json"
 WORKLOADS = ROOT / "physical/workloads"
 RUNTIME_MEMORY = ROOT / "third_party/cpm3/releases/runtime-memory.json"
@@ -34,6 +36,8 @@ CONSOLE_READY_MARKERS = (
     "Advertising N4 remote console on ",
     "Resuming N4 remote console on ",
 )
+DISK_READ_OPERATIONS = frozenset((0x11, 0x13, 0x14))
+DISK_WRITE_OPERATIONS = frozenset((0x12, 0x15))
 PAGE_PROMPT = b"Press RETURN to Continue"
 PROFILE_VOLUMES = {
     "full": "full-a",
@@ -276,9 +280,11 @@ class EventLog:
         self.stream = path.open("w", buffering=1)
 
     def emit(self, event: str, **fields: Any) -> None:
+        monotonic = time.monotonic()
         record = {
             "at_utc": utc_now(),
-            "elapsed_seconds": round(time.monotonic() - self.started, 6),
+            "monotonic_seconds": round(monotonic, 6),
+            "elapsed_seconds": round(monotonic - self.started, 6),
             "event": event,
             **fields,
         }
@@ -333,12 +339,15 @@ def response_record(name: str, command: str, start: int, end: int,
                     transcript: bytes, expected: list[str], prompt: str,
                     pages: int, started: float) -> dict[str, Any]:
     response = transcript[start:end]
+    ended = time.monotonic()
     return {
         "name": name,
         "command": command,
         "result": "pass",
         "started_at_utc": utc_now(),
-        "elapsed_seconds": round(time.monotonic() - started, 6),
+        "started_monotonic": round(started, 6),
+        "ended_monotonic": round(ended, 6),
+        "elapsed_seconds": round(ended - started, 6),
         "response_start": start,
         "response_end": end,
         "response_bytes": len(response),
@@ -356,6 +365,7 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
     emit("target_wait_started", timeout_seconds=operator_wait)
     boot_started = time.monotonic()
     boot_end = console.wait_for(b"A>", start=0, timeout=operator_wait)
+    boot_ended = time.monotonic()
     banner = bytes(console.transcript[:boot_end])
     expected_banner = list(workload["boot_expect"])
     missing_banner = [marker for marker in expected_banner
@@ -370,7 +380,9 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
         )
     boot = {
         "result": "pass",
-        "elapsed_seconds": round(time.monotonic() - boot_started, 6),
+        "started_monotonic": round(boot_started, 6),
+        "ended_monotonic": round(boot_ended, 6),
+        "elapsed_seconds": round(boot_ended - boot_started, 6),
         "response_start": 0,
         "response_end": boot_end,
         "response_bytes": len(banner),
@@ -425,11 +437,14 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
         except BaseException as error:
             transcript = bytes(console.transcript)
             response = transcript[start:]
+            ended = time.monotonic()
             failed = {
                 "name": name,
                 "command": command,
                 "result": "fail",
-                "elapsed_seconds": round(time.monotonic() - started, 6),
+                "started_monotonic": round(started, 6),
+                "ended_monotonic": round(ended, 6),
+                "elapsed_seconds": round(ended - started, 6),
                 "response_start": start,
                 "response_end": len(transcript),
                 "response_bytes": len(response),
@@ -447,7 +462,8 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
 
 def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
                    working_volume: Path, console_pty: str,
-                   boot_result: Path, server: Path) -> list[str]:
+                   boot_result: Path, request_trace: Path,
+                   server: Path) -> list[str]:
     if not server.is_file():
         raise AcceptanceError(f"disk server is missing: {server}")
     return [
@@ -456,6 +472,7 @@ def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
         "--fast-stage1", artifacts["fast_stage"]["path"],
         "--network-rom",
         "--boot-result-json", str(boot_result),
+        "--request-trace-jsonl", str(request_trace),
         "--boot-manifest", artifacts["manifest"]["path"],
         "--drive-b", artifacts["drive_b"]["path"],
         "--disk-baud", "19200", "--disk-protocol", "3",
@@ -466,6 +483,71 @@ def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
         "--boot-restarts", "3",
         "--disk-timeout", str(args.session_timeout),
     ]
+
+
+def load_request_trace(path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    previous = -1.0
+    for number, line in enumerate(path.read_text().splitlines(), 1):
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise AcceptanceError(
+                f"request trace line {number} is malformed: {error}"
+            ) from error
+        if not isinstance(record, dict) or \
+                record.get("schema") != "juku-netdisk-request-trace-v1":
+            raise AcceptanceError(f"request trace line {number} has bad schema")
+        timestamp = record.get("monotonic_seconds")
+        operation = record.get("operation")
+        if not isinstance(timestamp, (int, float)) or timestamp < previous or \
+                not isinstance(operation, int):
+            raise AcceptanceError(
+                f"request trace line {number} has invalid ordering or operation"
+            )
+        previous = float(timestamp)
+        records.append(record)
+    return records
+
+
+def request_metrics(records: list[dict[str, Any]], start: float,
+                    end: float) -> dict[str, int]:
+    selected = [
+        record for record in records
+        if start <= float(record["monotonic_seconds"]) <= end
+    ]
+    reads = [record for record in selected
+             if record["operation"] in DISK_READ_OPERATIONS]
+    writes = [record for record in selected
+              if record["operation"] in DISK_WRITE_OPERATIONS]
+    return {
+        "requests": len(selected),
+        "disk_read_requests": len(reads),
+        "disk_read_records": sum(int(record.get("records", 0))
+                                 for record in reads),
+        "disk_write_requests": len(writes),
+        "disk_retries": sum(
+            1 for record in (*reads, *writes) if record.get("duplicate") is True
+        ),
+        "request_wire_bytes": sum(int(record.get("request_bytes", 0))
+                                  for record in selected),
+        "reply_wire_bytes": sum(int(record.get("reply_bytes", 0))
+                                for record in selected),
+        "reads_a": sum(1 for record in reads if record.get("drive") == 0),
+        "reads_b": sum(1 for record in reads if record.get("drive") == 1),
+    }
+
+
+def attach_request_metrics(boot: dict[str, Any],
+                           commands: list[dict[str, Any]],
+                           records: list[dict[str, Any]]) -> None:
+    for item in (boot, *commands):
+        start = item.get("started_monotonic")
+        end = item.get("ended_monotonic")
+        if isinstance(start, (int, float)) and isinstance(end, (int, float)):
+            item["request_metrics"] = request_metrics(
+                records, float(start), float(end),
+            )
 
 
 def snapshot_inputs(output: Path, artifacts: dict[str, Any],
@@ -518,6 +600,7 @@ def run_acceptance(args: argparse.Namespace) -> int:
     output = args.output.resolve()
     working_volume = output / "working-a.img"
     boot_path = output / "boot.json"
+    request_trace_path = output / "requests.jsonl"
     console_path = output / "console.bin"
     host_path = output / "host.log"
     events_path = output / "events.jsonl"
@@ -532,7 +615,8 @@ def run_acceptance(args: argparse.Namespace) -> int:
     tty.setraw(slave)
     console_pty = os.ttyname(slave)
     command = server_command(
-        args, artifacts, working_volume, console_pty, boot_path, server,
+        args, artifacts, working_volume, console_pty, boot_path,
+        request_trace_path, server,
     )
     if args.dry_run:
         os.close(master)
@@ -549,7 +633,8 @@ def run_acceptance(args: argparse.Namespace) -> int:
         output, artifacts, workload_path, server,
     )
     command = server_command(
-        args, artifacts, working_volume, console_pty, boot_path, server,
+        args, artifacts, working_volume, console_pty, boot_path,
+        request_trace_path, server,
     )
     shutil.copyfile(Path(artifacts["volume"]["path"]), working_volume)
     volume_before = sha256(working_volume)
@@ -658,6 +743,25 @@ def run_acceptance(args: argparse.Namespace) -> int:
                 failure = {"type": type(error).__name__, "message": str(error)}
     elif failure is None:
         failure = {"type": "BootEvidenceError", "message": "boot.json missing"}
+    request_records: list[dict[str, Any]] = []
+    if request_trace_path.is_file():
+        try:
+            request_records = load_request_trace(request_trace_path)
+            attach_request_metrics(boot_evidence, commands, request_records)
+            if failure is None and \
+                    boot_evidence.get("request_metrics", {}).get(
+                        "disk_read_requests", 0,
+                    ) <= 0:
+                raise AcceptanceError(
+                    "request trace does not prove boot disk reads"
+                )
+        except BaseException as error:
+            if failure is None:
+                failure = {"type": type(error).__name__, "message": str(error)}
+    elif failure is None:
+        failure = {
+            "type": "RequestTraceError", "message": "requests.jsonl missing",
+        }
     events.emit("run_finished", result="pass" if failure is None else "fail")
     events.close()
     result = {
@@ -690,6 +794,8 @@ def run_acceptance(args: argparse.Namespace) -> int:
             "log": {**identity(host_path), "path": "host.log"},
         },
         "events": {**identity(events_path), "path": "events.jsonl"},
+        "requests": ({**identity(request_trace_path), "path": "requests.jsonl"}
+                     if request_trace_path.is_file() else None),
         "console": {**identity(console_path), "path": "console.bin"},
         "boot": boot_evidence,
         "boot_result": boot_result,
@@ -736,8 +842,11 @@ def audit_directory(directory: Path) -> list[str]:
             runner_path.stat().st_size != runner.get("bytes") or \
             sha256(runner_path) != runner.get("sha256"):
         failures.append("runner snapshot changed")
-    for key in ("console", "events"):
+    for key in ("console", "events", "requests"):
         entry = result.get(key, {})
+        if not isinstance(entry, dict):
+            failures.append(f"{key} evidence is missing")
+            continue
         path = directory / str(entry.get("path", ""))
         if not path.is_file() or path.stat().st_size != entry.get("bytes") or \
                 sha256(path) != entry.get("sha256"):
@@ -845,6 +954,26 @@ def audit_directory(directory: Path) -> list[str]:
                 failures.append(
                     f"command reply lacks {marker!r}: {command['name']}"
                 )
+    request_entry = result.get("requests", {})
+    request_path = directory / str(request_entry.get("path", "")) \
+        if isinstance(request_entry, dict) else Path()
+    try:
+        records = load_request_trace(request_path)
+        metric_records = [boot, *commands]
+        for record in metric_records:
+            start = record.get("started_monotonic")
+            end = record.get("ended_monotonic")
+            if not isinstance(start, (int, float)) or \
+                    not isinstance(end, (int, float)):
+                failures.append("request-metric time boundary is missing")
+                continue
+            expected_metrics = request_metrics(records, float(start), float(end))
+            if record.get("request_metrics") != expected_metrics:
+                failures.append("request metrics differ from retained trace")
+        if boot.get("request_metrics", {}).get("disk_read_requests", 0) <= 0:
+            failures.append("boot request trace has no disk reads")
+    except BaseException as error:
+        failures.append(f"request trace cannot be verified: {error}")
     if event_names.count("command_started") != len(commands) or \
             event_names.count("command_passed") != len(commands):
         failures.append("command lifecycle event count differs")
