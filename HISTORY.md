@@ -183,3 +183,10 @@ with the shared non-destructive `DIAG USART` probe: each retained control and
 optimized run must have zero protocol retries, complete its synchronous erase,
 and observe clean D11 parity/overrun/framing status. This final status sample
 is recorded as such and is not misrepresented as a historical error counter.
+
+The resulting source state passed the complete ordinary gate and the separate
+C6 release-candidate gate. The latter retained the exact 64-cycle result of
+992 reads, 257 synchronous writes, zero retries, and zero modeled overruns and
+reproduced archive SHA-256 `1a4f963315252596`. The audit leaves the full/dev,
+controlled M4, and analog-display CS00015 runs explicitly physical rather than
+promoting them from simulator evidence.

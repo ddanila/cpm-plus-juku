@@ -4,10 +4,12 @@ This repository contains a strict-Intel-8080, non-banked CP/M Plus 3.1 port for
 the Juku E5101/E5104. It uses Digital Research's CP/M 3 CCP, BDOS, SCB, and
 BIOS conventions; it is not CP/Mish 3.
 
-Status: **The immutable ABI 1.2 C6 ROM and Priority-7 strict-8080 distribution
-are complete. A post-C6 loaded-system fix for multi-record PIP/CCP warm boot
-passes the full simulator and recovery matrices; one CS00015 confirmation and
-display/cursor observation remain pending.**
+Status: **The immutable ABI 1.2 C6 ROM, Priority-7 strict-8080 distribution,
+and post-C6 M1--M5 desk implementation are complete. The corrected PIP path,
+command history, status panel, and measured NetDisk cache pass the complete
+simulator/recovery/package gates. CS00015 full/development evidence, the
+controlled cache comparison, and four display observations remain physical
+acceptance work.**
 
 Danila Sukharev owns the project-written code. OpenAI GPT-5.6 Sol was used as a
 development assistant. Third-party authors and licenses are retained in
@@ -100,7 +102,9 @@ inputs, deterministic distribution reports, boot manifests, C5/C6 package
 reproducibility, the CP/M 3 toolchain output, native BIOS services,
 observability/recovery, the 23-program candidate catalogue, every admitted DRI
 and project utility on the current C6 path, live disk/stack/TPA accounting, and
-the complete legacy/production cosimulation matrix.
+the complete legacy/production cosimulation matrix. It also executes the
+same-source M4 cache-off/cache-on desk comparison; physical result bundles
+remain separate evidence and are never synthesized by `make check`.
 
 The final C6 command is:
 
@@ -195,6 +199,13 @@ needed to observe the selected geometry, glyphs, pseudographics, and blinking
 cursor physically. See
 [`docs/cs00015-c6-blind-qualification-20260818.md`](docs/cs00015-c6-blind-qualification-20260818.md).
 C5 and the stock-ROM/RAM-BIOS path remain recoverable baselines.
+
+The newer network-loaded system does not require another EPROM burn. Its desk
+gates are complete, but physical promotion still requires one automated full
+and one development run, the two short controlled M4 performance runs, and the
+four-mode display observation. The exact commands and retained-evidence
+contract are in
+[`docs/cpm3-physical-acceptance.md`](docs/cpm3-physical-acceptance.md).
 
 The authoritative current documents are:
 

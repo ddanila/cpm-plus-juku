@@ -20,6 +20,28 @@ It must finish without a skipped command. `make c6-release-candidate` is the
 additional fail-closed C6 rebuild, long-soak, and byte-reproducible packaging
 gate; it is not a substitute for the broader Priority-7 admission matrix.
 
+## Current revalidation
+
+Source state `93b5958` was revalidated on 2026-08-19 with the clean pinned
+`8080-cosim` host at `59034760`:
+
+```sh
+JUKU_COSIM_ROOT=/tmp/8080-cosim-history-tail make check
+JUKU_COSIM_ROOT=/tmp/8080-cosim-history-tail make c6-release-candidate
+```
+
+Both commands passed without a skipped target. The ordinary gate included the
+same-source M4 control comparison and reproduced cache-off 10/0/1 plus B:
+4/1 against cache-on 8/0/1 plus B: 4/0. The release gate completed 64 soak
+cycles with 992 reads, 257 synchronous writes, zero retries, and zero modeled
+resident/bootstrap overruns. Its independently reproduced archive SHA-256 is
+`1a4f96331525259635fabe3e4c7faa7a1dedfb23a49a234b77b17cf0ef14d990`.
+
+This closes the current desk implementation audit; it does not convert missing
+physical observations into passes. The remaining acceptance evidence is one
+full and one development CS00015 bundle, the controlled M4 physical pair, and
+the four display-mode observations listed in the feature plan.
+
 ## Network-first execution plan
 
 | step | requirement | authoritative evidence | result |
