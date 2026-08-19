@@ -631,7 +631,9 @@ def run_acceptance(args: argparse.Namespace) -> int:
     artifacts = verify_manifest(args.manifest, args.cosim, profile)
     workload_path, workload = load_workload(profile, args.workload)
     output = args.output.resolve()
-    working_volume = output / "working-a.img"
+    # The manifest binds volumes by both digest and basename.  Keep the selected
+    # A: basename for the private writable copy passed to the retained host.
+    working_volume = output / Path(artifacts["volume"]["path"]).name
     boot_path = output / "boot.json"
     request_trace_path = output / "requests.jsonl"
     console_path = output / "console.bin"

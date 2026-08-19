@@ -164,7 +164,7 @@ console.bin    raw target N4 replies
 host.log       complete Janet/NetDisk/N4 server log
 events.jsonl   timestamped host, target, command, input, and shutdown events
 requests.jsonl timestamped structured NetDisk/N4 request trace
-working-a.img  private post-run writable A:
+cpm-plus-juku-<profile>.img  private post-run writable A:
 inputs/        exact manifest, binaries, media, workload, host modules, runner
 ```
 

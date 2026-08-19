@@ -248,6 +248,8 @@ def lifecycle_and_audit_test() -> None:
         result = json.loads((output / "result.json").read_text())
         if not result["host"]["clean_shutdown"] or \
                 result["host"]["shutdown_signal"] != "SIGINT" or \
+                Path(result["working_volume"]["path"]).name != \
+                "cpm-plus-juku-full.img" or \
                 result["commands"][0]["page_returns"] != 1 or \
                 result["boot"]["request_metrics"]["disk_read_requests"] != 1 or \
                 result["boot"]["request_metrics"][
