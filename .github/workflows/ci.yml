@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     container:
-      image: ghcr.io/ddanila/cpm-plus-juku-ci@sha256:6110ddfa818be9bab2509f361a7906a5e5181cad8f50d6de86ec66125fbde569
+      image: ghcr.io/ddanila/cpm-plus-juku-ci@sha256:63e277e27f22bd4632af48b2805877197e68a117de948544a306a7b7d3ea4acf
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -33,3 +33,6 @@ jobs:
 
       - name: Build and verify distributions
         run: make distribution-check
+
+      - name: Boot CP/M and run DIR and VER
+        run: make network-smoke-check
