@@ -204,3 +204,6 @@ final authority is `physical-CS00015-promotion.json`, produced by
 `tools/physical_promotion.py` only after the blind full/development/M4 closure
 and the four-mode analog display acceptance both independently pass. That
 report does not yet exist and is not inferred from the desk gates above.
+Once produced, `tools/physical_promotion.py --audit` is the repeatable check:
+it follows both lower-level reports to the eight original result bundles and
+photographs and rejects any changed report or input.

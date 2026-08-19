@@ -710,6 +710,10 @@ When the four structured display observations also exist,
 the only final report whose `remaining` list is empty. This keeps simulator,
 blind N4, and analog-monitor claims distinct while still providing one
 machine-readable promotion decision.
+The retained final report is itself re-auditable with
+`tools/physical_promotion.py --audit`; this follows both lower-level reports
+back to their original eight run bundles, observation record, and photographs
+rather than trusting a copied pass summary.
 
 M5 is now complete at the desk: history and the pseudographic panel are both
 admitted. The current bench target is the automated full/development

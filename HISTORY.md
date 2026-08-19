@@ -221,3 +221,9 @@ strict-8080 gates, full/development media, every boot/recovery route, all
 display/locale/cursor cases, history, panel, controlled NetDisk performance,
 and all three physical-evidence auditors. This is desk-completion evidence;
 the named CS00015 runs and analog observations remain physical work.
+
+The final promotion report is now durable rather than write-once. Its audit
+mode verifies the stored blind/display report hashes, re-executes both complete
+lower-level audits from the original eight result bundles and photographs, and
+reconstructs the final identity decision. Filesystem-level regressions reject
+both an edited final decision and a changed lower-level report.

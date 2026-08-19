@@ -101,14 +101,9 @@ def load(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("blind", type=Path)
-    parser.add_argument("display", type=Path)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
-    blind_path = args.blind.resolve()
-    display_path = args.display.resolve()
+def build_report(blind_path: Path, display_path: Path) -> dict[str, Any]:
+    blind_path = blind_path.resolve()
+    display_path = display_path.resolve()
     blind = load(blind_path, "blind closure")
     visual = load(display_path, "display acceptance")
     closure.audit_report(blind)
@@ -118,6 +113,52 @@ def main() -> int:
         "blind": {"path": str(blind_path), "sha256": sha256(blind_path)},
         "display": {"path": str(display_path), "sha256": sha256(display_path)},
     }
+    return report
+
+
+def audit_report(report: dict[str, Any]) -> dict[str, Any]:
+    require(report.get("schema") == SCHEMA and
+            report.get("status") == "pass" and
+            report.get("remaining") == [],
+            "physical promotion report identity differs")
+    inputs = report.get("inputs")
+    require(isinstance(inputs, dict) and set(inputs) == {"blind", "display"},
+            "physical promotion report inputs differ")
+    paths: dict[str, Path] = {}
+    for role, record in inputs.items():
+        require(isinstance(record, dict) and
+                isinstance(record.get("path"), str) and
+                isinstance(record.get("sha256"), str),
+                f"physical promotion {role} input is malformed")
+        path = Path(record["path"]).resolve()
+        require(sha256(path) == record["sha256"],
+                f"physical promotion {role} report hash differs")
+        paths[role] = path
+    expected = build_report(paths["blind"], paths["display"])
+    require(report == expected,
+            "physical promotion report differs from retained evidence")
+    return expected
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("blind", type=Path, nargs="?")
+    parser.add_argument("display", type=Path, nargs="?")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--audit", type=Path)
+    args = parser.parse_args()
+    if args.audit is not None:
+        require(args.blind is None and args.display is None and
+                args.output is None,
+                "--audit does not accept create arguments")
+        report = load(args.audit.resolve(), "physical promotion")
+        audit_report(report)
+        print("PHYSICAL-PROMOTION-AUDIT: PASS (all retained evidence rechecked)")
+        return 0
+    require(args.blind is not None and args.display is not None and
+            args.output is not None,
+            "create requires BLIND DISPLAY --output REPORT")
+    report = build_report(args.blind, args.display)
     temporary = args.output.with_name(args.output.name + ".tmp")
     temporary.write_text(json.dumps(report, indent=2) + "\n")
     temporary.replace(args.output)

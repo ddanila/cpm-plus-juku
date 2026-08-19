@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 import sys
+import tempfile
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +60,35 @@ def rejected(blind: dict[str, object], visual: dict[str, object],
     raise AssertionError(f"physical promotion accepted {label}")
 
 
+def retained_report_test() -> None:
+    with tempfile.TemporaryDirectory(prefix="physical-promotion.") as name:
+        base = Path(name)
+        blind_path = base / "blind.json"
+        display_path = base / "display.json"
+        blind_path.write_text(json.dumps(blind_report(), indent=2) + "\n")
+        display_path.write_text(json.dumps(display_report(), indent=2) + "\n")
+        with patch.object(promotion.closure, "audit_report"), \
+                patch.object(promotion.display, "audit_report"):
+            report = promotion.build_report(blind_path, display_path)
+            if promotion.audit_report(report) != report:
+                raise AssertionError("retained promotion report changed")
+            broken = copy.deepcopy(report)
+            broken["decision"] = "edited"
+            try:
+                promotion.audit_report(broken)
+            except promotion.PromotionError:
+                pass
+            else:
+                raise AssertionError("edited promotion report was accepted")
+            display_path.write_text(display_path.read_text() + " ")
+            try:
+                promotion.audit_report(report)
+            except promotion.PromotionError:
+                pass
+            else:
+                raise AssertionError("changed promotion input was accepted")
+
+
 def main() -> int:
     blind = blind_report()
     visual = display_report()
@@ -80,6 +112,7 @@ def main() -> int:
     broken = copy.deepcopy(blind)
     broken["remaining"] = []
     rejected(broken, visual, "premature blind closure")
+    retained_report_test()
     print("PHYSICAL-PROMOTION-TEST: PASS (identity, modes, remaining negatives)")
     return 0
 
