@@ -128,7 +128,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	distribution-cosim-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check history-check \
 	history-cosim-check panel-check panel-cosim-check \
-	netdisk-performance-check \
+	netdisk-performance-check physical-performance-check \
 	bootstrap-observability-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 

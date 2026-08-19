@@ -42,6 +42,7 @@ def fake_result(role: str) -> dict[str, object]:
         "dir-b": metrics(1 if control else 0, 8 if control else 0),
         "select-a": metrics(0, 0),
         "diag-cpu": metrics(1, 8),
+        "diag-usart": metrics(1, 8),
         "warm-boot": metrics(2, 16),
         "erase-readme": metrics(1, 8, writes=1),
         "dir-after-erase": metrics(0, 0),
@@ -131,7 +132,7 @@ def main() -> int:
     else:
         raise AssertionError("M4 mismatched host was accepted")
     broken = copy.deepcopy(optimized)
-    broken["commands"][5]["request_metrics"]["disk_retries"] = 1
+    broken["commands"][6]["request_metrics"]["disk_retries"] = 1
     try:
         performance.compare(control, broken)
     except performance.ComparisonError:

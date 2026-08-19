@@ -152,7 +152,8 @@ stream, and the ordinary optimized pair; strict simulation pins cache-off
 `performance` workload uses the same immutable C6 recovery A:, native B:, ROM,
 host, baud, and command sequence for both runs. Structured request timestamps
 make the comparison independent of parsing human log text and exclude operator
-power-on delay from the boot interval. See
+power-on delay from the boot interval. Its final safe `DIAG USART` command also
+requires a clean D11 PE/OE/FE status observation on each physical run. See
 [`cpm3-physical-acceptance.md`](cpm3-physical-acceptance.md).
 
 ## C6 bounded operations and soak

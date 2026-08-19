@@ -73,7 +73,7 @@ cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 
 ```
 
 For the controlled M4 comparison, start the cache-off run, cold-power or reset
-CS00015, and let all nine commands finish:
+CS00015, and let all ten commands finish:
 
 ```sh
 cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 --profile performance --manifest out/cpm-plus-juku-c6-control-manifest.json --output out/physical-CS00015-m4-control
@@ -93,8 +93,11 @@ current sources and immutable C6 recovery A: as the optimized run, with only
 `e68158497438b19c` / `294e85b80ce824fc`; the optimized identities are
 `57de00733bea16a3` / `3c2cf62d43b78678`. The audit requires 10/0/1 and B: 4/1
 for the control, 8/0/1 and B: 4/0 for the optimized system, zero retries, and
-synchronous erase writes in both. It records—but does not manufacture a pass
-from—elapsed timing from the first disk request to `A>`.
+synchronous erase writes in both. A final `DIAG USART` must also report clean
+D11 PE/OE/FE state; this is an end-of-workload hardware-status observation,
+not a claim that physical 8251 errors can be counted retrospectively. The
+runner records—but does not manufacture a pass from—elapsed timing from the
+first disk request to `A>`.
 
 The default 30-minute operator wait is a host-side bench policy. It prevents a
 human power/reset delay from consuming the server's short normal startup

@@ -176,3 +176,10 @@ runner's shared monotonic command boundaries produce independently audited
 read, record, write, retry, wire-byte, and first-disk-request timing evidence;
 the pair auditor rejects mismatched systems, hosts, media, workloads, counts,
 retries, or absent synchronous erase writes.
+
+The ordinary `make check` gate now includes that controlled comparison rather
+than leaving it as a documented side command. The physical workload also ends
+with the shared non-destructive `DIAG USART` probe: each retained control and
+optimized run must have zero protocol retries, complete its synchronous erase,
+and observe clean D11 parity/overrun/framing status. This final status sample
+is recorded as such and is not misrepresented as a historical error counter.

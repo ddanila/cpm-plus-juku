@@ -256,7 +256,7 @@ def lifecycle_and_audit_test() -> None:
 def main() -> int:
     for profile, minimum_commands in (
         ("full", 29), ("development", 10), ("display", 1),
-        ("performance", 9),
+        ("performance", 10),
     ):
         artifacts = acceptance.verify_manifest(
             acceptance.DEFAULT_MANIFEST, acceptance.DEFAULT_COSIM, profile,

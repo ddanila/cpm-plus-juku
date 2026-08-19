@@ -11,6 +11,7 @@
     {"name": "dir-b", "command": "DIR", "prompt": "B>", "expect": ["DIAG"]},
     {"name": "select-a", "command": "A:", "prompt": "A>"},
     {"name": "diag-cpu", "command": "DIAG CPU", "expect": ["CPU: PASS"], "coverage": ["DIAG.COM"]},
+    {"name": "diag-usart", "command": "DIAG USART", "expect": ["D11 USART status: PASS"]},
     {"name": "warm-boot", "command": "WBOOT", "coverage": ["WBOOT.COM"]},
     {"name": "erase-readme", "command": "ERA README.TXT"},
     {"name": "dir-after-erase", "command": "DIR", "expect": ["DIAG"]}

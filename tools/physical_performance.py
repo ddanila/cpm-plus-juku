@@ -24,7 +24,7 @@ OPTIMIZED_FASTBOOT = \
 RECOVERY_VOLUME = \
     "67d0a99b2979642d6f7d5d9c20ef705be685c99f1ab7846b8cf4f3ea383a54b0"
 WORKLOAD = \
-    "4f76ac2cbbc579260d5a3b4f6ebe53cfff799ebe280d346205c919c9cd536960"
+    "c498cc8f33141913c81450d9df7cd1130455d7229d8d14779896cff03d404d5c"
 
 
 class ComparisonError(RuntimeError):
@@ -90,7 +90,8 @@ def summarize(result: dict[str, Any], *, role: str) -> dict[str, Any]:
     commands = command_map(result)
     for name in (
         "dir-a", "type-readme", "select-b", "dir-b", "select-a",
-        "diag-cpu", "warm-boot", "erase-readme", "dir-after-erase",
+        "diag-cpu", "diag-usart", "warm-boot", "erase-readme",
+        "dir-after-erase",
     ):
         require(name in commands, f"{role} command {name} is absent")
     return {
@@ -150,7 +151,8 @@ def compare(control: dict[str, Any], optimized: dict[str, Any]) \
         "status": "pass",
         "decision": (
             "hot-directory cache removes two cold-read requests and the first "
-            "B: DIR request without retries; elapsed values are observations"
+            "B: DIR request without retries; both runs end with clean D11 "
+            "status and elapsed values are observations"
         ),
         "control": before,
         "optimized": after,
