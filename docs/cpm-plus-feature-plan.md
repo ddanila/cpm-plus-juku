@@ -728,9 +728,10 @@ pass on CS00015. The display queue is independent and waits only for usable
 display hardware. Further software work starts with measured shared
 status/diagnostic presentation improvements, not another overlapping utility.
 
-No current item requires a new ROM. A future C7 is opened only for a measured
-resident service or ABI need that cannot safely be implemented in the loaded
-BIOS, a transient, or the host. Higher baud rates, write-back caching,
+C7 is now opened for exactly one measured correction: modified raw contacts
+cannot be repaired in the loaded BIOS because `JCGKEYRAW` is the resident ROM
+service. Its simulator/package work is complete and its only new hardware
+gate is the focused raw-key run. Higher baud rates, write-back caching,
 authenticated boot, and banked CP/M Plus remain separate research projects.
 
 ### Goal hierarchy for the remaining work
@@ -747,7 +748,7 @@ requirement and makes the cost of another manual hardware run explicit.
 | Everyday usability | Preserve the admitted `!!`, `HIST`, and `PANEL` tools, then add UI or diagnostic presentation only when it removes a demonstrated workflow problem. | Exact-C6 strict-8080, locale, stack/TPA, disk, warm-boot, reconnect, and recovery-integrity gates for every addition. | Prefer transients/shared BIOS data; no ROM change by default. |
 | NetDisk evolution | Improve first-login, alternating-drive, or long sequential workloads; steady-state `DIR` is already local. | Profile first, then compare coalescing, prediction, a lower-overhead protocol, or compression end to end, including 8080 decode cost and failure recovery. | NetDisk v3 at proven 19,200 remains the compatibility baseline. |
 | Fleet diagnosis | Repair a faulty board without teaching shared software that its fault is normal. | CS00000 USART evidence and CS00024 RAM/refresh/D57 evidence stay in their machine records and simulations. | CS00015 remains the known-good reference. |
-| Future ROM | Spend EPROM space only on a measured resident capability which host, loaded BIOS, or transient code cannot provide safely. | A written ABI/budget/recovery design and simulator-first regression justify opening C7. | No C7 is currently required or planned for ordinary cleanup. |
+| C7 bounded correction | Correct the resident raw-key service without rewriting physically qualified C6. | Complete desk gate plus one retained Shift-F8/Ctrl-Up/Home `c7-raw` run on CS00015. | Separately named C7 pair; C6 remains the rollback reference. |
 | Separate research | Explore higher baud rates, authenticated boot, write-back caching, or banked CP/M without destabilizing the accepted product. | Each gets its own benchmark and failure contract before adoption. | Not part of the current non-banked release. |
 
 `cpm-ls`, XMODEM, a general write-back cache, and banking are therefore not
@@ -999,16 +1000,15 @@ means the named evidence exists; an attractive prototype alone is not enough.
    but keep CS00000 USART and CS00024 RAM/refresh/D57 work in separate machine
    records. End goal: failures identify a machine, layer, and last good stage
    instead of merely appearing as a stalled boot.
-6. **Consider a future ROM only when justified.** A C7 candidate may add a
-   resident service only when measurement proves that host, loaded BIOS, or a
-   transient cannot supply it safely. Automatic network-first boot, resident
-   console/keyboard/sound/diagnostics, and 19,200-baud Fastboot already exist
-   in C6, so they are not reasons by themselves for another EPROM burn. The
-   first accepted C7 correction is already bounded: take the modified-raw-key
-   scan-order fix from `juku-common` master, retain the C6 vector/ABI contract,
-   add Shift-F8 and Ctrl-Up/Home executable cases, and publish new hashes and
-   names. Prefer bundling that burn with another justified ROM improvement
-   unless physical software needs modified raw contacts sooner.
+6. **C7 bounded ROM correction — desk complete, focused bench pending.** C7
+   takes the modified-raw-key scan-order fix from `juku-common`, retains the
+   C6 vector/ABI/boot contract, and adds the already admitted VC-compatible
+   CP437 box glyphs. Exact simulator fixtures now prove Shift-F8 as column 14
+   with PB=`8Eh` and Ctrl-Up/Home as column 10 with PB=`6Ah`; immutable C6
+   remains byte-identical. The distinct manifest, reproducible package, D15/
+   D16 hashes, and operator-guided `c7-raw` workload are ready. Physical work
+   is one focused CS00015 run, not a repeat of the complete C6 matrix. Do not
+   claim C7 physical promotion until that retained run audits cleanly.
 7. **Keep research separate.** Higher baud rates or intermediate PIT divisors,
    a lower-overhead protocol, predictive host reads, and compression may be
    explored in simulator-first branches with end-to-end timing. RLE or another

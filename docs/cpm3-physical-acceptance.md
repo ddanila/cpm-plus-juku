@@ -1,7 +1,8 @@
 # CP/M Plus physical acceptance runner
 
-`tools/physical_acceptance.py` is the C6 acceptance path for the full,
-development, display, and performance workloads. It is separate from the immutable C4 promotion
+`tools/physical_acceptance.py` is the manifest-bound acceptance path for the
+C6 full, development, display, and performance workloads and the focused C7
+modified-raw-key workload. It is separate from the immutable C4 promotion
 recorder: C4 retains its historical candidate, checklist, and hashes, while
 this runner binds each new physical run to the current post-C6 loaded system
 and the unchanged C6 ROM.
@@ -51,12 +52,16 @@ definitions are:
 - `physical/workloads/full.json`;
 - `physical/workloads/development.json`;
 - `physical/workloads/display.json`;
-- `physical/workloads/performance.json`.
+- `physical/workloads/performance.json`;
+- `physical/workloads/c7-raw.json`.
 
 Every `Press RETURN to Continue` is handled automatically. Interactive input
-steps are explicit hex payloads in the workload, recorded by hash, and sent
-only after their target-side ready marker. The operator therefore supplies
-only power/reset; no catalogue commands need to be typed by hand.
+steps are either explicit hex payloads or explicit physical-operator actions.
+Hex input is recorded by hash and sent only after its target-side ready
+marker. Operator actions are separately recorded as requested and confirmed;
+the C7 workload uses them because N4 injection cannot prove a keyboard matrix
+contact. Apart from those named C7 key chords, the operator supplies only
+power/reset and no catalogue commands need to be typed by hand.
 
 ## Bench commands
 
@@ -65,6 +70,22 @@ Build and bind the current artifacts first:
 ```sh
 cd ~/fun/cpm-plus-juku && make c6-manifest-check
 ```
+
+For C7, first build the deterministic bench bundle and set S21 to logical
+`00000011` (`03h`). Program the 8,192-byte low image into D15 and the high
+image into D16, using the exact files and hashes in
+[`c7-bench-candidate.md`](c7-bench-candidate.md). Then start the focused run
+before powering CS00015:
+
+```sh
+cd ~/fun/cpm-plus-juku && make c7-bench-candidate
+cd ~/fun/cpm-plus-juku && python3 tools/physical_acceptance.py run /dev/ttyUSB0 --profile c7-raw --manifest out/cpm-plus-juku-c7-manifest.json --output out/physical-CS00015-c7-raw
+```
+
+The runner boots and checks CPU/USART itself, launches `KEYRAW`, and prompts
+for Shift+F8, Ctrl+Up/Home, and Esc. It requires exact target reports
+`RAW COL=0E PB=8E` and `RAW COL=0A PB=6A`, then proves a warm boot. This is the
+only new blind hardware experiment needed to accept the bounded C7 change.
 
 Start the full run before powering or resetting CS00015:
 
@@ -202,10 +223,11 @@ to `A>`, excluding how long the operator took to power or reset the machine.
 Changing a transcript, workload, host log, boot result, artifact, command
 status, or post-run volume invalidates the result.
 
-`make physical-acceptance-check` exercises paging, interactive input, timeout
+`make physical-acceptance-check` exercises paging, remote and physical
+interactive input, timeout
 diagnostics, a complete fake-host lifecycle, clean shutdown, evidence audit,
-tamper rejection, an independently launched retained standard host, all four
-real workload definitions, and the current C6 manifest.
+tamper rejection, an independently launched retained standard host, all five
+real workload definitions, and the distinct C6/C7 manifests.
 
 `make physical-closure-check` additionally proves the exact four-bundle
 identity/coverage contract and rejects wrong systems, missing CRC evidence,

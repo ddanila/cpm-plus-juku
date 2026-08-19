@@ -63,3 +63,12 @@ raw keyboard, and sound. `tests/c6_boot_manifest_test.py` rejects a stale C5
 system, missing service, wrong slot, media mismatch, or changed build identity.
 The deterministic simulator package and its non-claim of physical promotion
 are described in [`cpm-plus-31-c6-simulator.md`](cpm-plus-31-c6-simulator.md).
+
+The bounded C7 successor has its own
+`out/cpm-plus-juku-c7-manifest.json`. It binds the unchanged extended CP/M
+system, Fastboot V16, C6 recovery/media set, and immutable C4 fallback to the
+separately named C7 ROM. Its primary slot is `c7-native`; neither the C6
+manifest nor C6 hashes are rewritten. `tests/c7_boot_manifest_test.py` pins
+both the C7 ROM and immutable C6 hash, while the reproducible focused package
+and physical procedure are described in
+[`c7-bench-candidate.md`](c7-bench-candidate.md).

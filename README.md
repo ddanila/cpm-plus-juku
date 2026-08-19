@@ -83,7 +83,11 @@ The additive ROM line is:
 - C6 / ABI 1.2: bounded console-span, ordered NetDisk multi-request,
   instantaneous raw keyboard, sound, and bounded N4 block output. C6 is the
   completed simulator release, is now fitted and blind-qualified on CS00015,
-  and does not modify C5 bytes.
+  and does not modify C5 bytes;
+- C7 / ABI 1.2: a separately named, simulator-qualified successor correcting
+  modified raw-key scan order and carrying VC-compatible CP437 box glyphs.
+  Exact Shift+F8 and Ctrl+Up/Home fixtures pass; focused CS00015 physical
+  acceptance is pending and C6 remains immutable.
 
 ## Build and verification
 
@@ -103,7 +107,7 @@ That image incorporates the digest-pinned `8080-cosim` smoke kit, allowing CI
 to boot the generated system through the network ROM without cloning or
 compiling the simulator on every run.
 `make check` verifies immutable prebuilt images, ROM budgets, licensed volume
-inputs, deterministic distribution reports, boot manifests, C5/C6 package
+inputs, deterministic distribution reports, boot manifests, C5/C6/C7 package
 reproducibility, the CP/M 3 toolchain output, native BIOS services,
 observability/recovery, the 23-program candidate catalogue, every admitted DRI
 and project utility on the current C6 path, live disk/stack/TPA accounting, and
@@ -122,6 +126,16 @@ C6 through both local and N4 consoles, executes A:/B:, sequential read,
 diagnostics, raw-key and N4-block utilities, warm boot and write/erase, runs a
 64-cycle read/write/reconnect soak, then produces and independently reproduces
 the complete package.
+
+Prepare the distinct C7 programmer/bench bundle with:
+
+```sh
+make c7-bench-candidate
+```
+
+This does not promote C7 physically. It regenerates and checks the exact ROM,
+pins its manifest and D15/D16 order, packages the matching CP/M/V16/media set,
+and leaves one operator-guided `c7-raw` run on CS00015.
 
 Important focused commands are:
 
@@ -147,7 +161,7 @@ make history-cosim-check panel-cosim-check
 
 The normal build creates the frozen RAM-BIOS and C4 systems, native and C5/C6
 systems/fastboot stages, seven declarative media profiles and their reports, and
-ABI-specific boot manifests. The C6-specific files include:
+ABI-specific boot manifests. The C6/C7-specific files include:
 
 ```text
 out/cpm-plus-juku-network-rom-extended-native-system.bin
@@ -157,6 +171,10 @@ out/cpm-plus-juku-c6-manifest.json
 out/cpm-plus-3.1-juku-c6-simulator/
 out/cpm-plus-3.1-juku-c6-simulator.tar
 out/cpm-plus-3.1-juku-c6-simulator.tar.sha256
+out/cpm-plus-juku-c7-manifest.json
+out/cpm-plus-3.1-juku-c7-modified-raw-bench/
+out/cpm-plus-3.1-juku-c7-modified-raw-bench.tar
+out/cpm-plus-3.1-juku-c7-modified-raw-bench.tar.sha256
 ```
 
 The release directory contains the combined 16 KiB ROM, exact low D15 and high

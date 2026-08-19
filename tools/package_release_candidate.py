@@ -56,6 +56,25 @@ VARIANTS = {
             "claimed by this simulator candidate."
         ),
     },
+    "c7": {
+        "candidate": "cpm-plus-3.1-juku-c7-modified-raw-bench",
+        "abi": "1.2",
+        "rom_stem": "juku-network-rom-abi1.2-c7",
+        "manifest": "cpm-plus-juku-c7-manifest.json",
+        "system": "cpm-plus-juku-network-rom-extended-native-system.bin",
+        "fast_stage": "cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin",
+        "recovery": "cpm-plus-juku-c6-recovery",
+        "adapter": "adapter-romabi-extended-native.bin",
+        "status": "simulator-qualified; focused modified-raw bench pending",
+        "target": "Juku CS00015 modified-raw-key acceptance",
+        "qualification": (
+            "It keeps the complete C6 boot, ABI, CP/M, and media baseline, "
+            "and adds\nonly the corrected ordinary-first raw-key scan plus "
+            "VC-compatible CP437\nbox glyphs. Exact Shift-F8 and "
+            "Ctrl-Up/Home simulator fixtures pass.\nPhysical promotion is "
+            "limited to the focused c7-raw workload and is not yet claimed."
+        ),
+    },
 }
 
 
@@ -173,7 +192,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             "resident_state": "D780h",
             "framebuffer": "D800h..FD7Fh (9600 bytes, mode 3 RAM)",
         }
-        if variant == "c6":
+        if variant in ("c6", "c7"):
             ram_map.update({
                 "netdisk_hot_directory_state": "C5A0h..C5A1h (2 bytes)",
                 "netdisk_hot_directory_data": (

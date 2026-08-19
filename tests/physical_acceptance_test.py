@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise C6 physical workload, lifecycle, evidence, and audit boundaries."""
+"""Exercise manifest-bound physical workload and audit boundaries."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def workload_executor_test() -> None:
             assert read_command(slave) == b"INTERACT\r"
             os.write(slave, b"READY")
             assert read_command(slave) == b"A\r"
-            os.write(slave, b"DONE\r\nA>")
+            os.write(slave, b"PHYSICAL")
         except BaseException as error:
             failures.append(error)
 
@@ -61,15 +61,25 @@ def workload_executor_test() -> None:
         "commands": [
             {"name": "paged", "command": "PAGER", "expect": ["OK"]},
             {"name": "interactive", "command": "INTERACT",
-             "steps": [{"wait": "READY", "send_hex": "41 0d"}],
+             "steps": [
+                 {"wait": "READY", "send_hex": "41 0d"},
+                 {"wait": "PHYSICAL", "operator": "Press test key."},
+             ],
              "expect": ["DONE"]},
         ],
     }
     events: list[tuple[str, dict[str, object]]] = []
+    operator_actions: list[str] = []
+
+    def operator_confirm(instruction: str) -> None:
+        operator_actions.append(instruction)
+        os.write(slave, b"DONE\r\nA>")
+
     console = acceptance.N4Console(master)
     boot, commands = acceptance.execute_workload(
         console, workload, operator_wait=2, command_timeout=2,
         emit=lambda event, **fields: events.append((event, fields)),
+        operator_confirm=operator_confirm,
     )
     worker.join(timeout=2)
     os.close(master)
@@ -79,7 +89,10 @@ def workload_executor_test() -> None:
     if boot["result"] != "pass" or console.page_returns != 2 or \
             [item["result"] for item in commands] != ["pass", "pass"] or \
             commands[0]["page_returns"] != 2 or \
-            not any(event == "command_input" for event, _ in events):
+            operator_actions != ["Press test key."] or \
+            not any(event == "command_input" for event, _ in events) or \
+            not any(event == "operator_action_confirmed"
+                    for event, _ in events):
         raise AssertionError("paging/interactive workload evidence differs")
 
 
@@ -301,12 +314,16 @@ def lifecycle_and_audit_test() -> None:
 
 
 def main() -> int:
-    for profile, minimum_commands in (
-        ("full", 30), ("development", 10), ("display", 1),
-        ("performance", 10),
+    c7_manifest = ROOT / "out/cpm-plus-juku-c7-manifest.json"
+    for profile, minimum_commands, manifest in (
+        ("full", 30, acceptance.DEFAULT_MANIFEST),
+        ("development", 10, acceptance.DEFAULT_MANIFEST),
+        ("display", 1, acceptance.DEFAULT_MANIFEST),
+        ("performance", 10, acceptance.DEFAULT_MANIFEST),
+        ("c7-raw", 5, c7_manifest),
     ):
         artifacts = acceptance.verify_manifest(
-            acceptance.DEFAULT_MANIFEST, acceptance.DEFAULT_COSIM, profile,
+            manifest, acceptance.DEFAULT_COSIM, profile,
         )
         _, workload = acceptance.load_workload(profile)
         if len(workload["commands"]) < minimum_commands or \

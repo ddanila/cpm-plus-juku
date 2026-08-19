@@ -60,6 +60,10 @@ C6_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c6.bin
 C6_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c6.json
 C6_RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-c6-recovery.img
 C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
+C7_RELEASE := $(OUT)/cpm-plus-3.1-juku-c7-modified-raw-bench
+C7_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c7-manifest.json
+C7_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c7.bin
+C7_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c7.json
 HISTORY_CCP := $(BUILD)/cpm3-history/CCP.COM
 HISTORY_CCP_MANIFEST := $(BUILD)/cpm3-history/manifest.json
 HISTORY_RUNTIME_METRICS := $(BUILD)/cpm3-history-runtime.json
@@ -81,8 +85,10 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	panel-check panel-cosim-check \
 	netdisk-performance-check physical-performance-check physical-closure-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
-	manifest-check c5-manifest-check c6-manifest-check release-candidate \
-	release-candidate-check c6-release-candidate c6-release-candidate-check \
+	manifest-check c5-manifest-check c6-manifest-check c7-manifest-check \
+	release-candidate release-candidate-check \
+	c6-release-candidate c6-release-candidate-check \
+	c7-bench-candidate c7-bench-candidate-check \
 	regenerate-cpm3 regenerate-cpm3-rom \
 	network-rom-locale-cosim-check network-rom-extended-local-cosim-check \
 	network-rom-extended-cosim-check \
@@ -125,7 +131,8 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	development-tool-audit-check \
 	compiler-comparison-check external-software-audit-check \
 	distribution-check manifest-check c5-manifest-check \
-	c6-manifest-check c6-release-candidate-check \
+	c6-manifest-check c7-manifest-check c6-release-candidate-check \
+	c7-bench-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
 	distribution-cosim-check development-cosim-check \
 	physical-acceptance-check vidtest-cosim-check display-acceptance-check history-check \
@@ -150,7 +157,7 @@ development-tool-audit-check:
 	$(PYTHON) tools/audit_cpm3_development_tools.py --check
 	$(PYTHON) tests/cpm3_development_tool_audit_test.py
 
-physical-acceptance-check: $(C6_BOOT_MANIFEST)
+physical-acceptance-check: $(C6_BOOT_MANIFEST) $(C7_BOOT_MANIFEST)
 	$(PYTHON) tests/physical_acceptance_test.py
 
 physical-performance-check: $(C6_CONTROL_BOOT_MANIFEST) \
@@ -461,6 +468,9 @@ c5-manifest-check: $(C5_BOOT_MANIFEST)
 c6-manifest-check: $(C6_BOOT_MANIFEST)
 	$(PYTHON) tests/c6_boot_manifest_test.py
 
+c7-manifest-check: $(C7_BOOT_MANIFEST)
+	$(PYTHON) tests/c7_boot_manifest_test.py
+
 release-candidate: check
 	$(PYTHON) tools/package_release_candidate.py --output $(C5_RELEASE)
 
@@ -479,6 +489,17 @@ c6-release-candidate:
 
 c6-release-candidate-check: $(C6_BOOT_MANIFEST)
 	$(PYTHON) tests/c6_release_candidate_test.py
+
+c7-bench-candidate:
+	$(PYTHON) $(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/build_network_rom.py
+	$(JUKU_COSIM_ROOT)/sync/network_first_rom_abi_check.sh
+	$(JUKU_COSIM_ROOT)/sync/network_first_rom_hdl_check.sh
+	$(MAKE) c7-manifest-check
+	$(PYTHON) tools/package_release_candidate.py --variant c7 --output $(C7_RELEASE)
+	$(PYTHON) tests/c7_bench_candidate_test.py
+
+c7-bench-candidate-check: $(C7_BOOT_MANIFEST)
+	$(PYTHON) tests/c7_bench_candidate_test.py
 
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
@@ -1160,6 +1181,26 @@ $(C6_BOOT_MANIFEST): $(EXTENDED_NATIVE_ROM_SYSTEM) \
 		--rom $(C6_ROM) --rom-metadata $(C6_ROM_METADATA) \
 		--rom-abi 1.2 --identity-prefix c6 \
 		--primary-slot-name c6-native \
+		--volume $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
+		--volume $(FULL_VOLUME) $(FULL_REPORT) \
+		--volume $(DEV_VOLUME) $(DEV_REPORT) \
+		--volume $(APPS_VOLUME) $(APPS_REPORT) \
+		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
+
+$(C7_BOOT_MANIFEST): $(EXTENDED_NATIVE_ROM_SYSTEM) \
+		$(EXTENDED_NATIVE_ROM_FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) \
+		$(C7_ROM) $(C7_ROM_METADATA) \
+		$(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
+		$(FULL_VOLUME) $(FULL_REPORT) $(DEV_VOLUME) $(DEV_REPORT) \
+		$(APPS_VOLUME) $(APPS_REPORT) \
+		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
+	$(PYTHON) tools/build_boot_manifest.py \
+		--system $(EXTENDED_NATIVE_ROM_SYSTEM) \
+		--fast-stage $(EXTENDED_NATIVE_ROM_FASTBOOT) \
+		--fallback-system $(ROM_SYSTEM) --fallback-fast-stage $(ROM_FASTBOOT) \
+		--rom $(C7_ROM) --rom-metadata $(C7_ROM_METADATA) \
+		--rom-abi 1.2 --identity-prefix c7 \
+		--primary-slot-name c7-native \
 		--volume $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
 		--volume $(FULL_VOLUME) $(FULL_REPORT) \
 		--volume $(DEV_VOLUME) $(DEV_REPORT) \

@@ -1,0 +1,37 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c7-raw",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": ["DIAG.COM", "KEYRAW.COM", "WBOOT.COM"],
+  "commands": [
+    {"name": "dir-keyraw", "command": "DIR KEYRAW.COM", "expect": ["KEYRAW"]},
+    {"name": "diag-cpu", "command": "DIAG CPU", "expect": ["CPU: PASS"], "coverage": ["DIAG.COM"]},
+    {"name": "diag-usart", "command": "DIAG USART", "expect": ["D11 USART status: PASS"]},
+    {
+      "name": "modified-raw-keys",
+      "command": "KEYRAW",
+      "steps": [
+        {
+          "wait": "ESC exits. PB bits include CTRL/SHIFT and encoder row.",
+          "operator": "Hold Shift, tap F8, then release both keys."
+        },
+        {
+          "wait": "RAW COL=0E PB=8E",
+          "operator": "Hold Ctrl, tap Up/Home, then release both keys."
+        },
+        {
+          "wait": "RAW COL=0A PB=6A",
+          "operator": "Press Esc once to finish Keyraw."
+        }
+      ],
+      "expect": [
+        "RAW COL=0E PB=8E",
+        "RAW COL=0A PB=6A",
+        "Juku Keyraw 1.0 DONE"
+      ],
+      "coverage": ["KEYRAW.COM"]
+    },
+    {"name": "warm-boot", "command": "WBOOT", "coverage": ["WBOOT.COM"]}
+  ]
+}

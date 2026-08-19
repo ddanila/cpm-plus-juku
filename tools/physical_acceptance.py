@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run and audit C6 full, development, or display acceptance on a Juku."""
+"""Run and audit manifest-bound CP/M Plus acceptance on a Juku."""
 
 from __future__ import annotations
 
@@ -47,7 +47,12 @@ PROFILE_VOLUMES = {
     "development": "development-a",
     "display": "full-a",
     "performance": "c6-recovery-a",
+    "c7-raw": "c6-recovery-a",
 }
+PROFILE_ROM_CANDIDATES = {
+    "c7-raw": "network-first-abi1.2-c7-modified-raw-simulator",
+}
+DEFAULT_ROM_CANDIDATE = "network-first-abi1.2-c6-simulator"
 
 
 class AcceptanceError(RuntimeError):
@@ -168,7 +173,9 @@ def verify_manifest(manifest_path: Path, cosim: Path, profile: str) \
             requirements.get("bootstrap_baud") != 19200 or \
             requirements.get("netdisk") != 3 or \
             requirements.get("disk_baud") != 19200:
-        raise AcceptanceError("manifest is not a C6/V16/N3 19200 artifact set")
+        raise AcceptanceError(
+            "manifest is not an ABI 1.2/V16/N3 19200 artifact set"
+        )
     base = manifest_path.parent
     system_entry = manifest.get("system")
     stage_entry = manifest.get("fast_stage")
@@ -197,7 +204,7 @@ def verify_manifest(manifest_path: Path, cosim: Path, profile: str) \
     if not isinstance(rom_entry, dict):
         raise AcceptanceError("manifest ROM binding is missing")
     rom_base = cosim.resolve() / "spinoffs/jukuravi/network-rom"
-    rom = checked_artifact(rom_base, rom_entry, "C6 ROM")
+    rom = checked_artifact(rom_base, rom_entry, "bound ROM")
     metadata_name = rom_entry.get("metadata_file")
     if not isinstance(metadata_name, str):
         raise AcceptanceError("manifest ROM metadata binding is missing")
@@ -207,10 +214,15 @@ def verify_manifest(manifest_path: Path, cosim: Path, profile: str) \
         "sha256": rom_entry.get("metadata_sha256"),
     }
     rom_metadata = checked_artifact(
-        rom_base, metadata_entry, "C6 ROM metadata",
+        rom_base, metadata_entry, "bound ROM metadata",
     )
-    if rom_entry.get("candidate") != "network-first-abi1.2-c6-simulator":
-        raise AcceptanceError("manifest is not bound to the immutable C6 ROM")
+    wanted_candidate = PROFILE_ROM_CANDIDATES.get(
+        profile, DEFAULT_ROM_CANDIDATE,
+    )
+    if rom_entry.get("candidate") != wanted_candidate:
+        raise AcceptanceError(
+            f"manifest is not bound to {wanted_candidate}"
+        )
     return {
         "manifest": identity(manifest_path),
         "build_identity": manifest.get("build_identity"),
@@ -257,10 +269,16 @@ def load_workload(profile: str, path: Path | None = None) \
             raise AcceptanceError(f"workload command {name} checks are malformed")
         for step in steps:
             if not isinstance(step, dict) or \
-                    not isinstance(step.get("wait"), str) or \
-                    not isinstance(step.get("send_hex"), str):
+                    not isinstance(step.get("wait"), str):
                 raise AcceptanceError(f"workload command {name} step is malformed")
-            bytes.fromhex(step["send_hex"])
+            has_send = isinstance(step.get("send_hex"), str)
+            has_operator = isinstance(step.get("operator"), str)
+            if has_send == has_operator:
+                raise AcceptanceError(
+                    f"workload command {name} step must select one action"
+                )
+            if has_send:
+                bytes.fromhex(step["send_hex"])
         command_coverage = command.get("coverage", [])
         if not isinstance(command_coverage, list) or \
                 not all(isinstance(value, str) for value in command_coverage):
@@ -280,6 +298,8 @@ def load_workload(profile: str, path: Path | None = None) \
         admitted = {"VIDTEST.COM"}
     elif profile == "performance":
         admitted = {"DIAG.COM", "WBOOT.COM"}
+    elif profile == "c7-raw":
+        admitted = {"DIAG.COM", "KEYRAW.COM", "WBOOT.COM"}
     elif isinstance(programs, dict):
         admitted = {
             name for name, record in programs.items()
@@ -381,7 +401,8 @@ def response_record(name: str, command: str, start: int, end: int,
 
 def execute_workload(console: N4Console, workload: dict[str, Any], *,
                      operator_wait: float, command_timeout: float,
-                     emit: Callable[..., None]) \
+                     emit: Callable[..., None],
+                     operator_confirm: Callable[[str], None] | None = None) \
         -> tuple[dict[str, Any], list[dict[str, Any]]]:
     emit("target_wait_started", timeout_seconds=operator_wait)
     boot_started = time.monotonic()
@@ -434,10 +455,22 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
                 delay = float(step.get("delay", 0))
                 if delay:
                     time.sleep(delay)
-                payload = bytes.fromhex(step["send_hex"])
-                console.send(payload)
-                emit("command_input", name=name, step=step_number,
-                     bytes=len(payload), sha256=sha256_bytes(payload))
+                if "send_hex" in step:
+                    payload = bytes.fromhex(step["send_hex"])
+                    console.send(payload)
+                    emit("command_input", name=name, step=step_number,
+                         bytes=len(payload), sha256=sha256_bytes(payload))
+                else:
+                    instruction = step["operator"]
+                    emit("operator_action_requested", name=name,
+                         step=step_number, instruction=instruction)
+                    if operator_confirm is None:
+                        print(f"\nOPERATOR ACTION: {instruction}", flush=True)
+                        input("Press Enter here after completing it: ")
+                    else:
+                        operator_confirm(instruction)
+                    emit("operator_action_confirmed", name=name,
+                         step=step_number, instruction=instruction)
             end = console.wait_for(
                 prompt.encode("ascii"), start=position, timeout=timeout,
             )
@@ -1032,6 +1065,13 @@ def audit_directory(directory: Path) -> list[str]:
     if event_names.count("command_started") != len(commands) or \
             event_names.count("command_passed") != len(commands):
         failures.append("command lifecycle event count differs")
+    operator_steps = sum(
+        1 for command in workload["commands"]
+        for step in command.get("steps", []) if "operator" in step
+    )
+    if event_names.count("operator_action_requested") != operator_steps or \
+            event_names.count("operator_action_confirmed") != operator_steps:
+        failures.append("operator action lifecycle event count differs")
     return failures
 
 
