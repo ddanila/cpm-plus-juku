@@ -14,9 +14,12 @@ older server which merely prints request lines is intentionally insufficient.
 
 The runner verifies the C6 boot manifest before opening the serial device. It
 hash-checks the ROM and metadata, V16 stream, system image, selected A: image,
-read-only native B:, workload, host server, and runner. A fresh private copy of
-A: is made for each run and served in synchronous write-through mode; the
-manifest image is never modified.
+read-only native B:, workload, host server, both standard host modules, and
+runner. The server and its `janet_netboot.py`/`janet_fastboot.py` dependencies
+are copied together into `inputs/` and executed from that retained set; the
+physical run therefore cannot silently import different live-tree code. A
+fresh private copy of A: is made for each run and served in synchronous
+write-through mode; the manifest image is never modified.
 
 The host and target evidence are independent. `boot.json` proves that the
 bound system reached its first valid NetDisk request at 19,200 baud. A run is
@@ -162,7 +165,7 @@ host.log       complete Janet/NetDisk/N4 server log
 events.jsonl   timestamped host, target, command, input, and shutdown events
 requests.jsonl timestamped structured NetDisk/N4 request trace
 working-a.img  private post-run writable A:
-inputs/        exact manifest, binaries, media, workload, host, and runner
+inputs/        exact manifest, binaries, media, workload, host modules, runner
 ```
 
 On a target timeout or wrong reply, `result.json` remains usable and records
@@ -190,8 +193,8 @@ status, or post-run volume invalidates the result.
 
 `make physical-acceptance-check` exercises paging, interactive input, timeout
 diagnostics, a complete fake-host lifecycle, clean shutdown, evidence audit,
-tamper rejection, all four real workload definitions, and the current C6
-manifest.
+tamper rejection, an independently launched retained standard host, all four
+real workload definitions, and the current C6 manifest.
 
 `make physical-closure-check` additionally proves the exact four-bundle
 identity/coverage contract and rejects wrong systems, missing CRC evidence,

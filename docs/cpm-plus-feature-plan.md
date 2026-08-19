@@ -856,7 +856,10 @@ Status on 2026-08-19:
   runner handles paging and interactive inputs, isolates writable media,
   records byte-addressed target replies and host lifecycle evidence, preserves
   timeout diagnostics, shuts the host down cleanly, and independently audits
-  retained results. One full and one development CS00015 run remain.
+  retained results. A 2026-08-19 bench preflight caught that the retained host
+  script had been copied without its two import modules; the runner now binds,
+  hashes, executes, and audits all three files together, with an independent
+  launch regression. One full and one development CS00015 run remain.
 - M3's desk implementation is complete. `VIDTEST.COM` is admitted to the
   full/dev/demo media, all sixteen oracle surfaces are deterministic, and the
   exact C6 executable passes seven live geometry/locale cases with both cursor

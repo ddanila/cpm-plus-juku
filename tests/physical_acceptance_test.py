@@ -114,6 +114,30 @@ def timeout_diagnostic_test() -> None:
     os.close(slave)
 
 
+def host_snapshot_test() -> None:
+    server = acceptance.DEFAULT_COSIM / "tools/janet_disk_server.py"
+    with tempfile.TemporaryDirectory(prefix="physical-host-snapshot.") as name:
+        inputs = Path(name)
+        snapped, dependencies = acceptance.snapshot_host(server, inputs)
+        if {Path(record["path"]).name for record in dependencies} != \
+                set(acceptance.STANDARD_HOST_MODULES):
+            raise AssertionError("standard host dependency snapshot differs")
+        completed = subprocess.run(
+            [sys.executable, snapped["path"], "--help"],
+            cwd=ROOT, text=True, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        if completed.returncode != 0 or "Juku" not in completed.stdout:
+            raise AssertionError(
+                "snapshotted disk server is not independently executable:\n"
+                + completed.stdout
+            )
+        Path(dependencies[0]["path"]).write_text("changed\n")
+        if acceptance.sha256(Path(dependencies[0]["path"])) == \
+                dependencies[0]["sha256"]:
+            raise AssertionError("changed host dependency retained its hash")
+
+
 def fake_server_source() -> str:
     return r'''#!/usr/bin/env python3
 import hashlib, json, os, signal, sys, time
@@ -268,6 +292,7 @@ def main() -> int:
             raise AssertionError(f"{profile} workload/artifact binding differs")
     workload_executor_test()
     timeout_diagnostic_test()
+    host_snapshot_test()
     lifecycle_and_audit_test()
     print("PHYSICAL-ACCEPTANCE-TEST: PASS")
     return 0

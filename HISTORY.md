@@ -227,3 +227,11 @@ mode verifies the stored blind/display report hashes, re-executes both complete
 lower-level audits from the original eight result bundles and photographs, and
 reconstructs the final identity decision. Filesystem-level regressions reject
 both an edited final decision and a changed lower-level report.
+
+The first post-C6 full-workload preflight on 2026-08-19 failed safely before
+CS00015 was powered: the runner copied `janet_disk_server.py` into its evidence
+directory but not the sibling `janet_netboot.py` and `janet_fastboot.py`
+modules it imports. The physical runner now retains and hashes the complete
+three-file host set, executes that set in place, and audits every dependency.
+A regression launches the snapped server outside its source directory and
+would reproduce the original import failure.

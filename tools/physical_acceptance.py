@@ -36,6 +36,7 @@ CONSOLE_READY_MARKERS = (
     "Advertising N4 remote console on ",
     "Resuming N4 remote console on ",
 )
+STANDARD_HOST_MODULES = ("janet_netboot.py", "janet_fastboot.py")
 DISK_READ_OPERATIONS = frozenset((0x11, 0x13, 0x14))
 DISK_WRITE_OPERATIONS = frozenset((0x12, 0x15))
 PAGE_PROMPT = b"Press RETURN to Continue"
@@ -109,6 +110,21 @@ def snapshot_file(source: Path, destination: Path) -> dict[str, Any]:
     result = identity(destination)
     result["source_path"] = str(source)
     return result
+
+
+def snapshot_host(server: Path, inputs: Path) \
+        -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    snapped_server = snapshot_file(server, inputs / server.name)
+    dependencies: list[dict[str, Any]] = []
+    if server.name == "janet_disk_server.py":
+        for name in STANDARD_HOST_MODULES:
+            source = server.parent / name
+            if not source.is_file():
+                raise AcceptanceError(
+                    f"standard disk-server module is missing: {source}"
+                )
+            dependencies.append(snapshot_file(source, inputs / name))
+    return snapped_server, dependencies
 
 
 def checked_artifact(base: Path, entry: dict[str, Any], label: str) \
@@ -581,8 +597,9 @@ def snapshot_inputs(output: Path, artifacts: dict[str, Any],
         snapped[name] = snapshot_file(source, inputs / source.name)
         if snapped[name]["sha256"] != artifacts[name]["sha256"]:
             raise AcceptanceError(f"input snapshot differs while copying {name}")
-    snapped_server = snapshot_file(server, inputs / server.name)
+    snapped_server, host_dependencies = snapshot_host(server, inputs)
     snapped["host_server"] = snapped_server
+    snapped["host_dependencies"] = host_dependencies
     snapped_workload = inputs / "workload.json"
     snapshot_file(workload, snapped_workload)
     snapped_runner = snapshot_file(Path(__file__), inputs / "physical_acceptance.py")
@@ -904,6 +921,18 @@ def audit_directory(directory: Path) -> list[str]:
         if not path.is_file() or path.stat().st_size != entry.get("bytes") or \
                 sha256(path) != entry.get("sha256"):
             failures.append(f"bound artifact changed: {name}")
+    host_dependencies = artifacts.get("host_dependencies")
+    if not isinstance(host_dependencies, list):
+        failures.append("host dependency identities are missing")
+    else:
+        for number, entry in enumerate(host_dependencies, 1):
+            if not isinstance(entry, dict):
+                failures.append(f"host dependency {number} is malformed")
+                continue
+            path = Path(str(entry.get("path", "")))
+            if not path.is_file() or path.stat().st_size != entry.get("bytes") or \
+                    sha256(path) != entry.get("sha256"):
+                failures.append(f"bound host dependency changed: {number}")
     working = result.get("working_volume", {})
     working_path = Path(str(working.get("path", "")))
     if working.get("sha256_before") != artifacts["volume"].get("sha256") or \
