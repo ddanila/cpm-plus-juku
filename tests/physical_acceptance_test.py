@@ -140,6 +140,25 @@ def host_snapshot_test() -> None:
             raise AssertionError("changed host dependency retained its hash")
 
 
+def operator_wait_budget_test() -> None:
+    args = acceptance.parser().parse_args([
+        "run", "/dev/null", "--profile", "full", "--output", "/tmp/out",
+        "--operator-wait", "1800",
+    ])
+    artifacts = acceptance.verify_manifest(
+        acceptance.DEFAULT_MANIFEST, acceptance.DEFAULT_COSIM, "full",
+    )
+    command = acceptance.server_command(
+        args, artifacts, Path("/tmp/volume.img"), "/dev/pts/0",
+        Path("/tmp/boot.json"), Path("/tmp/requests.jsonl"),
+        acceptance.DEFAULT_COSIM / "tools/janet_disk_server.py",
+    )
+    restart_index = command.index("--boot-restarts") + 1
+    if command[restart_index] != "600" or \
+            "Booting " not in acceptance.CONSOLE_READY_MARKERS:
+        raise AssertionError("operator wait is not bound to pre-boot retries")
+
+
 def fake_server_source() -> str:
     return r'''#!/usr/bin/env python3
 import hashlib, json, os, signal, sys, time
@@ -297,6 +316,7 @@ def main() -> int:
     workload_executor_test()
     timeout_diagnostic_test()
     host_snapshot_test()
+    operator_wait_budget_test()
     lifecycle_and_audit_test()
     print("PHYSICAL-ACCEPTANCE-TEST: PASS")
     return 0

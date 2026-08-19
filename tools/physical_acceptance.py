@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import pty
@@ -33,6 +34,7 @@ SCHEMA = "cpm-plus-juku-physical-acceptance-v1"
 WORKLOAD_SCHEMA = "cpm-plus-juku-physical-workload-v1"
 RESULT_SCHEMA = "cpm-plus-juku-physical-acceptance-result-v1"
 CONSOLE_READY_MARKERS = (
+    "Booting ",
     "Advertising N4 remote console on ",
     "Resuming N4 remote console on ",
 )
@@ -499,7 +501,13 @@ def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
         "--media-mode", "write-through",
         "--console-pty", console_pty, "--console-trace",
         "--timeout", str(args.operator_wait),
-        "--boot-restarts", "3",
+        # A direct V16 attempt which sees no target lasts at least the
+        # three-second ready observation interval.  Keep complete recovery
+        # attempts alive for the advertised operator window; the old fixed
+        # three restarts expired in about 30 seconds.
+        "--boot-restarts", str(max(
+            3, math.ceil(args.operator_wait / 3.0),
+        )),
         "--disk-timeout", str(args.session_timeout),
     ]
 

@@ -155,12 +155,14 @@ not a claim that physical 8251 errors can be counted retrospectively. The
 runner records—but does not manufacture a pass from—elapsed timing from the
 first disk request to `A>`.
 
-The default 30-minute operator wait is a host-side bench policy. It prevents a
-human power/reset delay from consuming the server's short normal startup
-window; it does not change the ROM's bounded V16 parser, NetDisk retry policy,
-or recovery semantics. Each command remains bounded to ten minutes and the
-complete host session to three hours. These limits can be reduced explicitly
-for automated benches.
+The default 30-minute operator wait is a host-side bench policy. The runner
+recognizes the verified server's initial `Booting` line before target attach
+and derives enough complete V16 rediscovery attempts to cover that interval;
+an operator power/reset delay therefore cannot consume a short fixed startup
+window. This does not change the ROM's bounded V16 parser, NetDisk retry
+policy, or recovery semantics. Each command remains bounded to ten minutes
+and the complete host session to three hours. These limits can be reduced
+explicitly for automated benches.
 
 The runner always asks the isolated host process to stop with one `SIGINT` and
 waits for its atomic media shutdown. A forced termination makes the run fail.
@@ -218,3 +220,13 @@ lower-level input changes.
 The already established exact-C6 full and development cosim suites remain the
 runtime authority until the two corresponding CS00015 result directories have
 also passed this physical audit.
+
+## 2026-08-19 CS00015 result
+
+The full workload passed 30/30 commands, the development workload passed
+10/10, and both same-source performance workloads passed 10/10 with zero
+retries. The independent M4 comparison accepted 10 -> 8 cold reads and 1 -> 0
+first-B:-`DIR` reads; the four-run blind closure passes. Exact identities,
+timings, coverage, recovery observations, and the remaining display-only gate
+are recorded in
+[`cs00015-post-c6-acceptance-20260819.md`](cs00015-post-c6-acceptance-20260819.md).

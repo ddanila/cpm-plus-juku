@@ -208,11 +208,13 @@ cursor physically. See
 [`docs/cs00015-c6-blind-qualification-20260818.md`](docs/cs00015-c6-blind-qualification-20260818.md).
 C5 and the stock-ROM/RAM-BIOS path remain recoverable baselines.
 
-The newer network-loaded system does not require another EPROM burn. Its desk
-gates are complete, but physical promotion still requires one automated full
-and one development run, the two short controlled M4 performance runs, and the
-four-mode display observation. The exact commands and retained-evidence
-contract are in
+The newer network-loaded system does not require another EPROM burn. Its full,
+development, and controlled M4 runs passed on CS00015 on 2026-08-19, and the
+independent blind closure accepts the retained evidence. Physical promotion
+now requires only the four-mode analog display observation. The results and
+retained-evidence contract are in
+[`docs/cs00015-post-c6-acceptance-20260819.md`](docs/cs00015-post-c6-acceptance-20260819.md)
+and
 [`docs/cpm3-physical-acceptance.md`](docs/cpm3-physical-acceptance.md).
 
 The authoritative current documents are:
@@ -228,5 +230,6 @@ The authoritative current documents are:
 - [`docs/cpm3-native-services.md`](docs/cpm3-native-services.md)
 - [`docs/cpm3-pip-warm-boot-fix.md`](docs/cpm3-pip-warm-boot-fix.md)
 - [`docs/cpm3-physical-acceptance.md`](docs/cpm3-physical-acceptance.md)
+- [`docs/cs00015-post-c6-acceptance-20260819.md`](docs/cs00015-post-c6-acceptance-20260819.md)
 - [`docs/cpm3-video-acceptance.md`](docs/cpm3-video-acceptance.md)
 - [`docs/netdisk-performance.md`](docs/netdisk-performance.md)

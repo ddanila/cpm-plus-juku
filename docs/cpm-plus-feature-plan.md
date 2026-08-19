@@ -1,6 +1,6 @@
 # CP/M Plus post-baseline feature plan
 
-Status: **COMPLETE THROUGH PRIORITY 7; POST-C6 DESK WORK ADMITTED; PHYSICAL CONFIRMATIONS PENDING**
+Status: **COMPLETE THROUGH PRIORITY 7; BLIND PHYSICAL CLOSURE PASSED; ANALOG DISPLAY OBSERVATION PENDING**
 
 This document complements the hardware- and ROM-focused
 [`network-first-rom-plan.md`](network-first-rom-plan.md). That plan remains the
@@ -245,8 +245,10 @@ first interactive `DIR` costs zero further wire turns, and `TYPE README.TXT`
 costs two. C5/C6 supersede that performance result with independently bounded
 eight-record A:/B: caches and measured 10/0/1 turns. The current post-C6
 loaded system adds a measured three-record directory hot set and reaches
-8/0/1 plus B: 4/0 login/`DIR`; M4 acceptance remains pending until its recovery
-and physical timing gates close. Explicit operation-26h negotiation also
+8/0/1 plus B: 4/0 login/`DIR`. On 2026-08-19 the controlled CS00015 pair
+physically reproduced cache-off 10/0/1 plus B: 4/1 and cache-on 8/0/1 plus
+B: 4/0, with zero retries and clean final D11 status in both runs. Explicit
+operation-26h negotiation also
 eliminates 186 rejected N4 discovery polls from a representative disk-only
 session. The next disk experiment must therefore target initial login or
 first/alternating drive selection; steady-state `DIR` is already local.
@@ -582,7 +584,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
 | 3. S21/console/locale | **Complete** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, 53x24/64x20 CS00015 evidence, and C6 local/N4 block-output separation. |
 | 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
-| 5. NetDisk/media safety | **C6 baseline and M4 desk gates complete; physical timing pending** | The immutable C6 baseline pins 10/0/1 boot/DIR/TYPE, per-drive read-ahead, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and a 64-cycle soak. The current loaded system reaches 8/0/1 and B: 4/0 with a measured hot-directory cache; exact local/N4 recovery, package, runtime-memory, and 64-cycle soak gates pass. One physical timing comparison remains. Write-back caching remains deliberately out of scope. |
+| 5. NetDisk/media safety | **Complete** | The immutable C6 baseline pins 10/0/1 boot/DIR/TYPE, per-drive read-ahead, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and a 64-cycle soak. The current loaded system reaches 8/0/1 and B: 4/0 with a measured hot-directory cache; exact local/N4 recovery, package, runtime-memory, and 64-cycle soak gates pass. The 2026-08-19 controlled CS00015 pair reproduced cache-off 10/0/1 plus B: 4/1 versus cache-on 8/0/1 plus B: 4/0 with zero retries and clean D11 status. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
 | 7. Curated software/development | **Complete** | The 23-program DRI catalogue, every shipped DRI executable, ED/HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST`/FIG-Forth decisions, seven individual DRI development-tool dispositions, Millfork/z88dk/uplm80 experiments, and live C6 disk/stack/RSX/TPA evidence for all 13 shipped programs are complete and fail-closed. |
 
@@ -610,6 +612,12 @@ passed every monitor-independent physical item on CS00015. See
 [`cs00015-c6-blind-qualification-20260818.md`](cs00015-c6-blind-qualification-20260818.md),
 and [`plan-completion-audit.md`](plan-completion-audit.md).
 
+The later retained full/development/M4 run set passes the independent blind
+closure described in
+[`cs00015-post-c6-acceptance-20260819.md`](cs00015-post-c6-acceptance-20260819.md).
+It closes every monitor-independent item in this plan. Four analog VIDTEST
+observations remain the sole physical-promotion boundary.
+
 For monitorless completion of the keyboard portion, the post-C4 profiles now
 include `KEYTEST.COM`. Its single-key mode reports unbuffered local key codes
 through N4; its `KEYTEST B` mode captures a complete line before reporting so
@@ -633,12 +641,12 @@ the complete full and development workloads on CS00015, retain independently
 auditable evidence, and obtain the same result without relying on remembered
 blind keystrokes or optimistic interpretation of host disk traffic.
 
-Two physical gates remain for that baseline:
-
-1. retain passing full and development M2 evidence bundles; the full run must
-   include the corrected multi-record `PIP` copy and CRC `4613` required by M1;
-2. when a working display is available, run the four-mode M3 visual test and
-   distinguish genuine framebuffer faults from monitor-specific cropping.
+The blind physical gate is closed: the retained full and development M2
+bundles include the corrected multi-record `PIP` copies and CRC `4613`, and
+the same session's M4 pair passes its independent comparison. One physical
+gate remains: when a working display is available, run the four-mode M3 visual
+test and distinguish genuine framebuffer faults from monitor-specific
+cropping.
 
 M4--M6 are subsequent improvements, not hidden release blockers. Their goals
 are measured NetDisk responsiveness, a more useful strict-8080 distribution,
@@ -651,24 +659,19 @@ baseline.
 
 ### Current decisions and next actions
 
-No new EPROM is required for the remaining M1--M3 acceptance work: C6 already
+No new EPROM is required for the remaining M3 acceptance work: C6 already
 contains the required ROM ABI, while the corrected system, physical runner,
 and `VIDTEST.COM` are network-loaded. Proceed in this order:
 
-1. run the full M2 workload on CS00015 and retain its passing evidence bundle;
-   this also closes M1 by exercising the corrected four-record PIP copy and
-   checking CRC `4613`;
-2. run the development M2 workload and retain its independent evidence bundle;
-3. when a working display is available, run the M3 display workload once in
+1. retain and re-audit the passing full/development/M4 blind closure; it closes
+   M1, M2, and M4 on CS00015;
+2. when a working display is available, run the M3 display workload once in
    each of the four S21 video modes and record geometry, cursor behavior,
    cropping, monitor identity, and photographs;
-4. complete M4's already-started desk qualification: retain the fresh measured
-   baseline for cold login, first A:, first B:, alternating drives, sequential
-   reads, and synchronous writes, then run one short CS00015 comparison;
-5. retain the completed M5 command-history and status-panel additions behind
+3. retain the completed M5 command-history and status-panel additions behind
    the same source, license, size, memory, locale, and exact-C6 execution gates
    as the current utilities;
-6. keep M6 work machine-specific: investigate CS00000's USART and CS00024's
+4. keep M6 work machine-specific: investigate CS00000's USART and CS00024's
    RAM/refresh/D57 evidence only on those machines, without changing CS00015's
    known-good reference behavior.
 
@@ -686,8 +689,8 @@ contracts and evidence below remain authoritative.
 | Order | Goal | Next action | Completion evidence |
 |---:|---|---|---|
 | 1 | M5 history checkpoint — complete | Keep the licensed CCP derivative, `!!`, and `HIST.COM` behind their full/development exact-C6 and recovery-integrity regressions. | Deterministic rebuild, strict-8080 audit, exact-C6 reload/repeat/clear test, memory/stack accounting, unchanged recovery CCP, and reproducible package all pass. |
-| 2 | Finish the repeatable CS00015 baseline | Run the manifest-bound full and development M2 workloads. The full workload includes the corrected multi-record PIP copy and CRC `4613`, closing M1 at the same time. | Two independently audited physical result bundles; no inference from disk traffic and no new EPROM. |
-| 3 | Physically accept the M4 cache | Run the manifest-bound cache-off and cache-on `performance` workloads on CS00015, then apply the independent pair auditor. | One retained comparison proving 10/0/1 plus B: 4/1 becomes 8/0/1 plus B: 4/0, with zero retries, final clean D11 status, and synchronous erase writes in both runs. |
+| 2 | Repeatable CS00015 baseline — complete | Retain the manifest-bound full and development M2 workloads. The full workload includes both corrected multi-record PIP copies and CRC `4613`, closing M1 at the same time. | The independently audited 30-command full and 10-command development bundles pass with zero retries; no inference from disk traffic and no new EPROM. |
+| 3 | M4 physical acceptance — complete | Retain the manifest-bound cache-off and cache-on `performance` workloads and independent pair report. | The comparison proves 10/0/1 plus B: 4/1 becomes 8/0/1 plus B: 4/0, with zero retries, final clean D11 status, and synchronous erase writes in both runs. |
 | 4 | M5 text-interface tool — desk complete | Keep `PANEL.COM` behind its shared-JNS1, strict-8080, local/N4, locale-aware framebuffer, memory, and recovery-integrity gates. | Reproducible source/license/hash, exact-C6 execution, English connected-CP437 and Estonian ASCII-fallback cursor frames, disk/TPA/stack accounting, warm boot/reconnect, and unchanged recovery images pass; one optional hardware smoke remains. |
 | 5 | Close visual promotion | Run `VIDTEST.COM` in all four S21 modes when a working display is available, then apply the structured display auditor. | One portable four-mode report binds geometry, joined pseudographics, glyph spacing, cropping, both cursor phases, monitor identity, photographs, and exact run hashes. |
 | 6 | Maintain the physical fleet | Investigate CS00000's suspected USART path and CS00024's RAM/refresh/D57 path only when the corresponding board is available. | Machine-specific captures and diagnoses; CS00015 remains the unmodified known-good reference. |
@@ -715,12 +718,11 @@ The retained final report is itself re-auditable with
 back to their original eight run bundles, observation record, and photographs
 rather than trusting a copied pass summary.
 
-M5 is now complete at the desk: history and the pseudographic panel are both
-admitted. The current bench target is the automated full/development
-acceptance pair, followed by one M4 timing comparison. The display queue is
-independent and waits only for usable display hardware. Further software work
-starts with the final requirement audit and measured shared status/diagnostic
-presentation improvements, not another overlapping utility.
+M5 is complete at the desk: history and the pseudographic panel are both
+admitted. The automated full/development pair and M4 timing comparison now
+pass on CS00015. The display queue is independent and waits only for usable
+display hardware. Further software work starts with measured shared
+status/diagnostic presentation improvements, not another overlapping utility.
 
 No current item requires a new ROM. A future C7 is opened only for a measured
 resident service or ABI need that cannot safely be implemented in the loaded
@@ -735,8 +737,8 @@ requirement and makes the cost of another manual hardware run explicit.
 
 | Horizon | Goal and reason | Next evidence | Deployment boundary |
 |---|---|---|---|
-| Release closure | Make the current C6 plus network-loaded CP/M reproducible by someone other than its author. This closes the remaining uncertainty around the corrected PIP path and complete full/development workloads. | Retain one audited full and one audited development M2 bundle on CS00015; the full run includes CRC `4613`. | Existing fitted C6; no EPROM burn. |
-| Physical performance | Confirm that M4's measured 8/0/1 A: and 4/0 B: cache improvement survives real UART and machine timing. | One pinned before/after CS00015 timing bundle with zero retries, a final clean D11 PE/OE/FE status observation, and unchanged synchronous writes. | Network-loaded system only; no EPROM burn. |
+| Release closure | Make the current C6 plus network-loaded CP/M reproducible by someone other than its author. | Complete: one audited full and one audited development M2 bundle on CS00015; the full run includes both CRC `4613` checks. | Existing fitted C6; no EPROM burn. |
+| Physical performance | Confirm that M4's measured 8/0/1 A: and 4/0 B: cache improvement survives real UART and machine timing. | Complete: one pinned before/after CS00015 timing bundle with zero retries, final clean D11 PE/OE/FE observations, and unchanged synchronous writes. | Network-loaded system only; no EPROM burn. |
 | Visual promotion | Separate correct framebuffer bytes from analog monitor limitations. | Observe `VIDTEST` in all four S21 modes and record joined cells, font spacing, cursor phases, cropping, monitor identity, and photographs. | Existing C6; DIP change and working display only. |
 | Everyday usability | Preserve the admitted `!!`, `HIST`, and `PANEL` tools, then add UI or diagnostic presentation only when it removes a demonstrated workflow problem. | Exact-C6 strict-8080, locale, stack/TPA, disk, warm-boot, reconnect, and recovery-integrity gates for every addition. | Prefer transients/shared BIOS data; no ROM change by default. |
 | NetDisk evolution | Improve first-login, alternating-drive, or long sequential workloads; steady-state `DIR` is already local. | Profile first, then compare coalescing, prediction, a lower-overhead protocol, or compression end to end, including 8080 decode cost and failure recovery. | NetDisk v3 at proven 19,200 remains the compatibility baseline. |
@@ -805,15 +807,15 @@ CCP eventually fell through low memory and the DMA buffer. `load$ccp` now sets
 the BDOS multi-sector count to one before opening `CCP.COM`, matching its
 single-record loop.
 
-The exact immutable C6 ROM plus corrected network-loaded system now passes two
+The exact immutable C6 ROM plus corrected network-loaded system passes two
 independent `README.TXT` copies, CRC `4613` after each, every full-profile
 utility, explicit warm boot, A: writes/erase, native B:, zero retries, and
 strict-8080 opcode admission in the production simulator. The structural gate
 also requires the reset in the CCP loader. The HEXCOM/SID/PATCH/ED development
 profile, clean/compound/server-restart/mid-session-restart matrix, manifest,
 package reproducibility, runtime catalogue, frozen C4/C5 identity, legacy
-timing reproductions, and four-mode console gates pass as well. One CS00015
-copy/CRC run remains before M1 is closed.
+timing reproductions, and four-mode console gates pass as well. The 2026-08-19
+CS00015 full run repeated both copies and CRC `4613`; M1 is closed.
 
 The correction is complete only when:
 
@@ -840,26 +842,27 @@ before its own evidence exists.
 
 | Stage | Goal | Desk completion gate | Next physical evidence |
 |---|---|---|---|
-| M1 | Fix multi-record PIP | Reproduce the first failing record count; capture the control transfer into `0080h`; fix it; make four-record copy/CRC, repetitions, warm boot, reconnect, and all release tests pass. | One C6/N4 load on CS00015: copy `README.TXT`, CRC `4613`, prompt returns. No EPROM burn expected. |
-| M2 | Automate physical acceptance | A paging-aware runner records commands, target replies, timeouts, volume mutations, host lifecycle, and artifact hashes without optimistic inference from disk traffic. | One full and one development-profile run; the operator supplies only power/reset and requested keys. |
+| M1 | Fix multi-record PIP | Complete: four-record copy/CRC, repetitions, warm boot, reconnect, and all release tests pass. | Complete: the CS00015 full run performed both copies, returned to CCP, and reported CRC `4613` twice. |
+| M2 | Automate physical acceptance | Complete: a paging-aware runner records commands, target replies, timeouts, volume mutations, host lifecycle, and artifact hashes without optimistic inference from disk traffic. | Complete: the full 30-command and development 10-command CS00015 bundles independently audit. |
 | M3 | Close display acceptance | `VIDTEST.COM` and exact framebuffer oracles cover boundaries, glyph banks, joined box drawing, and both cursor phases in all four S21 modes. | Observe 40x24, 53x24, 64x20, and 80x24 on a working display; record any monitor-specific cropping separately. |
-| M4 | Improve NetDisk responsiveness | The measured three-record hot-directory cache reduces exact-C6 cold boot from 10 to 8 wire requests and first B: `DIR` from 1 to 0, while retaining synchronous invalidating writes. Its same-source cache-off control, structured request capture, pair auditor, recovery, replay, package, and long-soak gates pass. | Run the two short manifest-bound `performance` workloads on CS00015 and retain their passing comparison; no EPROM burn is required. |
+| M4 | Improve NetDisk responsiveness | Complete: the measured three-record hot-directory cache reduces exact-C6 cold boot from 10 to 8 wire requests and first B: `DIR` from 1 to 0, while retaining synchronous invalidating writes. Its same-source cache-off control, structured request capture, pair auditor, recovery, replay, package, and long-soak gates pass. | Complete: both manifest-bound CS00015 workloads and their independent comparison pass with zero retries; no EPROM burn was required. |
 | M5 | Improve the distribution | The strict-8080 history slice and project-owned pseudographic `PANEL.COM` are exact-C6 qualified. Retain their reproducible source/license/size/runtime admission and keep the recovery profile small. | Optional short history/panel smoke only; no manual catalogue trawl on the bench. |
 | M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 USART and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
 
 Status on 2026-08-19:
 
-- M1's root cause and software fix are complete. Its repository-wide
-  simulator, recovery, package, legacy-timing, and repeated copy/CRC gates
-  pass; only one CS00015 `PIP`/`CRC` confirmation remains.
-- M2's desk implementation is complete. The manifest-bound full/development
+- M1 is complete. Its repository-wide simulator, recovery, package,
+  legacy-timing, and repeated copy/CRC gates pass; the CS00015 full workload
+  performed both copies, observed CRC `4613` twice, and returned to CCP.
+- M2 is complete. The manifest-bound full/development
   runner handles paging and interactive inputs, isolates writable media,
   records byte-addressed target replies and host lifecycle evidence, preserves
   timeout diagnostics, shuts the host down cleanly, and independently audits
   retained results. A 2026-08-19 bench preflight caught that the retained host
   script had been copied without its two import modules; the runner now binds,
   hashes, executes, and audits all three files together, with an independent
-  launch regression. One full and one development CS00015 run remain.
+  launch regression. The physical full run passed 30/30 and development
+  passed 10/10 with zero retries; their retained bundles independently audit.
 - M3's desk implementation is complete. `VIDTEST.COM` is admitted to the
   full/dev/demo media, all sixteen oracle surfaces are deterministic, and the
   exact C6 executable passes seven live geometry/locale cases with both cursor
@@ -869,7 +872,7 @@ Status on 2026-08-19:
   still wait for a working monitor. The final promotion auditor is also ready:
   it re-audits the blind and visual evidence trees and closes the plan only
   when their board, ROM, system/Fastboot, and host identities match.
-- M4 desk implementation and qualification are complete. BIOS-call tracing identified the
+- M4 desk and physical qualification are complete. BIOS-call tracing identified the
   exact repeated records rather than guessing at general protocol overhead.
   The loaded-system cache retains track 2 translated sectors 1--3 only. In the
   exact delayed/missed-ready C6 simulator, cold boot falls from 10 to 8 host
@@ -880,9 +883,10 @@ Status on 2026-08-19:
   unchanged, and a dedicated count gate passes. Exact local/N4 recovery,
   discarded-readiness replay, reproducible packaging, runtime-memory
   admission, and the 64-cycle read/write/server-replacement soak pass with
-  992 reads, 257 writes, zero retries, and zero overruns. One CS00015 timing
-  comparison remains before M4 is physically accepted. The comparison is now
-  fully scripted: a same-source cache-off control and cache-on build use the
+  992 reads, 257 writes, zero retries, and zero overruns. The CS00015
+  comparison reproduced the exact 10/0/1 plus B: 4/1 control and 8/0/1 plus
+  B: 4/0 optimized signatures with zero retries and clean D11 status. The
+  comparison is fully scripted: a same-source cache-off control and cache-on build use the
   same C6 ROM, recovery A:, native B:, host, and ten-command workload. Their
   structured request traces must reproduce 10/0/1 plus B: 4/1 versus 8/0/1
   plus B: 4/0; both must complete synchronous erase writes without retry and
@@ -902,11 +906,9 @@ Status on 2026-08-19:
 - M6 is an evidence ledger rather than a shared-machine workaround: CS00015
   remains the reference while CS00000 and CS00024 keep independent diagnoses.
 
-The next physical action is therefore deliberately small: boot the corrected
-system through the existing C6/N4 ROM on CS00015, run
-`PIP COPY.TXT=README.TXT`, then `CRC COPY.TXT`, and require CRC `4613` plus a
-returned `A>` prompt. No EPROM burn is needed. After that, the next bench work
-should be driven by the M2 runner rather than another hand-entered catalogue.
+The next physical action is the four-mode VIDTEST observation when a usable
+display is available. No blind CS00015 workload or EPROM burn remains for the
+current plan.
 
 The completed M1 desk sequence covered one- through four-record variants, a
 bounded instruction/BDOS/BIOS history around the jump below `0100h`, the
@@ -917,12 +919,12 @@ repeating the old failing image would add no evidence.
 
 ### Follow-on work, in priority order
 
-1. **Physical-test automation.** The full/development N4 runner, declarative
+1. **Physical-test automation — complete.** The full/development N4 runner, declarative
    workloads, private writable copies, target timeout diagnostics, durable
    evidence, clean host shutdown, bench-friendly wait, and independent audit
-   are implemented and regression-tested. Complete one full and one
-   development run on CS00015; retain both passing result directories. The
-   full run also supplies M1's remaining PIP/CRC physical evidence.
+   are implemented and regression-tested. The passing 30-command full and
+   10-command development CS00015 result directories are retained, and the
+   full run supplies M1's PIP/CRC physical evidence.
 2. **Physical display acceptance.** `VIDTEST.COM`, its strict-8080 gate, the
    independent sixteen-surface oracle, seven exact-C6 executable cases, and
    the 60-second physical display workload are complete. With the unchanged
@@ -933,13 +935,13 @@ repeating the old failing image would add no evidence.
    in `physical/display-observation.schema.json` form and require a passing
    `tools/display_acceptance.py` report; this prevents photographs, monitor
    notes, or transcripts from being mixed between runs.
-3. **Measured NetDisk performance.** Finish qualifying the three-record
+3. **Measured NetDisk performance — complete for M4.** The three-record
    loaded-system hot-directory cache. Preserve separate wire, target, console,
    and host timings, independent eight-record resident A:/B: read-ahead, and
    synchronous invalidating writes. Its desk target is the measured 8/0/1
    cold-boot/`DIR`/`TYPE` request sequence plus B: 4/0 login/`DIR`, with zero
-   retries and overruns. Then compare the same image once on CS00015. After
-   that, profile alternating drives and longer sequential workloads before
+   retries and overruns. The same-image CS00015 control/optimized comparison
+   passes. Later work may profile alternating drives and longer sequential workloads before
    considering request coalescing or host prediction. Steady-state `DIR` is
    already local and is not an optimization target. Do not add write-back
    caching without explicit flush, warm-boot, retry, disconnect, and power-loss
@@ -964,15 +966,15 @@ repeating the old failing image would add no evidence.
 This is the durable backlog after the C6/Priority-7 baseline. “Done” below
 means the named evidence exists; an attractive prototype alone is not enough.
 
-1. **Close the physical baseline (M1--M3).** Retain audited full and
-   development runner bundles from CS00015, including the fixed multi-record
-   PIP copy with CRC `4613`. When a working display is available, photograph
+1. **Close the physical baseline (M1--M3).** M1/M2 are closed by the audited
+   full and development CS00015 bundles, including both fixed multi-record PIP
+   copies with CRC `4613`. When a working display is available, photograph
    and record all four S21 modes and both cursor phases. End goal: a fresh
    operator can repeat the qualification without inferred or blind results.
-2. **Accept the NetDisk cache (M4).** Pass exact-C6 local and N4 execution,
+2. **Accept the NetDisk cache (M4) — complete.** Exact-C6 local and N4 execution,
    server-loss/reconnect and missed-ready replay, 64-cycle read/write soak,
    reproducible-package, manifest, memory-map, and data-integrity gates. Record
-   one hardware before/after timing comparison. End goal: a demonstrably more
+   and the hardware before/after comparison pass. End goal achieved: a demonstrably more
    responsive network disk with identical recovery and write semantics.
 3. **Improve everyday CP/M use (M5).** First candidates are strict-8080
    command history and a small project-owned text-interface toolkit using the
@@ -1057,10 +1059,10 @@ board cannot block useful desk work:
 
 | Queue | Goal | Remaining acceptance evidence |
 |---|---|---|
-| Reference hardware | Close the repeatable CS00015 baseline | Retain audited full and development M2 runs, including PIP/CRC `4613`; record one M4 cache timing comparison. These use the fitted C6 ROM and network-loaded media, so no EPROM burn is required. |
+| Reference hardware | Preserve the repeatable CS00015 baseline | Complete: audited full and development M2 runs include PIP/CRC `4613`, and the M4 cache comparison passes. These use the fitted C6 ROM and network-loaded media; no EPROM burn was required. |
 | Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases; retain photographs, pass the structured display auditor, then combine it with the blind closure in the final promotion report. Simulator framebuffer oracles remain authoritative for pixels. |
 | Distribution | Make everyday CP/M more pleasant | History and `PANEL.COM` are admitted. Consider further shared status/diagnostic presentation only for a measured workflow; admit only licensed, source-available strict-8080 programs. |
-| Performance | Improve only demonstrated bottlenecks | Physically accept the M4 directory cache, then profile alternating drives and longer sequential reads. Consider request coalescing, predictive reads, a lower-overhead protocol, or compression only from end-to-end measurements. |
+| Performance | Improve only demonstrated bottlenecks | M4 is physically accepted. Profile alternating drives and longer sequential reads before considering request coalescing, predictive reads, a lower-overhead protocol, or compression. |
 | Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's suspected USART fault and CS00024's RAM/refresh/D57 path on those boards. CS00015 remains the known-good reference configuration. |
 | Future ROM | Add resident code only when it unlocks a measured need | C7 requires a service or ABI change that cannot safely live in the host, loaded BIOS, or a transient. Ordinary M4/M5 work does not justify another burn. |
 
@@ -1071,10 +1073,10 @@ setting in production. `cpm-ls` remains a documented candidate rather than a
 planned shipped program: its current disk-read cost is too high relative to
 the already admitted project-owned `LS.COM`.
 
-The practical order is therefore: close M1/M2 evidence when hardware is
-available, perform M4's one short timing run, and continue the simulator-first
-M5 utility work in parallel. M3 waits only for a usable display; M6 advances
-when the corresponding non-reference machine is on the bench.
+The practical order is therefore: run M3 when a usable display is available;
+otherwise pursue only measured post-M4 performance/usability work or M6 when
+the corresponding non-reference machine is on the bench. M1, M2, M4, and M5
+are closed.
 
 ### Explicitly separate future projects
 

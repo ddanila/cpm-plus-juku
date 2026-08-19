@@ -141,8 +141,12 @@ local first B: `DIR`. It changes neither the immutable C6 ROM/ABI nor the
 `make netdisk-performance-check` pins 8/0/1 and B: 4/0 through the delayed,
 discarded-readiness exact-C6 path. The local and N4 matrices additionally
 exercise warm boot, diagnostics, a synchronous write/erase, and A:/B:
-switching with zero clean-path retry or overrun. A short CS00015 timing
-comparison remains the physical acceptance gate; no EPROM burn is required.
+switching with zero clean-path retry or overrun. The 2026-08-19 CS00015 pair
+then reproduced cache-off 10/0/1 plus B: 4/1 and cache-on 8/0/1 plus B: 4/0,
+with zero retries and clean final D11 status in both runs. The independent
+comparison therefore accepts the hot-directory cache; no EPROM change was
+required. See
+[`cs00015-post-c6-acceptance-20260819.md`](cs00015-post-c6-acceptance-20260819.md).
 
 That comparison now has a controlled implementation rather than relying on an
 unrelated historical image. `make physical-performance-check` builds a

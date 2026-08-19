@@ -47,10 +47,11 @@ empty remaining-work list. This later desk-only tooling does not change or
 relabel the previously reproduced C6 simulator archive.
 
 This closes the current desk implementation audit; it does not convert missing
-physical observations into passes. The remaining acceptance evidence is one
-full and one development CS00015 bundle, the controlled M4 physical pair, and
-the four display-mode observations listed in the feature plan. The blind
-four-run closure and the separate four-mode display observation now each have
+physical observations into passes. On 2026-08-19 the full and development
+CS00015 bundles and controlled M4 physical pair all passed, and the blind
+four-run closure accepted them. The remaining acceptance evidence is the four
+display-mode observations listed in the feature plan. The blind closure and
+the separate four-mode display observation each have
 fail-closed auditors; neither tool manufactures the still-missing hardware
 evidence. A third, final promotion auditor re-executes both evidence audits and
 requires matching board, ROM, optimized system/Fastboot, and host identities;
@@ -93,7 +94,7 @@ it alone may emit an empty remaining-work list.
 | 2 | Native character table, TIME, MULTIO, FLUSH, MOVE, USERF | `tests/native_services_test.py`, `NATIVE.COM`, exact status transcript, production cosim | Complete; bank calls remain truthful stubs because hardware is non-banked. |
 | 3 | S21, video modes, locales, pseudographics, remap, console block | locale/source oracles, ABI C5/C6 fixtures, `KEYTEST`, `KEYRAW`, operation 28h | Complete; connected UI cells use five edge pixels and local I/O remains authoritative. |
 | 4 | Shared safe diagnostics and observability | Diag 0.5, Status 1.3, retained D610h..D613h record, operations 24h/25h/27h, generated memory map | Complete; destructive live-CP/M tests are explicitly rejected. |
-| 5 | Measured NetDisk performance and safe media | same-source cache-off 10/0/1 plus B: 4/1 control, current cache-on 8/0/1 plus B: 4/0, structured per-command request traces, final D11 PE/OE/FE check, independent pair and four-bundle closure auditors, per-drive and hot-directory cache fixtures, capability operation 26h, multi-request fixture, copy/snapshot/read-only tests, local/N4 recovery and 64-cycle write/reconnect soak | C6 baseline and post-C6 M4 desk qualification complete; the two scripted CS00015 performance runs remain. |
+| 5 | Measured NetDisk performance and safe media | same-source cache-off 10/0/1 plus B: 4/1 control, current cache-on 8/0/1 plus B: 4/0, structured per-command request traces, final D11 PE/OE/FE check, independent pair and four-bundle closure auditors, per-drive and hot-directory cache fixtures, capability operation 26h, multi-request fixture, copy/snapshot/read-only tests, local/N4 recovery and 64-cycle write/reconnect soak | Complete; the 2026-08-19 CS00015 pair reproduced both request signatures with zero retries and clean D11 status, and the independent comparison and blind closure pass. |
 | 6 | Manifest, identity-free media, fallback slots and recovery | C6 boot manifest, last-known-good tests, C4 fallback, reproducible package | Complete. |
 | 7 | Curated strict-8080 software and development environment | generated 23-program catalogue, full/development profile reports, static component listings, current-C6 full/dev/video cosimulation, runtime-memory manifest, external/compiler audits and negative tests | Complete; 13 admitted DRI programs, six gap tools, and VIDTEST execute on the C6 native path, while every rejected or deferred candidate has a measured disposition. |
 
