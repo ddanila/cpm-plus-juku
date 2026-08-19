@@ -18,7 +18,7 @@
     {
       "name": "keytest-remote",
       "command": "KEYTEST B",
-      "steps": [{"wait": "Juku Keytest 1.1 READY", "send_hex": "41 20 31 0d 1b"}],
+      "steps": [{"wait": "Juku Keytest 1.1 READY", "send_hex": "41 20 31 0d 1b", "delay": 0.5}],
       "expect": ["BATCH 04", "KEY 20 ' '", "KEY 1B", "Juku Keytest 1.1 DONE"],
       "coverage": ["KEYTEST.COM"]
     },

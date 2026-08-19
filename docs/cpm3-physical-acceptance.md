@@ -32,6 +32,9 @@ programs. It includes paginated reads, Status, buffered Keytest,
 every admitted DRI utility, both four-record PIP/CRC copies, the nonzero-user
 warm boot, and native B:. The development workload runs the baseline plus all
 four admitted development programs, including scripted SID and ED sessions.
+The injected Keytest line waits briefly after the `READY` marker so CP/M's
+BDOS output-time flow-control poll cannot consume its first byte while the
+marker line is still being completed.
 The display workload boots the full image, runs `VIDTEST`, retains its complete
 mode/locale transcript, leaves the page visible for 60 seconds, exits it, and
 requires the returned CCP prompt. It automates target evidence but cannot
