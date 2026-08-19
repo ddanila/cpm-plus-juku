@@ -35,6 +35,9 @@ programs. It includes paginated reads, Status, buffered Keytest,
 every admitted DRI utility, both four-record PIP/CRC copies, the nonzero-user
 warm boot, and native B:. The development workload runs the baseline plus all
 four admitted development programs, including scripted SID and ED sessions.
+The B: directory assertion names `DIAG.COM`, which is licensed project
+material in the manifest-bound approved-apps image; external game disks are
+not treated as distribution acceptance media.
 The injected Keytest line waits briefly after the `READY` marker so CP/M's
 BDOS output-time flow-control poll cannot consume its first byte while the
 marker line is still being completed.

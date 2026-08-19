@@ -50,7 +50,7 @@
     {"name": "crc-copy-repeat", "command": "CRC COPY2.TXT", "expect": ["CRC16-CCITT: 4613  records: 0004"]},
     {"name": "warm-boot-user-1", "command": "WBOOT", "coverage": ["WBOOT.COM"]},
     {"name": "select-b", "command": "B:", "prompt": "B>"},
-    {"name": "dir-b", "command": "DIR", "prompt": "B>", "expect": ["TETRIS"]},
+    {"name": "dir-b", "command": "DIR", "prompt": "B>", "expect": ["DIAG"]},
     {"name": "select-a", "command": "A:", "prompt": "A>"}
   ]
 }
