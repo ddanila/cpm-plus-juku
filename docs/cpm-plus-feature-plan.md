@@ -800,9 +800,12 @@ Status on 2026-08-19:
   admission, and the 64-cycle read/write/server-replacement soak pass with
   992 reads, 257 writes, zero retries, and zero overruns. One CS00015 timing
   comparison remains before M4 is physically accepted.
-- M5 is a measured improvement, not correctness work. It starts only after the
-  exact-C6 simulator admits each program and M2 makes physical smoke tests
-  cheap to qualify.
+- M5 is a measured improvement, not correctness work. Its first desk prototype
+  is in progress: rebuild the licensed DRI CCP reproducibly, add a small
+  project-owned strict-8080 history extension, and keep the recovery CCP
+  untouched. No M5 program is admitted until exact-C6 execution, memory, size,
+  provenance, and deterministic-build gates pass; M2 then makes any physical
+  smoke test cheap to qualify.
 - M6 is an evidence ledger rather than a shared-machine workaround: CS00015
   remains the reference while CS00000 and CS00024 keep independent diagnoses.
 
@@ -907,10 +910,67 @@ means the named evidence exists; an attractive prototype alone is not enough.
    require their own designs and failure contracts; they are not baseline
    cleanup tasks.
 
+### Concrete M5 implementation plan
+
+M5 deliberately extends the existing non-banked CP/M Plus port; it is not a
+separate CP/M Plus repository or an attempt to replace CP/Mish wholesale. Its
+first two deliverables are:
+
+1. **Reproducible command history.** Rebuild the pinned, licensed DRI CP/M 3
+   CCP byte-for-byte from the archived `CCP3`, `CCPDATE`, and `LOADER3`
+   sources before applying any Juku patch. Add one persistent last-command
+   slot and make `!!` repeat it. Supply a project-owned `HIST.COM` to show or
+   clear that slot. The modified CCP belongs only to full, development, and
+   demo profiles; recovery profiles retain the exact DRI CCP. The persistent
+   bytes must be explicitly reserved below the ROM self-test guard, survive a
+   CCP reload and warm boot, and remain outside the TPA and transient-program
+   stack.
+2. **A real text-interface example.** Add one small strict-8080 tool which
+   uses the five-edge-pixel connected pseudographic glyphs as intended, with a
+   source-level framebuffer oracle rather than visual judgement alone. This is
+   the acceptance example for later menus, status screens, and diagnostic
+   front ends; it is not permission to duplicate ROM console or diagnostic
+   code in every transient.
+
+Both deliverables require deterministic binaries, explicit source and license
+records, strict-8080 opcode audit, disk/TPA/stack accounting, exact-C6 local
+and N4 execution, warm-boot/reconnect coverage, and unchanged recovery-image
+contents. Only then are they added to a distribution profile and offered for a
+short hardware smoke test.
+
+The command-history implementation should use the DRI source grant already
+recorded under `third_party/cpm3`, not the previously investigated `HIST` RSX
+binary whose source and distribution terms could not be established. A clean
+unmodified rebuild matching the pinned 3,200-byte `CCP.COM` is a prerequisite,
+not merely a helpful comparison. The current prototype indicates that a
+one-entry `!!` facility fits below `1000h`; those measurements remain
+provisional until reproduced by a checked-in build tool and regression.
+
+### Remaining physical and desk queues
+
+Keep the queues separate so an unavailable display or faulty non-reference
+board cannot block useful desk work:
+
+| Queue | Goal | Remaining acceptance evidence |
+|---|---|---|
+| Reference hardware | Close the repeatable CS00015 baseline | Retain audited full and development M2 runs, including PIP/CRC `4613`; record one M4 cache timing comparison. These use the fitted C6 ROM and network-loaded media, so no EPROM burn is required. |
+| Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases. Simulator framebuffer oracles remain authoritative for pixels. |
+| Distribution | Make everyday CP/M more pleasant | Finish M5 history and the text-interface example, then consider shared `SYSINFO`/diagnostic presentation. Admit only measured, licensed, source-available strict-8080 programs. |
+| Performance | Improve only demonstrated bottlenecks | Physically accept the M4 directory cache, then profile alternating drives and longer sequential reads. Consider request coalescing, predictive reads, a lower-overhead protocol, or compression only from end-to-end measurements. |
+| Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's suspected USART fault and CS00024's RAM/refresh/D57 path on those boards. CS00015 remains the known-good reference configuration. |
+| Future ROM | Add resident code only when it unlocks a measured need | C7 requires a service or ABI change that cannot safely live in the host, loaded BIOS, or a transient. Ordinary M4/M5 work does not justify another burn. |
+
+The explicit non-goals remain unchanged: no XMODEM in the standard image, no
+banked CP/M until real banked Juku hardware exists, no write-back disk cache
+without a complete power-loss contract, and no baud above the proven 19,200
+setting in production. `cpm-ls` remains a documented candidate rather than a
+planned shipped program: its current disk-read cost is too high relative to
+the already admitted project-owned `LS.COM`.
+
 The practical order is therefore: close M1/M2 evidence when hardware is
-available, finish and checkpoint M4 at the desk, perform its one short timing
-run, then work through M5 utilities. M3 waits only for a usable display; M6
-advances when the corresponding non-reference machine is on the bench.
+available, perform M4's one short timing run, and continue the simulator-first
+M5 utility work in parallel. M3 waits only for a usable display; M6 advances
+when the corresponding non-reference machine is on the bench.
 
 ### Explicitly separate future projects
 
