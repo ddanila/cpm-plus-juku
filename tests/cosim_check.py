@@ -319,8 +319,11 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         system = ROM_SYSTEM
     container = system.read_bytes()
     load_address = 0x9000 if network_rom else 0x7000
-    entry_address = 0xBC00 if network_rom else 0x9C00
-    adapter_address = 0xC000 if network_rom else 0xA000
+    entry_address = int.from_bytes(container[10:12], "little")
+    expected_entries = (0xBC00, 0xBE00) if network_rom else (0x9C00,)
+    require(entry_address in expected_entries,
+            f"CP/M Plus entry {entry_address:04X}h is unsupported")
+    adapter_address = entry_address + 0x0400
     container_size = 0x4600 if network_rom else 0x4000
     require(
         container[:8] == b"JUKURM1\x1a"
@@ -384,8 +387,12 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         JUKU_CONSOLE_PTY=os.ttyname(console_slave),
         JUKU_CONSOLE_OUT_PC=f"0x{conout_pc:04X}",
         JUKU_CONSOLE_OUT_REGISTER="C",
-        JUKU_USART_TRANSFER_CYCLES="64",
-        JUKU_USART_BYTE_CYCLES="2300",
+        JUKU_USART_TRANSFER_CYCLES=os.environ.get(
+            "CPM_PLUS_JUKU_USART_TRANSFER_CYCLES", "64",
+        ),
+        JUKU_USART_BYTE_CYCLES=os.environ.get(
+            "CPM_PLUS_JUKU_USART_BYTE_CYCLES", "2300",
+        ),
         JUKU_USART_PIT_CLOCK="1",
         JUKU_USART_PIT_CPU_HZ=os.environ.get(
             "CPM_PLUS_JUKU_CPU_HZ", "1700000",
@@ -1027,9 +1034,47 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         b"CP/M Plus 3.1 for Juku" in version,
                         f"CI smoke version report differs: {version!r}",
                     )
+                    if os.environ.get(
+                        "CPM_PLUS_JUKU_QUICK_C8_SERVICES",
+                    ) == "1":
+                        send_console(b"STATUS\r")
+                        status = read_until(b"A>", command_timeout)
+                        require(
+                            b"ROM: Juku ABI 01.03" in status
+                            and b"TPA 0100-9BFF" in status
+                            and b"BIOS BE00-C1FF" in status,
+                            f"C8 status/map report differs: {status!r}",
+                        )
+                        print(f"COSIM {case.name}: C8 STATUS", flush=True)
+                        send_console(b"DIAG CPU\r")
+                        diagnostic = read_until(b"A>", command_timeout)
+                        require(
+                            b"CPU: PASS" in diagnostic,
+                            f"C8 diagnostic report differs: {diagnostic!r}",
+                        )
+                        print(f"COSIM {case.name}: C8 DIAG", flush=True)
+                        send_console(b"WBOOT\r")
+                        warm = read_until(b"A>", command_timeout)
+                        require(
+                            warm.endswith(b"A>"),
+                            f"C8 warm boot differs: {warm!r}",
+                        )
+                        send_console(b"STATUS\r")
+                        warm_status = read_until(b"A>", command_timeout)
+                        require(
+                            b"Boot marker (00 cold/01 warm): 01" in
+                            warm_status,
+                            f"C8 warm status differs: {warm_status!r}",
+                        )
+                        print(f"COSIM {case.name}: C8 WBOOT", flush=True)
                     print(
                         f"JUKU CP/M PLUS 3.1: PASS ({boot_label}, A>, DIR, "
-                        "VER)",
+                        + (
+                            "VER, STATUS, DIAG, WBOOT)"
+                            if os.environ.get(
+                                "CPM_PLUS_JUKU_QUICK_C8_SERVICES",
+                            ) == "1" else "VER)"
+                        ),
                         flush=True,
                     )
                     return
@@ -1425,8 +1470,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         )
     global ram_console_reference
     ram = (case / "final.ram").read_bytes()
-    loader_address = 0x9A00 if network_rom else 0x7A00
-    bdos_address = 0x9D00 if network_rom else 0x7D00
+    loader_address = entry_address - 0x2200
+    bdos_address = entry_address - 0x1F00
     if not expect_disk_failure:
         require(
             int.from_bytes(ram[6:8], "little") == loader_address + 6

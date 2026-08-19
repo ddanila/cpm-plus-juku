@@ -28,6 +28,9 @@ LOCALE_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-locale-native-syste
 LOCALE_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-locale-native-fastboot-v15.bin
 EXTENDED_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-extended-native-system.bin
 EXTENDED_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin
+C8_NATIVE_ROM_SYS := $(BUILD)/cpm3-network-rom-c8.sys
+C8_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-c8-system.bin
+C8_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-c8-fastboot-v16.bin
 CONTROL_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-control-system.bin
 CONTROL_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-control-fastboot-v16.bin
 NATIVE_TEST_VOLUME := $(OUT)/cpm-plus-juku-native-test.img
@@ -64,6 +67,9 @@ C7_RELEASE := $(OUT)/cpm-plus-3.1-juku-c7-modified-raw-bench
 C7_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c7-manifest.json
 C7_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c7.bin
 C7_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c7.json
+C8_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c8-manifest.json
+C8_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.3-c8.bin
+C8_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.3-c8.json
 HISTORY_CCP := $(BUILD)/cpm3-history/CCP.COM
 HISTORY_CCP_MANIFEST := $(BUILD)/cpm3-history/manifest.json
 HISTORY_RUNTIME_METRICS := $(BUILD)/cpm3-history-runtime.json
@@ -86,6 +92,7 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	netdisk-performance-check physical-performance-check physical-closure-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check c7-manifest-check \
+	c8-check \
 	release-candidate release-candidate-check \
 	c6-release-candidate c6-release-candidate-check \
 	c7-bench-candidate c7-bench-candidate-check \
@@ -589,6 +596,39 @@ network-rom-extended-cosim-check: network-rom-extended-local-cosim-check
 	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
 	$(PYTHON) tests/cosim_check.py
 
+c8-check: $(C8_BOOT_MANIFEST)
+	$(PYTHON) tests/c8_layout_test.py
+	CPM_PLUS_JUKU_QUICK_SMOKE=1 \
+	CPM_PLUS_JUKU_QUICK_C8_SERVICES=1 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke \
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C8_ROM) \
+	CPM_PLUS_JUKU_BOOT_HOST_DELAY=2 \
+	CPM_PLUS_JUKU_DISCARD_BOOT_READY=1 \
+	CPM_PLUS_JUKU_EXPECT_AUTO_READY_SEEN=0 \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(C8_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(C8_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x09 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=3 \
+	$(PYTHON) tests/cosim_check.py
+	CPM_PLUS_JUKU_QUICK_SMOKE=1 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-remote \
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C8_ROM) \
+	CPM_PLUS_JUKU_BOOT_HOST_DELAY=2 \
+	CPM_PLUS_JUKU_DISCARD_BOOT_READY=1 \
+	CPM_PLUS_JUKU_EXPECT_AUTO_READY_SEEN=0 \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(C8_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(C8_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x09 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_REMOTE_IDLE_DELAY=0 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=3 \
+	$(PYTHON) tests/cosim_check.py
+
 bootstrap-observability-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke CPM_PLUS_JUKU_NETWORK_ROM=\
 	$(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/juku-network-rom-abi1.1-c5.bin \
@@ -740,6 +780,15 @@ $(BUILD)/platform-adapter-romabi-extended-control.rel: \
 		-DNATIVE_SERVICES_VECTORS -DNATIVE_SERVICES_BOOT \
 		-DNATIVE_SERVICES_DISK -I$(COMMON)/platform -o $@ $<
 
+$(BUILD)/platform-adapter-romabi-host-native.rel: src/platform-adapter.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI -DROM_ABI_LOCALE \
+		-DROM_ABI_EXTENDED -DROM_ABI_HOSTSERVICES \
+		-DNATIVE_SERVICES -DNATIVE_SERVICES_EXTRNS \
+		-DNATIVE_SERVICES_VECTORS -DNATIVE_SERVICES_BOOT \
+		-DNATIVE_SERVICES_DISK -DHOT_DIRECTORY \
+		-I$(COMMON)/platform -o $@ $<
+
 $(BUILD)/cpm3-native-services.rel: src/cpm3-native-services.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
 
@@ -752,6 +801,18 @@ $(BUILD)/cpm3-native-services-extended.rel: src/cpm3-native-services.asm \
 		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
 		-DROM_ABI_EXTENDED -I$(COMMON)/platform -o $@ $<
+
+$(BUILD)/cpm3-native-services-host.rel: src/cpm3-native-services.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
+		-DROM_ABI_EXTENDED -DROM_ABI_HOSTSERVICES \
+		-I$(COMMON)/platform -o $@ $<
+
+$(BUILD)/cpm3-rom-host.rel: src/cpm3-rom-host.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
+		-DROM_ABI_EXTENDED -DROM_ABI_HOSTSERVICES \
+		-I$(COMMON)/platform -o $@ $<
 
 $(BUILD)/cpm3-hot-directory.rel: src/cpm3-hot-directory.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
@@ -845,6 +906,23 @@ $(BUILD)/adapter-romabi-extended-native.bin: \
 	# D5C0h..D5FFh belongs to the ROM resident-entry self-test stack/guards.
 	test $$(wc -c < $@) -le 5568
 
+$(BUILD)/adapter-romabi-host-native.all: \
+		$(BUILD)/platform-adapter-romabi-host-native.rel \
+		$(BUILD)/cpm3-rom-host.rel \
+		$(BUILD)/cpm3-native-services-host.rel \
+		$(BUILD)/cpm3-hot-directory.rel $(LD80)
+	$(LD80) -m -O bin -o $@ -s /dev/null \
+		-P0xc200 $(BUILD)/platform-adapter-romabi-host-native.rel \
+		-P0xc4c0 $(BUILD)/cpm3-rom-host.rel \
+		-P0xca00 $(BUILD)/cpm3-native-services-host.rel \
+		-P0xd4c0 $(BUILD)/cpm3-hot-directory.rel
+
+$(BUILD)/adapter-romabi-host-native.bin: \
+		$(BUILD)/adapter-romabi-host-native.all
+	tail -c+49665 $< >$@
+	# C8 keeps the fixed device buffers and D5C0h ROM self-test guards.
+	test $$(wc -c < $@) -le 5056
+
 $(BUILD)/adapter-romabi-extended-control.all: \
 		$(BUILD)/platform-adapter-romabi-extended-control.rel \
 		$(BUILD)/netconsole-romabi-extended-native.rel \
@@ -875,6 +953,13 @@ $(NATIVE_ROM_SYS): src/cpm3-bios.asm tools/regenerate_cpm3.py \
 		--adapter-address 0xc000 --top-page 0xbf \
 		--metadata-policy gencpm --output $@
 
+$(C8_NATIVE_ROM_SYS): src/cpm3-bios.asm tools/regenerate_cpm3.py \
+		third_party/cpm3/bdos3.spr third_party/cpm3/gencpm.dat \
+		third_party/cpm3/scb.asm $(ZXCC) | $(BUILD)
+	$(PYTHON) tools/regenerate_cpm3.py --native-services \
+		--adapter-address 0xc200 --top-page 0xc1 \
+		--metadata-policy gencpm --output $@
+
 $(NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-native.bin \
 		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-native.bin \
@@ -892,6 +977,13 @@ $(EXTENDED_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-extended-native.bin \
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-extended-native.bin \
 		$(NATIVE_ROM_SYS) $@ --load-address 0x9000 \
 		--adapter-address 0xc000 --entry-address 0xbc00 \
+		--end-address 0xd600
+
+$(C8_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-host-native.bin \
+		$(C8_NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
+	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-host-native.bin \
+		$(C8_NATIVE_ROM_SYS) $@ --load-address 0x9000 \
+		--adapter-address 0xc200 --entry-address 0xbe00 \
 		--end-address 0xd600
 
 $(CONTROL_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-extended-control.bin \
@@ -943,6 +1035,12 @@ $(BUILD)/fastboot-extension-rom-v16.cim: \
 	$(ZMAC) --nmnv --zmac -m -8 \
 		$(addprefix -D,$(FASTBOOT_EXTENSION_V16_DEFS)) -o $@ $<
 
+$(BUILD)/fastboot-extension-rom-c8.cim: \
+		$(COMMON)/transport/fastboot-extension.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 \
+		$(addprefix -D,$(FASTBOOT_EXTENSION_V16_DEFS) FASTBOOT_CPM3_C8) \
+		-o $@ $<
+
 $(FASTBOOT): prebuilt/cpm-plus-juku-fastboot-v15.bin | $(OUT)
 	cp $< $@
 
@@ -966,6 +1064,13 @@ $(EXTENDED_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
 	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core-v16.cim \
 		$(BUILD)/fastboot-extension-rom-v16.cim \
 		$(EXTENDED_NATIVE_ROM_SYSTEM) $(ZX0) $@
+
+$(C8_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
+		$(BUILD)/fastboot-extension-rom-c8.cim \
+		$(C8_NATIVE_ROM_SYSTEM) $(ZX0) tools/build_fastboot.py | $(OUT)
+	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core-v16.cim \
+		$(BUILD)/fastboot-extension-rom-c8.cim \
+		$(C8_NATIVE_ROM_SYSTEM) $(ZX0) $@
 
 $(CONTROL_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
 		$(BUILD)/fastboot-extension-rom-v16.cim \
@@ -1201,6 +1306,26 @@ $(C7_BOOT_MANIFEST): $(EXTENDED_NATIVE_ROM_SYSTEM) \
 		--rom $(C7_ROM) --rom-metadata $(C7_ROM_METADATA) \
 		--rom-abi 1.2 --identity-prefix c7 \
 		--primary-slot-name c7-native \
+		--volume $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
+		--volume $(FULL_VOLUME) $(FULL_REPORT) \
+		--volume $(DEV_VOLUME) $(DEV_REPORT) \
+		--volume $(APPS_VOLUME) $(APPS_REPORT) \
+		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
+
+$(C8_BOOT_MANIFEST): $(C8_NATIVE_ROM_SYSTEM) \
+		$(C8_NATIVE_ROM_FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) \
+		$(C8_ROM) $(C8_ROM_METADATA) \
+		$(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
+		$(FULL_VOLUME) $(FULL_REPORT) $(DEV_VOLUME) $(DEV_REPORT) \
+		$(APPS_VOLUME) $(APPS_REPORT) \
+		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
+	$(PYTHON) tools/build_boot_manifest.py \
+		--system $(C8_NATIVE_ROM_SYSTEM) \
+		--fast-stage $(C8_NATIVE_ROM_FASTBOOT) \
+		--fallback-system $(ROM_SYSTEM) --fallback-fast-stage $(ROM_FASTBOOT) \
+		--rom $(C8_ROM) --rom-metadata $(C8_ROM_METADATA) \
+		--rom-abi 1.3 --identity-prefix c8 \
+		--primary-slot-name c8-native \
 		--volume $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
 		--volume $(FULL_VOLUME) $(FULL_REPORT) \
 		--volume $(DEV_VOLUME) $(DEV_REPORT) \

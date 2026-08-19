@@ -28,11 +28,16 @@
 .ifdef ROM_ABI_EXTENDED
         extrn   NCBULK
 .endif
+.ifdef ROM_ABI_HOSTSERVICES
+        extrn   NCHOSTSTATE
+.endif
 
 KEYCOLPORT     equ     004h
 KEYROWPORT     equ     005h
+.ifndef ROM_ABI_HOSTSERVICES
 NCRECONNECT    equ     0c65ch
 NCLASTFAIL     equ     0c65dh
+.endif
 ROMABISTATUS   equ     0c651h
 ROMLASTDISK    equ     0c65eh
 ROMLASTTRIES   equ     0c65fh
@@ -264,10 +269,19 @@ NSREFRESHCOPY2:
         inx     d
         dcr     c
         jnz     NSREFRESHCOPY2
+.ifdef ROM_ABI_HOSTSERVICES
+        call    NCHOSTSTATE
+        mov     a,m
+        sta     NSCONFAIL
+        inx     h
+        mov     a,m
+        sta     NSCONRECONNECT
+.else
         lda     NCLASTFAIL
         sta     NSCONFAIL
         lda     NCRECONNECT
         sta     NSCONRECONNECT
+.endif
 .ifdef ROM_ABI_LOCALE
         lxi     h,ROMBOOTSTAGE
         lxi     d,NSBOOTSTAGE
@@ -382,6 +396,9 @@ NSBOOTPROTO:
 NSROMMAJOR:
         db      1
 NSROMMINOR:
+.ifdef ROM_ABI_HOSTSERVICES
+        db      3
+.else
 .ifdef ROM_ABI_EXTENDED
         db      2
 .else
@@ -389,6 +406,7 @@ NSROMMINOR:
         db      1
 .else
         db      0
+.endif
 .endif
 .endif
 NSINFOEND:

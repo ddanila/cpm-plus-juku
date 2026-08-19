@@ -58,7 +58,15 @@ start:
         call    printhex
         lxi     d,romsuffix
         call    puts
+        lhld    infobase
+        lxi     d,27
+        dad     d
+        mov     a,m
+        cpi     3
         lxi     d,mapmsg
+        jc      printmap
+        lxi     d,mapmsgc8
+printmap:
         call    puts
 
         lxi     d,s21msg
@@ -343,6 +351,11 @@ mapmsg:
         db      'Map: TPA 0100-99FF, loader 9A00-9CFF',13,10
         db      '     BDOS 9D00-BB9B, SCB BB9C-BBFF, BIOS BC00-BFFF',13,10
         db      '     adapter/state C000-D5FF, ROM gate/work D600-D7FF',13,10
+        db      '     framebuffer D800-FD7F (mode 3 RAM)',13,10,'$'
+mapmsgc8:
+        db      'Map: TPA 0100-9BFF, loader 9C00-9EFF',13,10
+        db      '     BDOS 9F00-BD9B, SCB BD9C-BDFF, BIOS BE00-C1FF',13,10
+        db      '     adapter/state C200-D5FF, ROM gate/work D600-D7FF',13,10
         db      '     framebuffer D800-FD7F (mode 3 RAM)',13,10,'$'
 s21msg: db      'S21 raw: $'
 videomsg:

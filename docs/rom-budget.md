@@ -166,6 +166,15 @@ loader/BDOS/BIOS placement and `0100h..99FFh` transient span. The generated
 release map derives the end address from the actual adapter and names every
 hot-cache and reserved range.
 
+JukuNet C8/ABI 1.3 moves the remaining 733-byte N4/host transport into ROM and
+replaces it with a 147-byte CP/M-specific binding at `C4C0h`. GENCPM is then
+re-run with adapter top `C200h`: loader `9C00h`, BDOS `9F00h`, SCB `BD9Ch`,
+BIOS `BE00h`, and adapter `C200h`. Fixed cache, disk and status storage through
+`D570h` is unchanged. Exact C8 TPA is `0100h..9BFFh`, 39,680 bytes—512 bytes
+more than C6/C7 and 8,704 bytes more than the original RAM-BIOS baseline. The
+27-byte resident host state occupies `D7E0h..D7FAh` inside the existing ROM
+workspace and costs no TPA.
+
 ## Decisions entering resident-service migration
 
 - Keep the whole current implementation inside each initial envelope; do not

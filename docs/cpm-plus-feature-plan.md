@@ -1073,7 +1073,7 @@ board cannot block useful desk work:
 | Distribution | Make everyday CP/M more pleasant | History and `PANEL.COM` are admitted. Consider further shared status/diagnostic presentation only for a measured workflow; admit only licensed, source-available strict-8080 programs. |
 | Performance | Improve only demonstrated bottlenecks | M4 is physically accepted. Profile alternating drives and longer sequential reads before considering request coalescing, predictive reads, a lower-overhead protocol, or compression. |
 | Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's suspected USART fault and CS00024's RAM/refresh/D57 path on those boards. CS00015 remains the known-good reference configuration. |
-| Future ROM | Add resident code only when it unlocks a measured need | C7 requires a service or ABI change that cannot safely live in the host, loaded BIOS, or a transient. Ordinary M4/M5 work does not justify another burn. |
+| Future ROM | Qualify the implemented C8 resident-service release | C8/ABI 1.3 moves the final shared N4/host transport into ROM, adds real diagnostic selectors and short/long POST codes, and gains 512 TPA bytes. Simulator work is complete; run its focused CS00015 workload before promotion. C6 remains rollback and C7 remains hash-pinned. |
 
 The explicit non-goals remain unchanged: no XMODEM in the standard image, no
 banked CP/M until real banked Juku hardware exists, no write-back disk cache
@@ -1082,10 +1082,10 @@ setting in production. `cpm-ls` remains a documented candidate rather than a
 planned shipped program: its current disk-read cost is too high relative to
 the already admitted project-owned `LS.COM`.
 
-The practical order is therefore: run M3 when a usable display is available;
-otherwise pursue only measured post-M4 performance/usability work or M6 when
-the corresponding non-reference machine is on the bench. M1, M2, M4, and M5
-are closed.
+The practical order is therefore: qualify C8 on CS00015, run M3 when a usable
+display is available, and pursue M6 only when the corresponding non-reference
+machine is on the bench. M1, M2, M4, and M5 are closed; further performance or
+usability changes still require a measured workload.
 
 ### Explicitly separate future projects
 

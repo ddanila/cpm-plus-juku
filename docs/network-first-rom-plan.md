@@ -357,6 +357,24 @@ promotion level and must never be inferred from simulator qualification:
 - exact D15/D16 images, hashes, build identity, RAM/ROM map, complete vector
   map, TPA gain, simulator logs, and any available CS00015 results are documented;
 - the relinked system retains its measured 39,168-byte transient span,
-  exceeding the original minimum target, through the final simulator release
-  gate; a later physical promotion repeats the short matrix without changing
-  this scoped software result.
+  for the immutable C6/C7 baselines, while C8 raises it to 39,680 bytes by
+  moving the remaining shared host transport into ABI 1.3 ROM; a later C8
+  physical promotion repeats the short matrix without changing this scoped
+  software result.
+
+## C8 resident-host implementation
+
+The planned final shared-service migration is implemented as the separately
+named JukuNet C8 simulator candidate. One selector vector at `FF5Ch` keeps the
+copied gate within its fixed envelope while resident ROM owns N4 console,
+capability/time, publication, bulk and reconnect mechanics. CP/M retains a
+147-byte convention/SCB binding. The high-memory chain moves by two pages:
+loader `9C00h`, BDOS `9F00h`, BIOS `BE00h`, adapter `C200h`, and TPA
+`0100h..9BFFh` (39,680 bytes, +512 over C6/C7).
+
+C8 also turns the diagnostic placeholder into eight bounded selectors and
+uses repeated three-tone short/long POST codes C1--C5. Exact older ROM hashes
+remain unchanged. Simulator qualification covers the full ROM ABI, all POST
+codes, missed-ready autoboot, local CP/M STATUS/DIAG/warm boot, and an N4
+prompt/DIR/VER path. Physical CS00015 qualification remains the promotion
+gate; see [`c8-resident-migration-plan.md`](c8-resident-migration-plan.md).

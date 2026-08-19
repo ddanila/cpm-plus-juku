@@ -84,6 +84,7 @@ def main() -> int:
             bytes.fromhex("00 b0 00 c6"),
             bytes.fromhex("00 70 00 9c"),
             bytes.fromhex("00 90 00 bc"),
+            bytes.fromhex("00 90 00 be"),
         ):
             raise ValueError(
                 f"fastboot v{version} requires a supported Juku RAM layout"
