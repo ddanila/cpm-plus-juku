@@ -174,7 +174,7 @@ must be byte-identical.
   synchronous write-through and invalidate cache before their first attempt.
 - A: defaults read-only with explicit copy/snapshot/write-through modes; B:
   remains read-only and uses native Juku cylinder/head geometry.
-- `STATUS`, `DIAG`, `HIST`, `PANEL`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`,
+- `VER`, `STATUS`, `DIAG`, `HIST`, `PANEL`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`,
   and `N4BULK` provide bounded target and machine-readable observability.
 - Full, development, and demo media retain one command across CCP reloads;
   `!!` repeats it and `HIST [CLEAR]` inspects or clears it. Recovery media keep
