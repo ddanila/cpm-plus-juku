@@ -12,6 +12,7 @@ import pty
 import re
 import select
 import signal
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -80,6 +81,13 @@ def artifact_identity(path: Path) -> dict[str, int | str]:
 
 
 def build_trace(output: Path) -> None:
+    packaged = os.environ.get("JUKU_COSIM_TRACE")
+    if packaged:
+        source = Path(packaged)
+        require(source.is_file(), f"packaged simulator is missing: {source}")
+        shutil.copy2(source, output)
+        output.chmod(0o755)
+        return
     sources = [
         COSIM / "cosim" / name
         for name in ("trace.c", "i8080.c", "juk_disk.c", "juku_fdc.c")
@@ -1008,6 +1016,23 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     ),
                 }
                 print(f"COSIM {case.name}: DIR", flush=True)
+                if os.environ.get("CPM_PLUS_JUKU_QUICK_SMOKE") == "1":
+                    require(
+                        b"VER" in second and b"TOOLS" in second,
+                        f"CI smoke directory lacks expected tools: {second!r}",
+                    )
+                    send_console(b"VER\r")
+                    version = read_until(b"A>", command_timeout)
+                    require(
+                        b"CP/M Plus 3.1 for Juku" in version,
+                        f"CI smoke version report differs: {version!r}",
+                    )
+                    print(
+                        f"JUKU CP/M PLUS 3.1: PASS ({boot_label}, A>, DIR, "
+                        "VER)",
+                        flush=True,
+                    )
+                    return
                 command_started_at = time.monotonic()
                 send_console(b"TYPE README.TXT\r")
                 third = remote.read_paged(300 if network_rom else 120) \

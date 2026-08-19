@@ -69,6 +69,7 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	network-rom-cosim-check network-rom-soak-check \
 	network-rom-long-soak-check bench-candidate \
 	distribution distribution-check distribution-cosim-check \
+	network-smoke-check \
 	distribution-input-check utility-catalogue-check \
 	development-tool-audit-check \
 	compiler-comparison-check compiler-comparison-rebuild-check \
@@ -343,6 +344,12 @@ dev-utility-rebuild-check: $(ZXCC)
 
 distribution-check: distribution
 	$(PYTHON) tests/distribution_test.py
+
+network-smoke-check: all
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke \
+	CPM_PLUS_JUKU_QUICK_SMOKE=1 \
+	CPM_PLUS_JUKU_VOLUME=$(FULL_VOLUME) \
+	$(PYTHON) tests/cosim_check.py
 
 distribution-cosim-check: all
 	CPM_PLUS_JUKU_NETWORK_ROM=$(C6_ROM) \

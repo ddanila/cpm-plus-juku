@@ -99,6 +99,9 @@ make check
 The repository builds pinned zmac, ld80, ZX0, and CP/M artifacts locally.
 GitHub Actions runs the distribution check in a digest-pinned build container;
 the container is rebuilt only when its definition or publishing workflow changes.
+That image incorporates the digest-pinned `8080-cosim` smoke kit, allowing CI
+to boot the generated system through the network ROM without cloning or
+compiling the simulator on every run.
 `make check` verifies immutable prebuilt images, ROM budgets, licensed volume
 inputs, deterministic distribution reports, boot manifests, C5/C6 package
 reproducibility, the CP/M 3 toolchain output, native BIOS services,
