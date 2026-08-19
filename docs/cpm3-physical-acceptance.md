@@ -27,6 +27,9 @@ accepted only when the N4 transcript also contains every expected target
 reply and the final CCP prompt for every command. Disk traffic alone cannot
 turn a command into a pass.
 
+Pager recognition is ASCII-case-insensitive because CP/M's built-in `TYPE`
+and the DRI `DUMP` utility capitalize `Continue` differently.
+
 The full workload runs 30 commands covering all 20 nonvisual acceptance
 programs. It includes paginated reads, Status, buffered Keytest,
 every admitted DRI utility, both four-record PIP/CRC copies, the nonzero-user

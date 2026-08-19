@@ -44,6 +44,8 @@ def workload_executor_test() -> None:
             assert read_command(slave) == b"PAGER\r"
             os.write(slave, b"PAGER\r\nPress RETURN to Continue")
             assert read_command(slave) == b"\r"
+            os.write(slave, b"\r\nPress RETURN to continue")
+            assert read_command(slave) == b"\r"
             os.write(slave, b"\r\nOK\r\nA>")
             assert read_command(slave) == b"INTERACT\r"
             os.write(slave, b"READY")
@@ -74,9 +76,9 @@ def workload_executor_test() -> None:
     os.close(slave)
     if worker.is_alive() or failures:
         raise AssertionError(f"synthetic target failed: {failures}")
-    if boot["result"] != "pass" or console.page_returns != 1 or \
+    if boot["result"] != "pass" or console.page_returns != 2 or \
             [item["result"] for item in commands] != ["pass", "pass"] or \
-            commands[0]["page_returns"] != 1 or \
+            commands[0]["page_returns"] != 2 or \
             not any(event == "command_input" for event, _ in events):
         raise AssertionError("paging/interactive workload evidence differs")
 

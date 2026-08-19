@@ -39,7 +39,7 @@ CONSOLE_READY_MARKERS = (
 STANDARD_HOST_MODULES = ("janet_netboot.py", "janet_fastboot.py")
 DISK_READ_OPERATIONS = frozenset((0x11, 0x13, 0x14))
 DISK_WRITE_OPERATIONS = frozenset((0x12, 0x15))
-PAGE_PROMPT = b"Press RETURN to Continue"
+PAGE_PROMPT = b"press return to continue"
 PROFILE_VOLUMES = {
     "full": "full-a",
     "development": "development-a",
@@ -342,7 +342,7 @@ class N4Console:
         while time.monotonic() < deadline:
             snapshot = bytes(self.transcript)
             marker_at = snapshot.find(marker, start)
-            page_at = snapshot.find(PAGE_PROMPT, self.page_scan)
+            page_at = snapshot.lower().find(PAGE_PROMPT, self.page_scan)
             if page_at >= 0 and (marker_at < 0 or page_at < marker_at):
                 self.send(b"\r")
                 self.page_returns += 1
