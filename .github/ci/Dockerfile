@@ -11,6 +11,7 @@ RUN apt-get update \
         build-essential \
         ca-certificates \
         cpmtools \
+        git \
         python3 \
         python3-pexpect \
     && rm -rf /var/lib/apt/lists/*
