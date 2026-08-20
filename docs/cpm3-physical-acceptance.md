@@ -267,6 +267,12 @@ The already established exact-C6 full and development cosim suites remain the
 runtime authority until the two corresponding CS00015 result directories have
 also passed this physical audit.
 
+The later portable-host M2.1 qualification uses the same fail-closed bundle
+format for C8. Its cold, live-resume and target-reset directories all pass this
+auditor; fresh conversion of each raw C-host capture reproduces its structured
+request trace byte for byte. See
+[`cs00015-c8-blind-qualification-20260820.md`](cs00015-c8-blind-qualification-20260820.md#portable-c-host-m21-qualification).
+
 ## 2026-08-19 CS00015 result
 
 The full workload passed 30/30 commands, the development workload passed

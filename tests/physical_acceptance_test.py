@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import tty
 
 
@@ -127,6 +128,38 @@ def timeout_diagnostic_test() -> None:
     worker.join(timeout=1)
     os.close(master)
     os.close(slave)
+
+
+def delayed_console_open_test() -> None:
+    """The native host opens N4 only after a potentially long Fastboot."""
+    master, slave = pty.openpty()
+    tty.setraw(master)
+    tty.setraw(slave)
+    slave_path = os.ttyname(slave)
+    os.close(slave)
+    failures: list[BaseException] = []
+
+    def target() -> None:
+        fd = -1
+        try:
+            time.sleep(0.05)
+            fd = os.open(slave_path, os.O_RDWR | os.O_NOCTTY)
+            tty.setraw(fd)
+            os.write(fd, b"A>")
+        except BaseException as error:
+            failures.append(error)
+        finally:
+            if fd >= 0:
+                os.close(fd)
+
+    worker = threading.Thread(target=target)
+    worker.start()
+    console = acceptance.N4Console(master)
+    end = console.wait_for(b"A>", start=0, timeout=1)
+    worker.join(timeout=1)
+    os.close(master)
+    if end != 2 or worker.is_alive() or failures:
+        raise AssertionError(f"delayed PTY slave was not accepted: {failures}")
 
 
 def resume_workload_test() -> None:
@@ -379,6 +412,7 @@ def main() -> int:
             raise AssertionError(f"{profile} workload/artifact binding differs")
     workload_executor_test()
     timeout_diagnostic_test()
+    delayed_console_open_test()
     resume_workload_test()
     host_snapshot_test()
     operator_wait_budget_test()

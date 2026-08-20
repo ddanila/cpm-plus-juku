@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import json
 import math
@@ -373,7 +374,17 @@ class N4Console:
             return
         ready, _, _ = select.select([self.fd], [], [], min(0.1, remaining))
         if ready:
-            incoming = os.read(self.fd, 4096)
+            try:
+                incoming = os.read(self.fd, 4096)
+            except OSError as error:
+                # A PTY master reports EIO while no slave is open.  The C host
+                # deliberately opens its N4 slave only after Fastboot reaches
+                # NetDisk, so this is an expected pre-boot state rather than a
+                # failed physical session.
+                if error.errno != errno.EIO:
+                    raise
+                time.sleep(min(0.01, max(0.0, remaining)))
+                return
             if incoming:
                 self.transcript.extend(incoming)
 
@@ -1090,7 +1101,7 @@ def audit_directory(directory: Path) -> list[str]:
         if boot_result is not None or boot_file is not None:
             failures.append("resume unexpectedly contains cold-boot evidence")
         if host_path.is_file() and \
-                b"Resuming N4 remote console on " not in host_path.read_bytes():
+                b"phase=netdisk" not in host_path.read_bytes():
             failures.append("host log does not prove live N4 resume mode")
     else:
         try:

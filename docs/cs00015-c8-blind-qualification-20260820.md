@@ -130,12 +130,49 @@ operator confirmed the tune by ear. This closes normal speaker, D57 channel 1,
 ROM sound service, copied gate, and return-path behavior. It does not claim the
 separate C1--C5 POST failure phrases.
 
+## Portable C host M2.1 qualification
+
+The exact accepted Linux `jukuhost 0.1.0-m2` executable, SHA-256
+`09b20fc58d9383282528b90cc4af21405bb738d2c0149780f442a5dd056317ec`,
+was subsequently exercised against this same fitted C8 pair. The manifest,
+ROM, Fastboot V16 stage, CP/M system, A: and B: identities remained identical
+to the table above.
+
+Three new retained runs passed:
+
+| run | purpose | result | reads / records / writes | disk retries |
+| --- | --- | ---: | ---: | ---: |
+| `physical-CS00015-m2.1-linux-02` | cold boot and complete blind workload | 15/15 | 70 / 560 / 5 | 0 |
+| `physical-CS00015-m2.1-linux-reconnect-01` | replace host in a live CP/M session | 15/15 | 77 / 616 / 12 | 0 |
+| `physical-CS00015-m2.1-linux-reset-01` | RESET into a fresh network boot | 4/4 | 33 / 264 / 4 | 0 |
+
+The matrix covered A:, B:, remote input and bulk output, status, repeated full
+diagnostics, disk soak, controlled writable-A: changes, warm boot, clean host
+stop, live host replacement and target reset. The replacement continued at
+request sequence `4C`; both cold paths restarted at `01`. All three raw
+captures regenerate the retained request traces byte for byte, all independent
+audits pass, and the corresponding C8/Linux PTY simulator paths pass.
+
+The cold host summaries count 382 and 186 pre-target probe groups while the
+operator had not yet powered or reset the board; the native source increments
+that aggregate field once per 32 unanswered readiness probes. These are not
+disk retransmissions: every structured NetDisk trace reports zero retries.
+Both cold sessions reached `A>` 3.040 seconds after the first disk request.
+
+The first preparation attempt exposed a host-runner issue, not a board issue:
+Linux PTY masters return `EIO` until the native host opens its N4 slave after
+Fastboot. The runner now waits through this transient condition and has a
+delayed-open regression. Its resume auditor now also accepts the native
+`phase=netdisk` marker rather than requiring wording from the retired Python
+host.
+
 ## Result and remaining boundary
 
-C8's new resident-host migration has passed its automated blind physical
-boundary on CS00015. The exact fitted ROM pair boots the exact manifest-bound
-CP/M image, resident ABI 1.3 services work under sustained traffic, warm boot
-is stable, and repeated replacement hosts recover with zero disk retries.
+C8's new resident-host migration and the portable C host's M2.1 gate have
+passed their automated blind physical boundary on CS00015. The exact fitted
+ROM pair boots the exact manifest-bound CP/M image, resident ABI 1.3 services
+work under sustained traffic, warm boot is stable, and repeated replacement
+hosts recover with zero disk retries.
 
 Promotion is still intentionally narrower than “all physical gates complete”.
 The local-keyboard, normal-sound, repeated cold-boot, and automated blind gates

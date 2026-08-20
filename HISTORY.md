@@ -1,5 +1,17 @@
 # Project history
 
+## 2026-08-20 — portable C host physically qualified on CS00015
+
+- Passed the exact Linux `jukuhost 0.1.0-m2` build through two C8 cold/reset
+  boots and a live host replacement: 34/34 target commands, 180 reads, 1,440
+  records, 21 controlled writes, A:/B:/N4, warm boot, diagnostics and zero disk
+  retries.
+- Independently audited all three evidence bundles and regenerated their
+  structured request traces byte for byte from 98,765 raw capture records.
+- Made the physical runner tolerate the expected Linux PTY `EIO` before the C
+  host opens N4, with a delayed-open regression, and aligned resume auditing
+  with the native `phase=netdisk` evidence marker.
+
 The first simulator-proven Juku CP/M Plus baseline was developed temporarily
 on CP/Mish's public `juku` branch. Its complete original patch remains
 available in `ddanila/cpmish` as commit
