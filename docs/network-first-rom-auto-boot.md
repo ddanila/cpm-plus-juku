@@ -134,18 +134,14 @@ pending`; it is the authoritative controlled-bench release gate. The complete
 package and burn mapping are in
 [`network-first-rom-bench-candidate.md`](network-first-rom-bench-candidate.md).
 
-## Host command for C4 qualification
+## Historical C4 qualification
 
-For the named C4 runtime and byte-identical C3/C4 D15/D16 pair, the matching
-identity-free command is:
-
-```sh
-cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
-  /dev/ttyUSB0 out/cpm-plus-juku-network-rom-system.bin \
-  out/cpm-plus-juku.img \
-  --fast-stage1 out/cpm-plus-juku-network-rom-fastboot-v15.bin --network-rom \
-  --disk-baud 19200 --disk-protocol 3 --writable --timeout 86400
-```
+C4 used the superseded Fastboot V15 Python host. Its exact invocation remains
+in the commits and retained 2026-08-17 evidence which produced the results
+below, but it is no longer a supported command. New physical work uses the
+C8/V16 native C host through the manifest-bound procedure in
+[`cpm3-physical-acceptance.md`](cpm3-physical-acceptance.md); portable
+`jukuhost` deliberately does not grow a legacy V15 production mode.
 
 C4 is not yet promoted, and no new burn is needed over C3. Three blind physical
 CS00015 runs have proved automatic boot, N4 input/output, `DIR`, sequential

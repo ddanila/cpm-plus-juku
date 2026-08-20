@@ -246,3 +246,13 @@ serves its private A: copy through synchronous journaled direct mode, and
 audits every retained native artifact. Its lifecycle regression executes a
 standalone fake C-host contract and no longer imports or launches the Python
 Janet/Fastboot/NetDisk server.
+
+The same promotion audit identified the older C4 physical-qualification
+recorder as an obsolete production caller. C4 is permanently tied to the
+superseded Fastboot V15 transport, whereas the admitted portable host starts at
+the current C8/V16 contract. Its completed 2026-08-17 result directories and
+Git history remain the evidence authority, but the live Python-host recorder,
+its regression, and the documented serving commands were removed. New
+qualification uses the manifest-bound C-host physical-acceptance runner only;
+the portable host is not expanded with an obsolete protocol solely to preserve
+a second operational path.

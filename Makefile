@@ -681,7 +681,6 @@ bench-candidate: check
 	$(PYTHON) $(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/build_network_rom.py --check
 	$(JUKU_COSIM_ROOT)/sync/network_first_rom_hdl_check.sh
 	$(PYTHON) tools/package_bench_candidate.py
-	$(PYTHON) tests/physical_qualification_test.py
 
 clean:
 	rm -r $(BUILD) $(OUT)

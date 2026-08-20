@@ -81,106 +81,22 @@ neither model replaces the physical matrix below.
 Program only `D15-low-8K.bin` into D15 and `D16-high-8K.bin` into D16. The
 remaining files are matching host/runtime inputs, not EPROM images.
 
-## Matching host invocation
+## Historical qualification boundary
 
-After programming both halves and before switching CS00015 on:
+C4 and its Fastboot V15 transport are preserved historical artifacts, not a
+current deployment path. The physical commands which produced the retained
+2026-08-17 evidence used the then-current Python host and are preserved in Git
+history and in the result directories under `out/`; they are intentionally not
+offered as runnable commands here.
 
-```sh
-cd ~/fun/cpm-plus-juku && ../8080-cosim/tools/janet_disk_server.py \
-  /dev/ttyUSB0 out/network-first-abi1-cs00015-c4/cpm-plus-system.bin \
-  out/network-first-abi1-cs00015-c4/network-disk.img \
-  --fast-stage1 out/network-first-abi1-cs00015-c4/fastboot-v15.bin \
-  --network-rom --disk-baud 19200 --disk-protocol 3 --writable \
-  --timeout 86400
-```
+The production host migration admits the current C8/Fastboot V16 path. It does
+not carry the obsolete V1--V15 serving implementation into portable C merely
+to repeat an already completed candidate experiment. The old
+`physical_qualification.py` recorder and its live `run`/`resume` entry points
+were therefore retired with the Python production host.
 
-## Auditable physical session
-
-Initialize a record before programming or powering the board:
-
-```sh
-cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py init \
-  --output out/physical-CS00015-C4
-```
-
-This verifies every packaged hash and D15+D16 concatenation, captures both
-repository commits, and writes a machine-readable session plus `CHECKLIST.md`.
-Every `run` creates its own private writable copy of A:, so `ERA` and other
-write tests cannot contaminate a later cold boot or the packaged reference
-disk. Start each cold-boot attempt with:
-
-```sh
-cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py run \
-  out/physical-CS00015-C4 /dev/ttyUSB0
-```
-
-The runner streams the normal server output to the console and a hash-locked
-per-run `host.log`, while `boot.json` records the first valid disk-request
-timing and exact system/fastboot identities. Stop it with Ctrl+C after the
-local observation; power-cycle and repeat until at least three independent
-cold boots have been captured. The runner owns the terminal signal and forwards
-one SIGINT to an isolated server process; the server atomically replaces the
-private A: copy, so an interrupted shutdown cannot truncate its last complete
-state.
-
-For a monitor-independent, auditable command suite, add `--console-smoke`:
-
-```sh
-cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py run \
-  out/physical-CS00015-C4 /dev/ttyUSB0 --console-smoke
-```
-
-After printing the host-ready line, the runner waits for a physical reset or
-power-on. It verifies the C4 banner and `A>`, deliberately delays the first
-input so the target has entered its idle `CONIN` path, and runs `DIR`, paginated
-`TYPE README.TXT`, `DIAG CPU`, `WBOOT`, `ERA README.TXT`, and a directory that
-must no longer contain README. The server then stops cleanly. Raw N4 bytes,
-their hash, decoded checks, host log, boot timing, artifact identities, and the
-private writable volume are retained in that boot directory. Successful checks
-update only the observations they directly prove; display, local keyboard, and
-cursor remain pending.
-
-For the server-loss test, stop the live host without resetting Juku. After the
-target has entered its bounded retry path, attach a fresh server directly to
-the running NetDisk session:
-
-```sh
-cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py resume \
-  out/physical-CS00015-C4 /dev/ttyUSB0 --console-smoke
-```
-
-The underlying production CLI's `--resume-disk` mode reuses the most recent
-cold boot's private A: but sends no bootstrap marker or system image. It waits
-for the target's retried request at 19,200/8O1; prove
-recovery by completing a later `DIR` without RESET. In console-smoke mode the
-recorder waits for the replacement server to open and configure its PTY before
-it queues the command. This avoids a host-only `tty.setraw()` input-flush race
-while retaining the target's bounded reprobe behavior. The command is captured
-byte for byte and the replacement host stops cleanly after the returned prompt.
-Add `--console-trace` to a direct server invocation when every N4 sequence,
-status, delivered/output byte, and duplicate decision is needed. Record only
-observations actually made on CS00015 with `record --test name=pass`, add the two programmer
-readback hashes, then run:
-
-```sh
-cd ~/fun/cpm-plus-juku && python3 tools/physical_qualification.py audit \
-  out/physical-CS00015-C4
-```
-
-The audit refuses promotion unless both EPROM hashes match, at least three
-identity-checked cold-boot timings exist, a resume run was captured, and every
-required display, keyboard, command, write, warm-boot, and recovery observation
-is explicitly marked as passed. It also locks the recorder and production host
-source hashes at session initialization, so changing either implementation
-mid-qualification invalidates the record. Live reattachment is implemented by
-`8080-cosim` commit `8a3300e2`.
-
-Promotion requires the physical matrix in
-[`network-first-rom-plan.md`](network-first-rom-plan.md): repeated cold and
-warm boots, prompt and timing, `DIR`, sequential read, `DIAG`, erase/write,
-keyboard, compact display and blinking cursor, host-loss recovery, and a later
-server reconnection without manual reset. The blind portions of that list now
-pass; resident display, cursor, and local-keyboard observation remains. Record
-board identity and programmer verification hashes. A failure keeps C4
-unpromoted and must be reproduced in simulation before another named candidate
-is made.
+Use [`cpm3-physical-acceptance.md`](cpm3-physical-acceptance.md) for every new
+physical run. That manifest-bound runner launches the native C `jukuhost`,
+retains its text log and CRC-protected capture, derives JSON acceptance evidence
+after shutdown, and covers the current ROM/system/media identities. The C4
+package and this document remain useful for provenance and comparison only.
