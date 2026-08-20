@@ -1,4 +1,4 @@
-FROM ghcr.io/ddanila/8080-cosim-smoke-kit@sha256:060cf153f9a4332fc58c7577e86f98d305b5848d60bf62bd4934591e8fc1c830 AS cosim-smoke
+FROM ghcr.io/ddanila/8080-cosim-smoke-kit@sha256:579e79e9fc801266f439e5a62ec2579e474ba64642cfe6da72390826a06f64c8 AS cosim-smoke
 
 FROM ubuntu:24.04
 
