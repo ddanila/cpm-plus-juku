@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     container:
-      image: ghcr.io/ddanila/cpm-plus-juku-ci@sha256:63e277e27f22bd4632af48b2805877197e68a117de948544a306a7b7d3ea4acf
+      image: ghcr.io/ddanila/cpm-plus-juku-ci@sha256:245934e74520c45bb5702fa3948b4da165c80e4c1b6957fd266ed09c1916941f
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

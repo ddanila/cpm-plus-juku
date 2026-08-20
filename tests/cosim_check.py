@@ -50,12 +50,14 @@ DRIVE_B = Path(os.environ["CPM_PLUS_JUKU_DRIVE_B"]) \
 ZMAC = ROOT / "build" / "bin" / "zmac"
 LD80 = ROOT / "build" / "bin" / "ld80"
 ZX0 = ROOT / "build" / "bin" / "zx0"
-sys.path.insert(0, str(COSIM / "tools"))
+sys.path.insert(0, str(COSIM / "tests" / "fixtures"))
 sys.path.insert(0, str(COMMON / "tools"))
 sys.path.insert(0, str(ROOT / "tools"))
 
-from janet_disk_server import juku_image_to_volume, serve_disk  # noqa: E402
-from janet_fastboot import serve_fast  # noqa: E402
+from legacy_janet_disk_server import (  # noqa: E402
+    juku_image_to_volume, serve_disk,
+)
+from legacy_janet_fastboot import serve_fast  # noqa: E402
 from creep_console_oracle import (  # noqa: E402
     main as check_console_font,
     render_transcript as render_console_transcript,
