@@ -166,27 +166,22 @@ def resume_workload_test() -> None:
 
 
 def host_snapshot_test() -> None:
-    server = acceptance.DEFAULT_COSIM / "tools/janet_disk_server.py"
+    server = acceptance.DEFAULT_COSIM / "build/jukuhost"
     with tempfile.TemporaryDirectory(prefix="physical-host-snapshot.") as name:
         inputs = Path(name)
         snapped, dependencies = acceptance.snapshot_host(server, inputs)
-        if {Path(record["path"]).name for record in dependencies} != \
-                set(acceptance.STANDARD_HOST_MODULES):
-            raise AssertionError("standard host dependency snapshot differs")
+        if dependencies:
+            raise AssertionError("native host unexpectedly has script dependencies")
         completed = subprocess.run(
-            [sys.executable, snapped["path"], "--help"],
+            [snapped["path"], "--help"],
             cwd=ROOT, text=True, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        if completed.returncode != 0 or "Juku" not in completed.stdout:
+        if completed.returncode != 0 or "usage: jukuhost" not in completed.stdout:
             raise AssertionError(
                 "snapshotted disk server is not independently executable:\n"
                 + completed.stdout
             )
-        Path(dependencies[0]["path"]).write_text("changed\n")
-        if acceptance.sha256(Path(dependencies[0]["path"])) == \
-                dependencies[0]["sha256"]:
-            raise AssertionError("changed host dependency retained its hash")
 
 
 def operator_wait_budget_test() -> None:
@@ -199,12 +194,13 @@ def operator_wait_budget_test() -> None:
     )
     command = acceptance.server_command(
         args, artifacts, Path("/tmp/volume.img"), "/dev/pts/0",
-        Path("/tmp/boot.json"), Path("/tmp/requests.jsonl"),
-        acceptance.DEFAULT_COSIM / "tools/janet_disk_server.py",
+        Path("/tmp/requests.jsonl"),
+        acceptance.DEFAULT_COSIM / "build/jukuhost",
     )
     restart_index = command.index("--boot-restarts") + 1
-    if command[restart_index] != "600" or \
-            "Booting " not in acceptance.CONSOLE_READY_MARKERS:
+    timeout_index = command.index("--timeout") + 1
+    if command[restart_index] != "3" or command[timeout_index] != "1800" or \
+            "serving A:" not in acceptance.CONSOLE_READY_MARKERS:
         raise AssertionError("operator wait is not bound to pre-boot retries")
 
     resume_args = acceptance.parser().parse_args([
@@ -217,55 +213,42 @@ def operator_wait_budget_test() -> None:
     )
     resume_command = acceptance.server_command(
         resume_args, resume_artifacts, Path("/tmp/volume.img"),
-        "/dev/pts/0", Path("/tmp/boot.json"),
-        Path("/tmp/requests.jsonl"),
-        acceptance.DEFAULT_COSIM / "tools/janet_disk_server.py",
+        "/dev/pts/0", Path("/tmp/requests.jsonl"),
+        acceptance.DEFAULT_COSIM / "build/jukuhost",
     )
     if "--resume-disk" not in resume_command or \
             "--network-rom" in resume_command or \
-            "--boot-result-json" in resume_command:
+            "--fast-stage" in resume_command:
         raise AssertionError("resume server command contains cold-boot options")
 
 
 def fake_server_source() -> str:
     return r'''#!/usr/bin/env python3
-import hashlib, json, os, signal, sys, time
+import os, signal, struct, sys, time, zlib
 
 def option(name):
     return sys.argv[sys.argv.index(name) + 1]
 
 fd = os.open(option("--console-pty"), os.O_RDWR | os.O_NOCTTY)
-system = sys.argv[2]
-stage = option("--fast-stage1")
-boot = {
-    "schema": "juku-janet-boot-result-v1",
-    "network_rom": True,
-    "effective_boot_baud": 19200,
-    "disk_baud": 19200,
-    "system_sha256": hashlib.sha256(open(system, "rb").read()).hexdigest(),
-    "fast_stage_sha256": hashlib.sha256(open(stage, "rb").read()).hexdigest(),
-    "first_disk_request": {"elapsed_seconds": 0.125}
-}
-open(option("--boot-result-json"), "w").write(json.dumps(boot) + "\n")
-print("Advertising N4 remote console on fake; awaiting target", flush=True)
+started = int(time.monotonic() * 1000)
+
+def event(elapsed, text):
+    payload = text.encode("ascii")
+    header = struct.pack("<BBHQ", 3, 1, len(payload), elapsed)
+    body = header + payload
+    return body + struct.pack("<I", zlib.crc32(body))
+
+capture = b"JHCAP1\x01\0" + struct.pack("<Q", started)
+capture += event(5, "Fastboot V16 complete: 123 compressed bytes")
+capture += event(
+    10,
+    "request op=14 seq=01 drive=0 track=2 sector=1 status=0 "
+    "records=8 request-bytes=9 reply-bytes=549 duplicate=0",
+)
+open(option("--capture"), "wb").write(capture)
+open(option("--log"), "w").write("00000000 INFO  fake native log\n")
+print("00000125 INFO  serving A: fake, 19200 baud 8O1, N3", flush=True)
 time.sleep(0.05)
-trace = {
-    "schema": "juku-netdisk-request-trace-v1",
-    "monotonic_seconds": time.monotonic(),
-    "elapsed_seconds": 0.125,
-    "operation": 0x14,
-    "sequence": 1,
-    "drive": 0,
-    "track": 2,
-    "sector": 1,
-    "status": 0,
-    "records": 8,
-    "request_bytes": 10,
-    "reply_bytes": 549,
-    "encoding": "v3-ahead-8",
-    "duplicate": False,
-}
-open(option("--request-trace-jsonl"), "w").write(json.dumps(trace) + "\n")
 os.write(fd, b"CP/M Plus 3.1 Juku\r\nN3 19200\r\nA>")
 
 def read_command():
@@ -318,6 +301,7 @@ def lifecycle_and_audit_test() -> None:
         })
         fake_server = temporary / "fake_server.py"
         fake_server.write_text(fake_server_source())
+        fake_server.chmod(0o755)
         output = temporary / "result"
         completed = subprocess.run([
             sys.executable, str(TOOL), "run", "/dev/null",
@@ -328,8 +312,11 @@ def lifecycle_and_audit_test() -> None:
             "--shutdown-timeout", "2",
         ], cwd=ROOT, text=True, capture_output=True)
         if completed.returncode != 0:
+            retained = (output / "result.json").read_text() \
+                if (output / "result.json").is_file() else "<missing result>"
             raise AssertionError(
-                f"fake physical run failed:\n{completed.stdout}\n{completed.stderr}"
+                f"fake physical run failed:\n{completed.stdout}\n"
+                f"{completed.stderr}\n{retained}"
             )
         failures = acceptance.audit_directory(output)
         if failures:

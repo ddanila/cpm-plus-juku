@@ -8,20 +8,23 @@ recorder: C4 retains its historical candidate, checklist, and hashes, while
 this runner binds each new physical run to the current post-C6 loaded system
 and a manifest-selected C6, C7, or C8 ROM.
 
-The runner requires `8080-cosim` commit `59034760` or later. That host records
-the structured request stream consumed by the independent timing audit; an
-older server which merely prints request lines is intentionally insufficient.
+The runner requires `8080-cosim` commit `b2234425` or later and a locally built
+`build/jukuhost`. The native C host records exact traffic plus compact request
+events in its CRC-protected capture. The separately snapshotted
+`jukuhost_evidence.py` converter produces the JSON/JSONL records consumed by
+the independent timing audit after the host exits; JSON is not part of the
+production runtime.
 
 ## What a passing run proves
 
 The runner verifies the C6 boot manifest before opening the serial device. It
 hash-checks the ROM and metadata, V16 stream, system image, selected A: image,
-read-only native B:, workload, host server, both standard host modules, and
-runner. The server and its `janet_netboot.py`/`janet_fastboot.py` dependencies
-are copied together into `inputs/` and executed from that retained set; the
-physical run therefore cannot silently import different live-tree code. A
-fresh private copy of A: is made for each run and served in synchronous
-write-through mode; the manifest image is never modified.
+read-only native B:, workload, native host executable, evidence converter, and
+runner. The dependency-free C executable and non-serving converter are copied
+into `inputs/` and executed from that retained set; the physical run therefore
+cannot silently import different live-tree code. A fresh private copy of A: is
+made for each run and served through the C host's synchronous journaled direct
+mode; the manifest image is never modified.
 
 The host and target evidence are independent. `boot.json` proves that the
 bound system reached its first valid NetDisk request at 19,200 baud. A run is
@@ -88,6 +91,7 @@ for the normal ROM cue; it is not added to a standard distribution image.
 Build and bind the current artifacts first:
 
 ```sh
+cd ~/fun/8080-cosim && sync/jukuhost_linux_build.sh
 cd ~/fun/cpm-plus-juku && make c6-manifest-check
 ```
 

@@ -235,3 +235,14 @@ modules it imports. The physical runner now retains and hashes the complete
 three-file host set, executes that set in place, and audits every dependency.
 A regression launches the snapped server outside its source directory and
 would reproduce the original import failure.
+
+On 2026-08-20 the physical-acceptance path moved to the native portable C
+`jukuhost` at `8080-cosim` commit `b2234425`. Each result now retains the
+dependency-free executable, its human-readable log, CRC-protected raw capture,
+and the non-serving evidence converter which derives the established boot JSON
+and request JSONL after shutdown. The runner recognizes the C host's early
+serial-open phase before waiting through the separate operator boot window,
+serves its private A: copy through synchronous journaled direct mode, and
+audits every retained native artifact. Its lifecycle regression executes a
+standalone fake C-host contract and no longer imports or launches the Python
+Janet/Fastboot/NetDisk server.

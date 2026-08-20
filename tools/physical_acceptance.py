@@ -34,11 +34,12 @@ SCHEMA = "cpm-plus-juku-physical-acceptance-v1"
 WORKLOAD_SCHEMA = "cpm-plus-juku-physical-workload-v1"
 RESULT_SCHEMA = "cpm-plus-juku-physical-acceptance-result-v1"
 CONSOLE_READY_MARKERS = (
+    "phase=serial-open",
     "Booting ",
     "Advertising N4 remote console on ",
     "Resuming N4 remote console on ",
+    "serving A:",
 )
-STANDARD_HOST_MODULES = ("janet_netboot.py", "janet_fastboot.py")
 DISK_READ_OPERATIONS = frozenset((0x11, 0x13, 0x14))
 DISK_WRITE_OPERATIONS = frozenset((0x12, 0x15))
 PAGE_PROMPT = b"press return to continue"
@@ -130,7 +131,7 @@ def identity(path: Path) -> dict[str, Any]:
 
 def snapshot_file(source: Path, destination: Path) -> dict[str, Any]:
     source = source.resolve()
-    shutil.copyfile(source, destination)
+    shutil.copy2(source, destination)
     result = identity(destination)
     result["source_path"] = str(source)
     return result
@@ -139,16 +140,7 @@ def snapshot_file(source: Path, destination: Path) -> dict[str, Any]:
 def snapshot_host(server: Path, inputs: Path) \
         -> tuple[dict[str, Any], list[dict[str, Any]]]:
     snapped_server = snapshot_file(server, inputs / server.name)
-    dependencies: list[dict[str, Any]] = []
-    if server.name == "janet_disk_server.py":
-        for name in STANDARD_HOST_MODULES:
-            source = server.parent / name
-            if not source.is_file():
-                raise AcceptanceError(
-                    f"standard disk-server module is missing: {source}"
-                )
-            dependencies.append(snapshot_file(source, inputs / name))
-    return snapped_server, dependencies
+    return snapped_server, []
 
 
 def checked_artifact(base: Path, entry: dict[str, Any], label: str) \
@@ -550,38 +542,31 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
 
 def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
                    working_volume: Path, console_pty: str,
-                   boot_result: Path, request_trace: Path,
-                   server: Path) -> list[str]:
+                   request_trace: Path, server: Path) -> list[str]:
     if not server.is_file():
         raise AcceptanceError(f"disk server is missing: {server}")
     command = [
-        sys.executable, str(server), args.serial,
-        artifacts["system"]["path"], str(working_volume),
-        "--request-trace-jsonl", str(request_trace),
+        str(server), "--serial", args.serial,
+        "--system", artifacts["system"]["path"],
+        "--volume", str(working_volume),
         "--drive-b", artifacts["drive_b"]["path"],
         "--disk-baud", "19200", "--disk-protocol", "3",
-        "--disk-read-ahead-records", "8",
-        "--media-mode", "write-through",
-        "--console-pty", console_pty, "--console-trace",
-        "--timeout", str(args.operator_wait),
+        "--read-ahead", "8", "--writable",
+        "--console-pty", console_pty,
+        "--timeout", str(math.ceil(args.operator_wait)),
+        "--log", str(request_trace.with_name("jukuhost.log")),
+        "--capture", str(request_trace.with_name("host.cap")),
+        "--verbose",
     ]
     if args.resume:
         command.append("--resume-disk")
     else:
         command.extend((
-            "--fast-stage1", artifacts["fast_stage"]["path"],
+            "--fast-stage", artifacts["fast_stage"]["path"],
             "--network-rom",
-            "--boot-result-json", str(boot_result),
-            "--boot-manifest", artifacts["manifest"]["path"],
-        # A direct V16 attempt which sees no target lasts at least the
-        # three-second ready observation interval.  Keep complete recovery
-        # attempts alive for the advertised operator window; the old fixed
-        # three restarts expired in about 30 seconds.
-            "--boot-restarts", str(max(
-            3, math.ceil(args.operator_wait / 3.0),
-            )),
+            "--boot-restarts", "3",
         ))
-    command.extend(("--disk-timeout", str(args.session_timeout)))
+    command.extend(("--disk-timeout", str(math.ceil(args.session_timeout))))
     return command
 
 
@@ -673,7 +658,7 @@ def snapshot_inputs(output: Path, artifacts: dict[str, Any],
     }
     for name in (
             "manifest", "system", "fast_stage", "volume", "drive_b", "rom",
-            "rom_metadata"):
+            "rom_metadata", "evidence_converter"):
         source = Path(str(artifacts[name]["path"]))
         snapped[name] = snapshot_file(source, inputs / source.name)
         if snapped[name]["sha256"] != artifacts[name]["sha256"]:
@@ -701,6 +686,32 @@ def validate_boot_result(boot: dict[str, Any], artifacts: dict[str, Any]) -> Non
         raise AcceptanceError("boot result does not prove the bound V16 run")
 
 
+def convert_host_evidence(capture: Path, requests: Path,
+                          boot: Path | None, artifacts: dict[str, Any],
+                          serial: str) -> None:
+    converter = Path(str(artifacts["evidence_converter"]["path"]))
+    if not converter.is_file():
+        raise AcceptanceError(f"C-host evidence converter is missing: {converter}")
+    command = [
+        sys.executable, str(converter), str(capture),
+        "--requests-jsonl", str(requests), "--serial", serial,
+    ]
+    if boot is not None:
+        command.extend((
+            "--boot-result", str(boot),
+            "--system", artifacts["system"]["path"],
+            "--fast-stage", artifacts["fast_stage"]["path"],
+        ))
+    completed = subprocess.run(
+        command, text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, check=False,
+    )
+    if completed.returncode != 0:
+        raise AcceptanceError(
+            "C-host evidence conversion failed: " + completed.stdout.strip()
+        )
+
+
 def host_tail(path: Path) -> str:
     if not path.is_file():
         return ""
@@ -717,22 +728,28 @@ def run_acceptance(args: argparse.Namespace) -> int:
     working_volume = output / Path(artifacts["volume"]["path"]).name
     boot_path = output / "boot.json"
     request_trace_path = output / "requests.jsonl"
+    capture_path = output / "host.cap"
+    native_log_path = output / "jukuhost.log"
     console_path = output / "console.bin"
     host_path = output / "host.log"
     events_path = output / "events.jsonl"
     result_path = output / "result.json"
     server = args.server.resolve() if args.server is not None else \
-        args.cosim.resolve() / "tools/janet_disk_server.py"
+        args.cosim.resolve() / "build/jukuhost"
     if not server.is_file():
         raise AcceptanceError(f"disk server is missing: {server}")
     artifacts["host_server"] = identity(server)
+    converter = args.cosim.resolve() / "tools/jukuhost_evidence.py"
+    if not converter.is_file():
+        raise AcceptanceError(f"C-host evidence converter is missing: {converter}")
+    artifacts["evidence_converter"] = identity(converter)
     master, slave = pty.openpty()
     tty.setraw(master)
     tty.setraw(slave)
     console_pty = os.ttyname(slave)
     command = server_command(
-        args, artifacts, working_volume, console_pty, boot_path,
-        request_trace_path, server,
+        args, artifacts, working_volume, console_pty, request_trace_path,
+        server,
     )
     if args.dry_run:
         os.close(master)
@@ -749,8 +766,8 @@ def run_acceptance(args: argparse.Namespace) -> int:
         output, artifacts, workload_path, server,
     )
     command = server_command(
-        args, artifacts, working_volume, console_pty, boot_path,
-        request_trace_path, server,
+        args, artifacts, working_volume, console_pty, request_trace_path,
+        server,
     )
     shutil.copyfile(Path(artifacts["volume"]["path"]), working_volume)
     volume_before = sha256(working_volume)
@@ -855,6 +872,20 @@ def run_acceptance(args: argparse.Namespace) -> int:
             "type": "HostShutdownError",
             "message": f"host return code {host['returncode']}",
         }
+    if capture_path.is_file():
+        try:
+            convert_host_evidence(
+                capture_path, request_trace_path,
+                None if args.resume else boot_path, artifacts, args.serial,
+            )
+        except BaseException as error:
+            if failure is None:
+                failure = {"type": type(error).__name__, "message": str(error)}
+    elif failure is None:
+        failure = {
+            "type": "CaptureEvidenceError",
+            "message": "native host.cap missing",
+        }
     boot_result: dict[str, Any] | None = None
     if boot_path.is_file():
         try:
@@ -866,7 +897,7 @@ def run_acceptance(args: argparse.Namespace) -> int:
     elif failure is None and not args.resume:
         failure = {"type": "BootEvidenceError", "message": "boot.json missing"}
     if failure is None and args.resume and \
-            "Resuming N4 remote console on " not in host_path.read_text(
+            "phase=netdisk" not in host_path.read_text(
                 errors="replace",
             ):
         failure = {
@@ -924,6 +955,11 @@ def run_acceptance(args: argparse.Namespace) -> int:
         "host": {
             **host,
             "log": {**identity(host_path), "path": "host.log"},
+            "native_log": ({**identity(native_log_path),
+                            "path": "jukuhost.log"}
+                           if native_log_path.is_file() else None),
+            "capture": ({**identity(capture_path), "path": "host.cap"}
+                        if capture_path.is_file() else None),
         },
         "events": {**identity(events_path), "path": "events.jsonl"},
         "requests": ({**identity(request_trace_path), "path": "requests.jsonl"}
@@ -1003,6 +1039,14 @@ def audit_directory(directory: Path) -> list[str]:
     host_path = directory / str(host_log.get("path", ""))
     if not host_path.is_file() or sha256(host_path) != host_log.get("sha256"):
         failures.append("host log changed")
+    for key in ("native_log", "capture"):
+        entry = host.get(key, {}) if isinstance(host, dict) else {}
+        path = directory / str(entry.get("path", "")) \
+            if isinstance(entry, dict) else directory
+        if not isinstance(entry, dict) or not path.is_file() or \
+                path.stat().st_size != entry.get("bytes") or \
+                sha256(path) != entry.get("sha256"):
+            failures.append(f"native host {key} evidence changed")
     if not isinstance(host, dict) or not host.get("ready") or \
             not host.get("clean_shutdown") or \
             host.get("forced_termination") or \
@@ -1014,7 +1058,7 @@ def audit_directory(directory: Path) -> list[str]:
         return failures
     for name in (
             "manifest", "system", "fast_stage", "volume", "drive_b", "rom",
-            "rom_metadata", "host_server"):
+            "rom_metadata", "host_server", "evidence_converter"):
         entry = artifacts.get(name, {})
         path = Path(str(entry.get("path", "")))
         if not path.is_file() or path.stat().st_size != entry.get("bytes") or \
