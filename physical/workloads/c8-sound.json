@@ -1,0 +1,18 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c8-sound",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["A>"],
+  "required_coverage": ["SOUND.COM"],
+  "commands": [
+    {
+      "name": "rom-sound-service",
+      "command": "SOUND",
+      "expect": [
+        "SOUND: playing ROM diagnostic tune",
+        "SOUND: service returned PASS"
+      ],
+      "coverage": ["SOUND.COM"]
+    }
+  ]
+}

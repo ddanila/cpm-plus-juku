@@ -1,0 +1,54 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c8-cold",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": [
+    "DIAG.COM",
+    "N4BULK.COM",
+    "SOAK.COM",
+    "STATUS.COM"
+  ],
+  "commands": [
+    {
+      "name": "status-cold",
+      "command": "STATUS",
+      "expect": [
+        "ROM: Juku ABI 01.03",
+        "Boot marker (00 cold/01 warm): 00  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 00"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "diag-all",
+      "command": "DIAG ALL",
+      "expect": [
+        "CPU: PASS",
+        "RAM data: PASS",
+        "RAM address: PASS",
+        "RAM retention: PASS",
+        "Checksum: PASS",
+        "D57 PIT clock: PASS",
+        "D11 USART status: PASS",
+        "ROM ABI: PASS",
+        "Video/console: PASS",
+        "Keyboard/S21: PASS"
+      ],
+      "coverage": ["DIAG.COM"]
+    },
+    {
+      "name": "n4-bulk",
+      "command": "N4BULK",
+      "expect": ["N4 BULK PASS"],
+      "coverage": ["N4BULK.COM"]
+    },
+    {
+      "name": "disk-soak",
+      "command": "SOAK",
+      "expect": ["SOAK: PASS"],
+      "coverage": ["SOAK.COM"]
+    }
+  ]
+}

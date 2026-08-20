@@ -87,7 +87,13 @@ The additive ROM line is:
 - C7 / ABI 1.2: a separately named, simulator-qualified successor correcting
   modified raw-key scan order and carrying VC-compatible CP437 box glyphs.
   Exact Shift+F8 and Ctrl+Up/Home fixtures pass; focused CS00015 physical
-  acceptance is pending and C6 remains immutable.
+  acceptance is pending and C6 remains immutable;
+- C8 / ABI 1.3: resident N4/host services, 512 additional TPA bytes, bounded
+  ROM diagnostics, and short/long POST codes. The exact pair is fitted in
+  CS00015 and its automated cold-boot plus two repeated live-reconnect matrices
+  pass. Two further cold boots, a physical-keyboard sample, and normal sound
+  also pass; display and forced POST-failure observations are postponed. See
+  [`docs/cs00015-c8-blind-qualification-20260820.md`](docs/cs00015-c8-blind-qualification-20260820.md).
 
 ## Build and verification
 

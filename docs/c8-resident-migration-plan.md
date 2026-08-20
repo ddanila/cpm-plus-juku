@@ -81,8 +81,10 @@ the `D600h..D6FFh` boot/gate area, or the `D700h..D77Fh` mode-3 helper.
    increase is pursued only if the layout permits it without weakening cache,
    recovery or stack margins.
 6. Produce deterministic combined/D15/D16 images, hashes, manifest, memory
-   map and a focused physical workload. C8 remains a simulator candidate until
-   that workload passes on CS00015.
+   map and focused physical workloads. Complete for the blind boundary: the
+   exact fitted pair passes cold boot, resident services, local/N4 input,
+   diagnostics, A:/B:, soak, warm boot, reconnect and normal sound on CS00015.
+   Display and forced POST-failure-tone observations are postponed.
 
 ## Explicit non-goals
 
@@ -126,6 +128,18 @@ This made capability reads succeed but disabled N4 when the feature byte was
 applied. The ABI self-test now explicitly proves payload preservation before
 the complete CP/M/N4 regression.
 
-The only promotion blocker is physical qualification on CS00015. C6 remains
-the rollback image until C8 passes the focused cold-boot, local/N4, disk,
-diagnostic, POST-audio and warm-boot bench workload.
+The automated blind physical boundary now passes on CS00015: the exact fitted
+pair completed a 15-command cold-boot matrix and two final 15-command live
+server-reconnect matrices with zero disk retries. The new manifest-bound
+`c8-reconnect` workload recovered without RESET in 0.766 s and 0.588 s and
+correctly retained failure reason `01` while incrementing its reconnect count.
+See
+[`cs00015-c8-blind-qualification-20260820.md`](cs00015-c8-blind-qualification-20260820.md).
+
+C8 subsequently passed two more independent cold boots, an exact physical
+`juku 2026`/Return/Escape sample, and the audible normal ROM diagnostic tune.
+One accepted boot needed two bounded header retries while the other needed
+none; both completed diagnostics/soak with zero disk retries. C6 remains the
+rollback image while only the deliberately postponed POST-failure-audio and
+display/glyph/cursor observations remain pending. The passing blind evidence
+is not used to infer either physical result.

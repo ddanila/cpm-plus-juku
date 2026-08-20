@@ -48,9 +48,26 @@ PROFILE_VOLUMES = {
     "display": "full-a",
     "performance": "c6-recovery-a",
     "c7-raw": "c6-recovery-a",
+    "c8-blind": "c6-recovery-a",
+    "c8-reconnect": "c6-recovery-a",
+    "c8-attended": "c6-recovery-a",
+    "c8-cold": "c6-recovery-a",
+    "c8-sound": "c6-recovery-a",
 }
 PROFILE_ROM_CANDIDATES = {
     "c7-raw": "network-first-abi1.2-c7-modified-raw-simulator",
+    "c8-blind": "network-first-abi1.3-c8-resident-host-simulator",
+    "c8-reconnect": "network-first-abi1.3-c8-resident-host-simulator",
+    "c8-attended": "network-first-abi1.3-c8-resident-host-simulator",
+    "c8-cold": "network-first-abi1.3-c8-resident-host-simulator",
+    "c8-sound": "network-first-abi1.3-c8-resident-host-simulator",
+}
+PROFILE_ROM_ABIS = {
+    "c8-blind": "1.3",
+    "c8-reconnect": "1.3",
+    "c8-attended": "1.3",
+    "c8-cold": "1.3",
+    "c8-sound": "1.3",
 }
 DEFAULT_ROM_CANDIDATE = "network-first-abi1.2-c6-simulator"
 
@@ -166,15 +183,16 @@ def verify_manifest(manifest_path: Path, cosim: Path, profile: str) \
     manifest_path = manifest_path.resolve()
     manifest = load_json(manifest_path)
     requirements = manifest.get("requirements")
+    wanted_abi = PROFILE_ROM_ABIS.get(profile, "1.2")
     if manifest.get("schema") != "cpm-plus-juku-boot-manifest-v1" or \
             not isinstance(requirements, dict) or \
-            requirements.get("rom_abi") != "1.2" or \
+            requirements.get("rom_abi") != wanted_abi or \
             requirements.get("fastboot") != 16 or \
             requirements.get("bootstrap_baud") != 19200 or \
             requirements.get("netdisk") != 3 or \
             requirements.get("disk_baud") != 19200:
         raise AcceptanceError(
-            "manifest is not an ABI 1.2/V16/N3 19200 artifact set"
+            f"manifest is not an ABI {wanted_abi}/V16/N3 19200 artifact set"
         )
     base = manifest_path.parent
     system_entry = manifest.get("system")
@@ -300,6 +318,15 @@ def load_workload(profile: str, path: Path | None = None) \
         admitted = {"DIAG.COM", "WBOOT.COM"}
     elif profile == "c7-raw":
         admitted = {"DIAG.COM", "KEYRAW.COM", "WBOOT.COM"}
+    elif profile in ("c8-blind", "c8-reconnect", "c8-attended"):
+        admitted = {
+            "DIAG.COM", "KEYTEST.COM", "N4BULK.COM", "SOAK.COM",
+            "STATUS.COM", "WBOOT.COM",
+        }
+    elif profile == "c8-cold":
+        admitted = {"DIAG.COM", "N4BULK.COM", "SOAK.COM", "STATUS.COM"}
+    elif profile == "c8-sound":
+        admitted = {"SOUND.COM"}
     elif isinstance(programs, dict):
         admitted = {
             name for name, record in programs.items()
@@ -402,10 +429,17 @@ def response_record(name: str, command: str, start: int, end: int,
 def execute_workload(console: N4Console, workload: dict[str, Any], *,
                      operator_wait: float, command_timeout: float,
                      emit: Callable[..., None],
+                     resume: bool = False,
                      operator_confirm: Callable[[str], None] | None = None) \
         -> tuple[dict[str, Any], list[dict[str, Any]]]:
     emit("target_wait_started", timeout_seconds=operator_wait)
     boot_started = time.monotonic()
+    if resume:
+        # The replacement host retains this byte until the resident N4 client
+        # reaches its bounded reprobe.  It elicits a prompt without requiring
+        # RESET or a local keyboard action.
+        console.send(b"\r")
+        emit("resume_probe_queued")
     boot_end = console.wait_for(b"A>", start=0, timeout=operator_wait)
     boot_ended = time.monotonic()
     banner = bytes(console.transcript[:boot_end])
@@ -520,29 +554,35 @@ def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
                    server: Path) -> list[str]:
     if not server.is_file():
         raise AcceptanceError(f"disk server is missing: {server}")
-    return [
+    command = [
         sys.executable, str(server), args.serial,
         artifacts["system"]["path"], str(working_volume),
-        "--fast-stage1", artifacts["fast_stage"]["path"],
-        "--network-rom",
-        "--boot-result-json", str(boot_result),
         "--request-trace-jsonl", str(request_trace),
-        "--boot-manifest", artifacts["manifest"]["path"],
         "--drive-b", artifacts["drive_b"]["path"],
         "--disk-baud", "19200", "--disk-protocol", "3",
         "--disk-read-ahead-records", "8",
         "--media-mode", "write-through",
         "--console-pty", console_pty, "--console-trace",
         "--timeout", str(args.operator_wait),
+    ]
+    if args.resume:
+        command.append("--resume-disk")
+    else:
+        command.extend((
+            "--fast-stage1", artifacts["fast_stage"]["path"],
+            "--network-rom",
+            "--boot-result-json", str(boot_result),
+            "--boot-manifest", artifacts["manifest"]["path"],
         # A direct V16 attempt which sees no target lasts at least the
         # three-second ready observation interval.  Keep complete recovery
         # attempts alive for the advertised operator window; the old fixed
         # three restarts expired in about 30 seconds.
-        "--boot-restarts", str(max(
+            "--boot-restarts", str(max(
             3, math.ceil(args.operator_wait / 3.0),
-        )),
-        "--disk-timeout", str(args.session_timeout),
-    ]
+            )),
+        ))
+    command.extend(("--disk-timeout", str(args.session_timeout)))
+    return command
 
 
 def load_request_trace(path: Path) -> list[dict[str, Any]]:
@@ -658,7 +698,7 @@ def validate_boot_result(boot: dict[str, Any], artifacts: dict[str, Any]) -> Non
             artifacts["fast_stage"]["sha256"] or \
             not isinstance(first, dict) or \
             float(first.get("elapsed_seconds", 0)) <= 0:
-        raise AcceptanceError("boot result does not prove the bound C6/V16 run")
+        raise AcceptanceError("boot result does not prove the bound V16 run")
 
 
 def host_tail(path: Path) -> str:
@@ -766,6 +806,12 @@ def run_acceptance(args: argparse.Namespace) -> int:
         boot_evidence, commands = execute_workload(
             console, workload, operator_wait=args.operator_wait,
             command_timeout=args.command_timeout, emit=events.emit,
+            resume=args.resume,
+            operator_confirm=(
+                (lambda instruction: print(
+                    f"\nOPERATOR ACTION ACTIVE: {instruction}", flush=True,
+                )) if args.external_operator else None
+            ),
         )
     except WorkloadFailure as error:
         commands = error.commands
@@ -817,19 +863,28 @@ def run_acceptance(args: argparse.Namespace) -> int:
         except BaseException as error:
             if failure is None:
                 failure = {"type": type(error).__name__, "message": str(error)}
-    elif failure is None:
+    elif failure is None and not args.resume:
         failure = {"type": "BootEvidenceError", "message": "boot.json missing"}
+    if failure is None and args.resume and \
+            "Resuming N4 remote console on " not in host_path.read_text(
+                errors="replace",
+            ):
+        failure = {
+            "type": "ResumeEvidenceError",
+            "message": "host did not enter live N4 resume mode",
+        }
     request_records: list[dict[str, Any]] = []
     if request_trace_path.is_file():
         try:
             request_records = load_request_trace(request_trace_path)
             attach_request_metrics(boot_evidence, commands, request_records)
-            if failure is None and \
-                    boot_evidence.get("request_metrics", {}).get(
-                        "disk_read_requests", 0,
-                    ) <= 0:
+            disk_reads = sum(
+                item.get("request_metrics", {}).get("disk_read_requests", 0)
+                for item in (boot_evidence, *commands)
+            )
+            if failure is None and disk_reads <= 0:
                 raise AcceptanceError(
-                    "request trace does not prove boot disk reads"
+                    "request trace does not prove disk reads"
                 )
         except BaseException as error:
             if failure is None:
@@ -844,6 +899,7 @@ def run_acceptance(args: argparse.Namespace) -> int:
         "schema": RESULT_SCHEMA,
         "session_schema": SCHEMA,
         "status": "pass" if failure is None else "fail",
+        "mode": "resume" if args.resume else "cold-boot",
         "profile": profile,
         "board": args.board,
         "started_at_utc": started_at,
@@ -983,22 +1039,30 @@ def audit_directory(directory: Path) -> list[str]:
             working_path.parent.resolve() != directory or \
             sha256(working_path) != working.get("sha256_after"):
         failures.append("private writable A: chain differs")
+    resume = result.get("mode") == "resume"
     boot_result = result.get("boot_result")
-    try:
-        if not isinstance(boot_result, dict):
-            raise AcceptanceError("boot result is missing")
-        validate_boot_result(boot_result, artifacts)
-    except BaseException as error:
-        failures.append(f"boot evidence differs: {error}")
     boot_file = result.get("boot_result_file")
-    if not isinstance(boot_file, dict):
-        failures.append("boot result file identity is missing")
+    if resume:
+        if boot_result is not None or boot_file is not None:
+            failures.append("resume unexpectedly contains cold-boot evidence")
+        if host_path.is_file() and \
+                b"Resuming N4 remote console on " not in host_path.read_bytes():
+            failures.append("host log does not prove live N4 resume mode")
     else:
-        boot_path = Path(str(boot_file.get("path", "")))
-        if not boot_path.is_file() or \
-                boot_path.stat().st_size != boot_file.get("bytes") or \
-                sha256(boot_path) != boot_file.get("sha256"):
-            failures.append("boot result file changed")
+        try:
+            if not isinstance(boot_result, dict):
+                raise AcceptanceError("boot result is missing")
+            validate_boot_result(boot_result, artifacts)
+        except BaseException as error:
+            failures.append(f"boot evidence differs: {error}")
+        if not isinstance(boot_file, dict):
+            failures.append("boot result file identity is missing")
+        else:
+            boot_path = Path(str(boot_file.get("path", "")))
+            if not boot_path.is_file() or \
+                    boot_path.stat().st_size != boot_file.get("bytes") or \
+                    sha256(boot_path) != boot_file.get("sha256"):
+                failures.append("boot result file changed")
     console_entry = result.get("console", {})
     console_path = directory / str(console_entry.get("path", ""))
     transcript = console_path.read_bytes() if console_path.is_file() else b""
@@ -1058,8 +1122,11 @@ def audit_directory(directory: Path) -> list[str]:
             expected_metrics = request_metrics(records, float(start), float(end))
             if record.get("request_metrics") != expected_metrics:
                 failures.append("request metrics differ from retained trace")
-        if boot.get("request_metrics", {}).get("disk_read_requests", 0) <= 0:
-            failures.append("boot request trace has no disk reads")
+        if sum(
+                record.get("request_metrics", {}).get(
+                    "disk_read_requests", 0,
+                ) for record in metric_records) <= 0:
+            failures.append("request trace has no disk reads")
     except BaseException as error:
         failures.append(f"request trace cannot be verified: {error}")
     if event_names.count("command_started") != len(commands) or \
@@ -1111,6 +1178,14 @@ def parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--command-timeout", type=float, default=600)
     run_parser.add_argument("--session-timeout", type=float, default=10800)
     run_parser.add_argument("--shutdown-timeout", type=float, default=20)
+    run_parser.add_argument(
+        "--resume", action="store_true",
+        help="reattach to an already-running N4 session without boot or RESET",
+    )
+    run_parser.add_argument(
+        "--external-operator", action="store_true",
+        help="announce operator steps and verify target output without reading stdin",
+    )
     run_parser.add_argument("--dry-run", action="store_true")
     run_parser.set_defaults(action=run_acceptance)
     audit_parser = commands.add_parser("audit", help="recheck retained evidence")

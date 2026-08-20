@@ -129,6 +129,42 @@ def timeout_diagnostic_test() -> None:
     os.close(slave)
 
 
+def resume_workload_test() -> None:
+    master, slave = pty.openpty()
+    tty.setraw(master)
+    tty.setraw(slave)
+    failures: list[BaseException] = []
+
+    def target() -> None:
+        try:
+            assert read_command(slave) == b"\r"
+            os.write(slave, b"\r\nA>")
+            assert read_command(slave) == b"DIR\r"
+            os.write(slave, b"DIR\r\nDIAG COM\r\nA>")
+        except BaseException as error:
+            failures.append(error)
+
+    worker = threading.Thread(target=target)
+    worker.start()
+    events: list[str] = []
+    console = acceptance.N4Console(master)
+    boot, commands = acceptance.execute_workload(
+        console,
+        {"boot_expect": ["A>"], "commands": [
+            {"name": "dir", "command": "DIR", "expect": ["DIAG"]},
+        ]},
+        operator_wait=2, command_timeout=2, resume=True,
+        emit=lambda event, **_fields: events.append(event),
+    )
+    worker.join(timeout=2)
+    os.close(master)
+    os.close(slave)
+    if worker.is_alive() or failures or boot["result"] != "pass" or \
+            commands[0]["result"] != "pass" or \
+            "resume_probe_queued" not in events:
+        raise AssertionError(f"synthetic resume failed: {failures}")
+
+
 def host_snapshot_test() -> None:
     server = acceptance.DEFAULT_COSIM / "tools/janet_disk_server.py"
     with tempfile.TemporaryDirectory(prefix="physical-host-snapshot.") as name:
@@ -170,6 +206,25 @@ def operator_wait_budget_test() -> None:
     if command[restart_index] != "600" or \
             "Booting " not in acceptance.CONSOLE_READY_MARKERS:
         raise AssertionError("operator wait is not bound to pre-boot retries")
+
+    resume_args = acceptance.parser().parse_args([
+        "run", "/dev/null", "--profile", "c8-reconnect",
+        "--output", "/tmp/out", "--resume",
+    ])
+    resume_artifacts = acceptance.verify_manifest(
+        ROOT / "out/cpm-plus-juku-c8-manifest.json",
+        acceptance.DEFAULT_COSIM, "c8-reconnect",
+    )
+    resume_command = acceptance.server_command(
+        resume_args, resume_artifacts, Path("/tmp/volume.img"),
+        "/dev/pts/0", Path("/tmp/boot.json"),
+        Path("/tmp/requests.jsonl"),
+        acceptance.DEFAULT_COSIM / "tools/janet_disk_server.py",
+    )
+    if "--resume-disk" not in resume_command or \
+            "--network-rom" in resume_command or \
+            "--boot-result-json" in resume_command:
+        raise AssertionError("resume server command contains cold-boot options")
 
 
 def fake_server_source() -> str:
@@ -315,12 +370,17 @@ def lifecycle_and_audit_test() -> None:
 
 def main() -> int:
     c7_manifest = ROOT / "out/cpm-plus-juku-c7-manifest.json"
+    c8_manifest = ROOT / "out/cpm-plus-juku-c8-manifest.json"
     for profile, minimum_commands, manifest in (
         ("full", 30, acceptance.DEFAULT_MANIFEST),
         ("development", 10, acceptance.DEFAULT_MANIFEST),
         ("display", 1, acceptance.DEFAULT_MANIFEST),
         ("performance", 10, acceptance.DEFAULT_MANIFEST),
         ("c7-raw", 5, c7_manifest),
+        ("c8-blind", 15, c8_manifest),
+        ("c8-reconnect", 15, c8_manifest),
+        ("c8-attended", 7, c8_manifest),
+        ("c8-cold", 4, c8_manifest),
     ):
         artifacts = acceptance.verify_manifest(
             manifest, acceptance.DEFAULT_COSIM, profile,
@@ -332,6 +392,7 @@ def main() -> int:
             raise AssertionError(f"{profile} workload/artifact binding differs")
     workload_executor_test()
     timeout_diagnostic_test()
+    resume_workload_test()
     host_snapshot_test()
     operator_wait_budget_test()
     lifecycle_and_audit_test()

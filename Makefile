@@ -138,7 +138,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	development-tool-audit-check \
 	compiler-comparison-check external-software-audit-check \
 	distribution-check manifest-check c5-manifest-check \
-	c6-manifest-check c7-manifest-check c6-release-candidate-check \
+	c6-manifest-check c7-manifest-check c8-check c6-release-candidate-check \
 	c7-bench-candidate-check \
 	release-candidate-check cpm3-system-check native-services-check \
 	distribution-cosim-check development-cosim-check \
@@ -164,7 +164,10 @@ development-tool-audit-check:
 	$(PYTHON) tools/audit_cpm3_development_tools.py --check
 	$(PYTHON) tests/cpm3_development_tool_audit_test.py
 
-physical-acceptance-check: $(C6_BOOT_MANIFEST) $(C7_BOOT_MANIFEST)
+physical-acceptance-check: $(C6_BOOT_MANIFEST) $(C7_BOOT_MANIFEST) \
+		$(C8_BOOT_MANIFEST) $(BUILD)/physical-sound.cim
+	test "$$(sha256sum $(BUILD)/physical-sound.cim | cut -d' ' -f1)" = \
+		888399fbe423da8e077935e557af57ec6fda4d7412090877a04dc0aa40646b9d
 	$(PYTHON) tests/physical_acceptance_test.py
 
 physical-performance-check: $(C6_CONTROL_BOOT_MANIFEST) \
@@ -1088,6 +1091,9 @@ $(C4_DIAG): prebuilt/cpm-plus-juku.img diskdefs | $(BUILD)
 		7603115ef94bf7b6792f80cb87cc71916970af08c34227cfe2368c8e88331110
 
 $(BUILD)/wboot.cim: src/wboot.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/physical-sound.cim: physical/helpers/sound.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
 $(BUILD)/wboot-user.cim: src/wboot-user.asm $(ZMAC) | $(BUILD)

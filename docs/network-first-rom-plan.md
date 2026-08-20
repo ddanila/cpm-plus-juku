@@ -376,5 +376,10 @@ C8 also turns the diagnostic placeholder into eight bounded selectors and
 uses repeated three-tone short/long POST codes C1--C5. Exact older ROM hashes
 remain unchanged. Simulator qualification covers the full ROM ABI, all POST
 codes, missed-ready autoboot, local CP/M STATUS/DIAG/warm boot, and an N4
-prompt/DIR/VER path. Physical CS00015 qualification remains the promotion
-gate; see [`c8-resident-migration-plan.md`](c8-resident-migration-plan.md).
+prompt/DIR/VER path. The exact C8 pair is now fitted in CS00015 and passes the
+automated blind cold-boot matrix plus two repeated live host replacements
+without RESET or disk retries. Two later cold boots, a representative physical
+keyboard sample, and normal sound also pass. Display and safe physical
+POST-failure-tone observations are deliberately postponed; see
+[`c8-resident-migration-plan.md`](c8-resident-migration-plan.md) and
+[`cs00015-c8-blind-qualification-20260820.md`](cs00015-c8-blind-qualification-20260820.md).

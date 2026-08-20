@@ -1,0 +1,93 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c8-attended",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": [
+    "DIAG.COM",
+    "KEYTEST.COM",
+    "N4BULK.COM",
+    "SOAK.COM",
+    "STATUS.COM",
+    "WBOOT.COM"
+  ],
+  "commands": [
+    {
+      "name": "status-cold",
+      "command": "STATUS",
+      "expect": [
+        "ROM: Juku ABI 01.03",
+        "Boot marker (00 cold/01 warm): 00  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 00"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "keytest-local",
+      "command": "KEYTEST B",
+      "steps": [
+        {
+          "wait": "Juku Keytest 1.1 READY",
+          "operator": "On the Juku keyboard type juku 2026, press Return, then Escape."
+        }
+      ],
+      "expect": [
+        "KEY 6A 'j'",
+        "KEY 75 'u'",
+        "KEY 6B 'k'",
+        "KEY 20 ' '",
+        "KEY 32 '2'",
+        "KEY 30 '0'",
+        "KEY 36 '6'",
+        "KEY 0D",
+        "KEY 1B",
+        "Juku Keytest 1.1 DONE"
+      ],
+      "coverage": ["KEYTEST.COM"]
+    },
+    {
+      "name": "diag-all",
+      "command": "DIAG ALL",
+      "expect": [
+        "CPU: PASS",
+        "RAM data: PASS",
+        "RAM address: PASS",
+        "RAM retention: PASS",
+        "Checksum: PASS",
+        "D57 PIT clock: PASS",
+        "D11 USART status: PASS",
+        "ROM ABI: PASS",
+        "Video/console: PASS",
+        "Keyboard/S21: PASS"
+      ],
+      "coverage": ["DIAG.COM"]
+    },
+    {
+      "name": "n4-bulk",
+      "command": "N4BULK",
+      "expect": ["N4 BULK PASS"],
+      "coverage": ["N4BULK.COM"]
+    },
+    {
+      "name": "disk-soak",
+      "command": "SOAK",
+      "expect": ["SOAK: PASS"],
+      "coverage": ["SOAK.COM"]
+    },
+    {
+      "name": "warm-boot",
+      "command": "WBOOT",
+      "coverage": ["WBOOT.COM"]
+    },
+    {
+      "name": "status-warm",
+      "command": "STATUS",
+      "expect": [
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 00"
+      ]
+    }
+  ]
+}

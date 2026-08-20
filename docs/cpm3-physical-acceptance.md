@@ -1,11 +1,12 @@
 # CP/M Plus physical acceptance runner
 
 `tools/physical_acceptance.py` is the manifest-bound acceptance path for the
-C6 full, development, display, and performance workloads and the focused C7
-modified-raw-key workload. It is separate from the immutable C4 promotion
+C6 full, development, display, and performance workloads, the focused C7
+modified-raw-key workload, and the C8 blind/attended/reconnect workloads. It is
+separate from the immutable C4 promotion
 recorder: C4 retains its historical candidate, checklist, and hashes, while
 this runner binds each new physical run to the current post-C6 loaded system
-and the unchanged C6 ROM.
+and a manifest-selected C6, C7, or C8 ROM.
 
 The runner requires `8080-cosim` commit `59034760` or later. That host records
 the structured request stream consumed by the independent timing audit; an
@@ -53,7 +54,12 @@ definitions are:
 - `physical/workloads/development.json`;
 - `physical/workloads/display.json`;
 - `physical/workloads/performance.json`;
-- `physical/workloads/c7-raw.json`.
+- `physical/workloads/c7-raw.json`;
+- `physical/workloads/c8-blind.json`;
+- `physical/workloads/c8-attended.json`;
+- `physical/workloads/c8-cold.json`;
+- `physical/workloads/c8-reconnect.json`;
+- `physical/workloads/c8-sound.json`.
 
 Every `Press RETURN to Continue` is handled automatically. Interactive input
 steps are either explicit hex payloads or explicit physical-operator actions.
@@ -62,6 +68,20 @@ marker. Operator actions are separately recorded as requested and confirmed;
 the C7 workload uses them because N4 injection cannot prove a keyboard matrix
 contact. Apart from those named C7 key chords, the operator supplies only
 power/reset and no catalogue commands need to be typed by hand.
+
+Use `--external-operator` when the runner itself has no interactive stdin. It
+announces each physical action and immediately enters the target-output wait;
+the action passes only when the target subsequently emits all declared key
+reports and returns to its prompt. `--resume` omits bootstrap, starts the host
+in live NetDisk/N4 resume mode, queues Return through the bounded resident
+reprobe, and requires `A>` before executing the workload. Resume evidence has
+no synthetic `boot.json`; the audit instead requires the resume host marker,
+target prompt, request trace, disk reads, commands, and clean host shutdown.
+
+The C8 profiles and exact CS00015 results are documented in
+[`cs00015-c8-blind-qualification-20260820.md`](cs00015-c8-blind-qualification-20260820.md).
+`physical/helpers/sound.asm` is a strict-8080, hash-pinned qualification caller
+for the normal ROM cue; it is not added to a standard distribution image.
 
 ## Bench commands
 
