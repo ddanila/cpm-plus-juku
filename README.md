@@ -208,6 +208,10 @@ must be byte-identical.
   remains read-only and uses native Juku cylinder/head geometry.
 - `VER`, `STATUS`, `DIAG`, `HIST`, `PANEL`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`,
   and `N4BULK` provide bounded target and machine-readable observability.
+- The service-only `VIDPROBE` bypasses the console and writes a raw framebuffer
+  pattern for physical video-path isolation. Its CS00015/CS00014 control result
+  is recorded in
+  [`docs/cs00015-video-path-20260821.md`](docs/cs00015-video-path-20260821.md).
 - Full, development, and demo media retain one command across CCP reloads;
   `!!` repeats it and `HIST [CLEAR]` inspects or clears it. Recovery media keep
   the exact unmodified DRI CCP.

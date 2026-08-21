@@ -1128,6 +1128,9 @@ $(BUILD)/keytest.cim: src/keytest.asm $(ZMAC) | $(BUILD)
 $(BUILD)/vidtest.cim: src/vidtest.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/vidprobe.cim: src/vidprobe.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
 $(BUILD)/panel.cim: src/panel.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
