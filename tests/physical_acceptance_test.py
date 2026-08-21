@@ -255,6 +255,22 @@ def operator_wait_budget_test() -> None:
         raise AssertionError("resume server command contains cold-boot options")
 
 
+def request_clock_alignment_test() -> None:
+    records = [
+        {"monotonic_seconds": 930014.0, "elapsed_seconds": 14.0,
+         "operation": 0x14, "records": 8, "drive": 0},
+        {"monotonic_seconds": 930020.0, "elapsed_seconds": 20.0,
+         "operation": 0x14, "records": 8, "drive": 0},
+    ]
+    aligned = acceptance.align_request_trace(records, 0.05)
+    metrics = acceptance.request_metrics(aligned, 13.0, 21.0)
+    if aligned[0]["monotonic_seconds"] != 14.05 or \
+            aligned[1]["monotonic_seconds"] != 20.05 or \
+            metrics["disk_read_requests"] != 2 or \
+            metrics["disk_read_records"] != 16:
+        raise AssertionError("host/runner clock epochs were not aligned")
+
+
 def fake_server_source() -> str:
     return r'''#!/usr/bin/env python3
 import os, signal, struct, sys, time, zlib
@@ -274,7 +290,7 @@ def event(elapsed, text):
 capture = b"JHCAP1\x01\0" + struct.pack("<Q", started)
 capture += event(5, "Fastboot V16 complete: 123 compressed bytes")
 capture += event(
-    10,
+    370,
     "request op=14 seq=01 drive=0 track=2 sector=1 status=0 "
     "records=8 request-bytes=9 reply-bytes=549 duplicate=0",
 )
@@ -416,6 +432,7 @@ def main() -> int:
     resume_workload_test()
     host_snapshot_test()
     operator_wait_budget_test()
+    request_clock_alignment_test()
     lifecycle_and_audit_test()
     print("PHYSICAL-ACCEPTANCE-TEST: PASS")
     return 0

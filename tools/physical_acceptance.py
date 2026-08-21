@@ -647,6 +647,24 @@ def request_metrics(records: list[dict[str, Any]], start: float,
     }
 
 
+def align_request_trace(records: list[dict[str, Any]],
+                        host_started_monotonic: float) \
+        -> list[dict[str, Any]]:
+    if not records:
+        return []
+    first_monotonic = float(records[0]["monotonic_seconds"])
+    first_elapsed = float(records[0].get("elapsed_seconds", 0.0))
+    capture_started_monotonic = first_monotonic - first_elapsed
+    offset = host_started_monotonic - capture_started_monotonic
+    return [
+        {**record,
+         "monotonic_seconds": round(
+             float(record["monotonic_seconds"]) + offset, 6,
+         )}
+        for record in records
+    ]
+
+
 def attach_request_metrics(boot: dict[str, Any],
                            commands: list[dict[str, Any]],
                            records: list[dict[str, Any]]) -> None:
@@ -803,6 +821,7 @@ def run_acceptance(args: argparse.Namespace) -> int:
     log_stream.write("COMMAND " + shlex.join(command) + "\n")
     events.emit("run_started", profile=profile, board=args.board)
     try:
+        host["started_monotonic"] = time.monotonic()
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, errors="replace", bufsize=1, start_new_session=True,
@@ -919,7 +938,10 @@ def run_acceptance(args: argparse.Namespace) -> int:
     if request_trace_path.is_file():
         try:
             request_records = load_request_trace(request_trace_path)
-            attach_request_metrics(boot_evidence, commands, request_records)
+            aligned_records = align_request_trace(
+                request_records, float(host["started_monotonic"]),
+            )
+            attach_request_metrics(boot_evidence, commands, aligned_records)
             disk_reads = sum(
                 item.get("request_metrics", {}).get("disk_read_requests", 0)
                 for item in (boot_evidence, *commands)
@@ -1165,7 +1187,10 @@ def audit_directory(directory: Path) -> list[str]:
     request_path = directory / str(request_entry.get("path", "")) \
         if isinstance(request_entry, dict) else Path()
     try:
-        records = load_request_trace(request_path)
+        records = align_request_trace(
+            load_request_trace(request_path),
+            float(host.get("started_monotonic")),
+        )
         metric_records = [boot, *commands]
         for record in metric_records:
             start = record.get("started_monotonic")
