@@ -246,6 +246,7 @@ The authoritative current documents are:
 - [`docs/cpm-plus-feature-plan.md`](docs/cpm-plus-feature-plan.md)
 - [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md)
 - [`docs/plan-completion-audit.md`](docs/plan-completion-audit.md)
+- [`docs/c9-future-rom-policy.md`](docs/c9-future-rom-policy.md)
 - [`docs/cpm-plus-31-c6-simulator.md`](docs/cpm-plus-31-c6-simulator.md)
 - [`docs/distribution-profiles.md`](docs/distribution-profiles.md)
 - [`docs/project-utilities.md`](docs/project-utilities.md)

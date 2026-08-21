@@ -151,7 +151,9 @@ disposition is part of completion:
 - **Banked CP/M Plus:** not claimed. The port is strict-8080, non-banked, and
   exposes truthful bank-selection stubs until real banked hardware exists.
 - **Mandatory ROM menu/local disk boot:** intentionally absent. Network boot is
-  the product; S21 bit 0 provides the concealed recovery wait.
+  the product. C8 retains its concealed S21-bit-0 recovery wait; a future C9 or
+  later successor will boot unconditionally and reserve the freed bit, but
+  that policy change does not by itself justify a new ROM build.
 - **Full HDL CP/M execution:** not duplicated. The exact C4 structural HDL gate
   covers the valuable hardware boundary; full firmware, cursor pixels,
   recovery, and soak use the cycle/device C model.
