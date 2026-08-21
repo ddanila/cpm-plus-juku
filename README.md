@@ -195,6 +195,9 @@ must be byte-identical.
   `N` recovery wait.
 - Bits 2:1 select 40x24, 53x24, 64x20, or MODX-compatible 80x24.
 - Bits 4:3 select English, Estonian, CP866 Russian, or English/user-remap.
+- Future runtime video/character-bank switching must treat S21 as the cold-reset
+  default and keep diagnostics valid when the active state intentionally differs;
+  see [`docs/runtime-console-switching.md`](docs/runtime-console-switching.md).
 - The Creep-derived 5x7 policy leaves a separator column for text while its
   CP437 UI subset joins with five edge pixels for continuous pseudographics.
 - Local display and keyboard are authoritative. N4 is optional, negotiated,

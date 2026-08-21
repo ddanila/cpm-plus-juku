@@ -28,6 +28,9 @@ policy.
 The current CP/M Plus implementation has no urgent feature gap. Remaining work
 is deliberately evidence-driven:
 
+- preserve S21 as the cold-reset console default while considering the
+  separately specified runtime mode and character-bank override in
+  [`runtime-console-switching.md`](runtime-console-switching.md);
 - physically observe all four video modes when a usable display is available;
 - profile alternating-drive and long sequential workloads before proposing a
   new NetDisk contract or predictor;
