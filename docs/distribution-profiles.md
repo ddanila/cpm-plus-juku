@@ -7,12 +7,12 @@ beside each one:
 | Artifact | Purpose | Geometry | Contents | Free space | SHA-256 |
 | --- | --- | --- | --- | ---: | --- |
 | `cpm-plus-juku-recovery.img` | immutable C4 recovery/qualification A: | 386 KiB logical A: | CCP, DIAG, WBOOT, README | 376 KiB | `b4402dc9be86fef9532e61fff491dc3b93dc0db40e68d575c89aab083160bec1` |
-| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.5 | 372 KiB | `899fface833e53d06634bb7d2291d7e675d43a101911fbc225fc0ccd2831570a` |
-| `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 366 KiB | `67d0a99b2979642d6f7d5d9c20ef705be685c99f1ab7846b8cf4f3ea383a54b0` |
-| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | licensed history CCP, HIST, DRI files, gap tools, VIDTEST, PANEL, `VER`, and `TOOLS.TXT` | 222 KiB | `21fb8112aa908624fc52b17993b9d0a383c83ad4443059703c4b9e48e1453fd5` |
-| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus ED, HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 194 KiB | `5ff16bf3e2a8588674a6b12b3d8f9640cea16c152ff2e692140b9ec5634ddfcd` |
-| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 220 KiB | `bcb87b820d5797691819294167fc107bba424441b7210e243a8bdb0f0d787590` |
-| `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.5 | 776 KiB | `1003053769cac8c8b8dc3fef21039f3ce55071d4274701fe929effff6dcdb8b6` |
+| `cpm-plus-juku-native-recovery.img` | post-C4 native recovery A: | 386 KiB logical A: | C4 recovery files plus Status 1.3, Keytest 1.1, and Diag 0.6 | 370 KiB | `b6a408a8d4a2fb1bcbfb726da0cc68cc359ec9ce7d034a2ad91a5d9c5d42a27c` |
+| `cpm-plus-juku-c6-recovery.img` | ABI 1.2 C6 recovery/test A: | 386 KiB logical A: | native recovery plus Keyraw, Soak, and N4Bulk | 364 KiB | `f68c371a5abc48875a819b30628ea95e656da0fd6981ea1bf512fbeb114db191` |
+| `cpm-plus-juku-full.img` | normal licensed A: | 386 KiB logical A: | licensed history CCP, HIST, DRI files, gap tools, VIDTEST, PANEL, `VER`, and `TOOLS.TXT` | 218 KiB | `e68e43285112cbb493ea49a6791123f1f9bf031b8a5a1b254de45b8fe3748cd0` |
+| `cpm-plus-juku-dev.img` | optional strict-8080 development A: | 386 KiB logical A: | full A: plus ED, HEXCOM, PATCH, SID, and the source/HEX form of a reproducible example | 190 KiB | `363ba3a6c33012d89799a87702c5512f0a927b660cf7f1c12efe5773f514e967` |
+| `cpm-plus-juku-museum-demo.img` | opt-in initial-command demo A: | 386 KiB logical A: | full A: plus `PROFILE.SUB` | 216 KiB | `21cad29b6e03374250d4f75e3b20d8b99d972bcbae35eba69dbc087acd21881b` |
+| `cpm-plus-juku-apps.juk` | approved native B: | physical 800 KiB cylinder/head image | README and Diag 0.6 | 776 KiB | `00cf1442a02d17cdf6f679106f01321045c49dc3238367933b3a63c85a99ee07` |
 
 `out/cpm-plus-juku.img` remains a compatibility name for the recovery A: and
 must match `prebuilt/cpm-plus-juku.img` byte for byte. Full and demo profiles

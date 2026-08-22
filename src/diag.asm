@@ -10,9 +10,10 @@ COMMAND_TEXT    equ     081h
 DIAG_PIT_COUNT0 equ    018h
 DIAG_PIT_CONTROL equ   01bh
 DIAG_USART_CONTROL equ 009h
+DIAG_KEYCOL_PORT equ   004h
+DIAG_KEYROW_PORT equ   005h
+DIAG_MODE_PORT  equ     006h
 NATIVE_MARKER   equ     0c642h
-ROM_DIAG_GATE   equ     0d644h
-ROM_INFO_GATE   equ     0d647h
 
         org     0100h
 
@@ -25,10 +26,12 @@ start:
         sta     report_suite
         lxi     d,banner
         call    print_string
+        call    identify_rom
+        call    print_rom_identity
 
         lda     COMMAND_LENGTH
         ora     a
-        jz      run_memory      ; preserve the original no-argument baseline
+        jz      show_usage
         mov     b,a
         lxi     h,COMMAND_TEXT
 skip_space:
@@ -41,7 +44,7 @@ skip_one:
         inx     h
         dcr     b
         jnz     skip_space
-        jmp     run_memory
+        jmp     show_usage
 
 select_test:
         ani     05fh            ; accept upper/lower-case selector names
@@ -69,6 +72,13 @@ select_test:
         jz      run_io
         cpi     'D'
         jz      run_destructive
+        cpi     'H'
+        jz      show_usage
+        cpi     '?'
+        jz      show_usage
+        lxi     d,unknown_selector
+        call    print_string
+show_usage:
         lxi     d,usage
         jmp     print_string
 
@@ -216,30 +226,27 @@ run_rom_sub:
         sta     report_bit
         lxi     d,rom_label
         call    print_string
-        lxi     h,0ff00h
-        lxi     d,rom_signature
-        mvi     b,8
-        call    diag_signature_test
+        lda     rom_class
         ora     a
-        jnz     run_rom_result
-        lda     0ff08h
-        cpi     1
-        jnz     run_rom_fail
-        lda     0ff0ch
-        ani     020h
         jz      run_rom_fail
-        call    ROM_INFO_GATE
-        mov     a,h
-        cpi     0ffh
-        jnz     run_rom_fail
-        mov     a,l
+        cpi     4                       ; identified damaged archive
+        jz      run_rom_fail
+        cpi     3                       ; future manifest-only JukuNet image
+        jnz     run_rom_pass            ; every table fingerprint is exact
+
+        ; Current/future JukuNet images can carry a zero-sum integrity byte
+        ; across the complete ROM-visible D800h..FFFFh window. Use it only for
+        ; a compatible manifest not already covered by an exact table entry.
+        call    select_rom_reads
+        lxi     h,0d800h
+        lxi     d,00000h
+        call    diag_checksum8
+        push    psw
+        call    restore_memory_mode
+        pop     psw
         ora     a
         jnz     run_rom_fail
-        lxi     h,0
-        xra     a
-        call    ROM_DIAG_GATE
-        cpi     0a5h
-        jnz     run_rom_fail
+run_rom_pass:
         xra     a
         jmp     run_rom_result
 run_rom_fail:
@@ -255,13 +262,9 @@ run_video_sub:
         sta     report_bit
         lxi     d,video_label
         call    print_string
-        call    native_info
-        jc      run_video_fail
-        lxi     d,9
-        dad     d
-        mov     a,m
-        cpi     4
-        jnc     run_video_fail
+        ; CP/M BIOS CONOST is the portable live-system readiness boundary.
+        ; It exists on the stock RomBios path and on the RAM-owned JukuNet
+        ; path, and avoids calling any ROM-private diagnostic procedure.
         mvi     a,17                   ; CP/M 3 CONOST
         call    setvector
         call    bioscall
@@ -282,63 +285,168 @@ run_keyboard_sub:
         sta     report_bit
         lxi     d,keyboard_label
         call    print_string
-        call    native_info
-        jc      run_keyboard_fail
-        lxi     d,8
-        dad     d
-        mov     a,m                     ; raw S21
-        rrc
-        ani     3
+        call    diag_s21_config_read
+        sta     s21_raw
         mov     b,a
-        inx     h
-        mov     a,m
-        cmp     b
-        jnz     run_keyboard_fail
-        xra     a
-        jmp     run_keyboard_result
-run_keyboard_fail:
-        mvi     a,1
-run_keyboard_result:
-        jmp     print_result
+        call    diag_s21_config_read
+        xra     b                       ; a stable direct path returns twice
+        call    print_result
+        lxi     d,s21_label
+        call    print_string
+        lda     s21_raw
+        call    print_hex
+        lxi     d,newline
+        jmp     print_string
 
-; Return native JNS1 status in HL with carry clear. The fixed marker prevents
-; a compatibility BIOS entry 30 (WBOOT) from being called accidentally.
-native_info:
-        lda     NATIVE_MARKER
-        cpi     04eh
-        stc
-        rnz
-        mvi     a,30
-        call    setvector
-        mvi     c,0
-        call    bioscall
+; Compute a four-block additive fingerprint over every byte visible in the
+; D800h..FFFFh ROM window.  Exact archived images use this as an integrity and
+; version key; JukuNet images are additionally recognized by their manifest.
+identify_rom:
+        call    select_rom_reads
+        lxi     h,0d800h
+        lxi     d,0e200h
+        call    diag_checksum8
+        sta     rom_fingerprint
+        lxi     h,0e200h
+        lxi     d,0ec00h
+        call    diag_checksum8
+        sta     rom_fingerprint+1
+        lxi     h,0ec00h
+        lxi     d,0f600h
+        call    diag_checksum8
+        sta     rom_fingerprint+2
+        lxi     h,0f600h
+        lxi     d,00000h
+        call    diag_checksum8
+        sta     rom_fingerprint+3
+
+        lxi     h,rom_identity_table
+identify_rom_next:
+        push    h
+        lxi     d,4
+        dad     d
+        mov     e,m
+        inx     h
+        mov     d,m
+        mov     a,d
+        ora     e
+        pop     h
+        jz      identify_rom_manifest
+        push    h
+        lxi     d,rom_fingerprint
+        mvi     b,4
+        call    diag_signature_test
+        pop     h
         ora     a
-        stc
-        rnz
-        mov     a,m
-        cpi     'J'
-        stc
-        rnz
+        jz      identify_rom_known
+        lxi     d,7
+        dad     d
+        jmp     identify_rom_next
+
+identify_rom_known:
+        lxi     d,4
+        dad     d
+        mov     e,m
+        inx     h
+        mov     d,m
+        xchg
+        shld    rom_identity
+        xchg
         inx     h
         mov     a,m
-        cpi     'N'
-        stc
-        rnz
-        inx     h
-        mov     a,m
-        cpi     'S'
-        stc
-        rnz
-        inx     h
-        mov     a,m
-        cpi     '1'
-        stc
-        rnz
-        dcx     h
-        dcx     h
-        dcx     h
-        ora     a                       ; clear carry
+        sta     rom_class
+        jmp     restore_memory_mode
+
+identify_rom_manifest:
+        lxi     h,0ff00h
+        lxi     d,rom_signature
+        mvi     b,8
+        call    diag_signature_test
+        ora     a
+        jnz     restore_memory_mode
+        mvi     a,3                     ; compatible, not exact-table JukuNet
+        sta     rom_class
+        jmp     restore_memory_mode
+
+; Mode 3 exposes the framebuffer RAM and is used by the RomBios-compatible
+; CP/M baseline.  Mode 1 maps D800h..FFFFh ROM reads.  DIAG executes and keeps
+; its stack below D800h, so it can select mode 1 for a bounded read-only pass
+; and then restore the exact previous port-C value.  Interrupt policy is left
+; untouched: stock RomBios handlers are valid in mode 1 and JukuNet normally
+; owns mode 1 already.
+select_rom_reads:
+        in      DIAG_MODE_PORT
+        sta     previous_memory_mode
+        ani     0fch
+        ori     1
+        out     DIAG_MODE_PORT
         ret
+
+restore_memory_mode:
+        lda     previous_memory_mode
+        out     DIAG_MODE_PORT
+        ret
+
+print_rom_identity:
+        lxi     d,rom_identity_prefix
+        call    print_string
+        lhld    rom_identity
+        mov     a,h
+        ora     l
+        jz      print_rom_dynamic
+        xchg
+        jmp     print_string
+
+print_rom_dynamic:
+        lda     rom_class
+        ora     a
+        jz      print_rom_unknown
+        lxi     d,jukunet_dynamic
+        call    print_string
+        lda     0ff08h
+        call    print_hex
+        mvi     e,'.'
+        mvi     c,CONOUT
+        call    BDOS
+        lda     0ff09h
+        call    print_hex
+        lxi     d,identity_separator
+        call    print_string
+        lhld    0ff0eh
+        call    print_zstring
+        lxi     d,newline
+        jmp     print_string
+
+print_rom_unknown:
+        lxi     d,unknown_rom
+        call    print_string
+        lxi     h,rom_fingerprint
+        mvi     b,4
+print_rom_fingerprint:
+        mov     a,m
+        push    b
+        push    h
+        call    print_hex
+        pop     h
+        pop     b
+        inx     h
+        dcr     b
+        jnz     print_rom_fingerprint
+        lxi     d,newline
+        jmp     print_string
+
+; Print a ROM-owned NUL-terminated build identity through BDOS.
+print_zstring:
+        mov     a,m
+        ora     a
+        rz
+        push    h
+        mov     e,a
+        mvi     c,CONOUT
+        call    BDOS
+        pop     h
+        inx     h
+        jmp     print_zstring
 
 run_destructive:
         mvi     a,0ffh
@@ -453,12 +561,12 @@ bioscall:
         ret
 
 banner:
-        db      13,10,'Juku Diag 0.5',13,10
-        db      'Shared non-destructive 8080 diagnostics.',13,10
-        db      'Usage: DIAG [CPU|MEM|ADDR|RET|RAM|SUM|PIT|USART|ROM',13,10
-        db      '             |VIDEO|KEY|IO|ALL|DESTRUCT]',13,10
-        db      'No argument keeps the private RAM test.',13,10,'$'
+        db      13,10,'Juku Diag 0.6',13,10
+        db      'Self-contained non-destructive 8080 diagnostics.',13,10,'$'
 usage:
+        db      'Usage: DIAG [CPU|MEM|ADDR|RET|RAM|SUM|PIT|USART|ROM',13,10
+        db      '             |VIDEO|KEY|IO|ALL|DESTRUCT|HELP]',13,10,'$'
+unknown_selector:
         db      'Unknown diagnostic selector.',13,10,'$'
 cpu_label:
         db      'CPU: $'
@@ -475,11 +583,13 @@ pit_label:
 usart_label:
         db      'D11 USART status: $'
 rom_label:
-        db      'ROM ABI: $'
+        db      'ROM image: $'
 video_label:
         db      'Video/console: $'
 keyboard_label:
         db      'Keyboard/S21: $'
+s21_label:
+        db      '  S21 raw: $'
 destructive_msg:
         db      'Destructive tests: NOT RUN under live CP/M; use reset ROM.',13,10,'$'
 passed:
@@ -490,6 +600,95 @@ newline:
         db      13,10,'$'
 rom_signature:
         db      'J','U','K','U','A','B','I',0
+rom_identity_prefix:
+        db      'ROM: $'
+jukunet_dynamic:
+        db      'JukuNet ROM ABI $'
+identity_separator:
+        db      ' - $'
+unknown_rom:
+        db      'unknown; fingerprint $'
+
+; Four additive sums cover D800h..FFFFh in 0A00h blocks.  The identity strings
+; describe the exact archived/reference images in 8080-cosim.  Class 1 is an
+; exact stock/remix/monitor image; class 2 is an exact known JukuNet image;
+; class 4 is identified but intentionally fails the integrity result.
+rom_identity_table:
+        db      0f9h,0d7h,0beh,05fh
+        dw      rom_ekta24
+        db      1
+        db      00eh,0e5h,072h,034h
+        dw      rom_ekta31
+        db      1
+        db      0ach,0f0h,00fh,0a0h
+        dw      rom_ekta32
+        db      1
+        db      0f8h,01eh,02ah,0efh
+        dw      rom_ekta35
+        db      1
+        db      075h,09fh,07ah,0e1h
+        dw      rom_ekta37
+        db      1
+        db      0a5h,0f9h,098h,0b1h
+        dw      rom_ekta43
+        db      1
+        db      075h,081h,0c9h,0f6h
+        dw      rom_jmon33
+        db      1
+        db      024h,04ah,09fh,08bh
+        dw      rom_jmon22
+        db      4                       ; identify it, but its integrity fails
+        db      01eh,032h,07ah,0a5h
+        dw      rom_ekta4401
+        db      1
+        db      051h,032h,07ah,0d8h
+        dw      rom_ekta4402
+        db      1
+        db      031h,051h,000h,0bfh
+        dw      rom_jukunet_c4
+        db      2
+        db      075h,0dbh,0c8h,07fh
+        dw      rom_jukunet_c5
+        db      2
+        db      046h,0a8h,0c8h,046h
+        dw      rom_jukunet_c6
+        db      2
+        db      012h,09ch,04bh,046h
+        dw      rom_jukunet_c7
+        db      2
+        db      012h,01ah,09dh,037h
+        dw      rom_jukunet_c8
+        db      2
+        db      0,0,0,0
+        dw      0
+        db      0
+
+rom_ekta24:    db 'EktaSoft #0024 / RomBios 3.42',13,10,'$'
+rom_ekta31:    db 'EktaSoft #0031 / RomBios 3.43',13,10,'$'
+rom_ekta32:    db 'EktaSoft #0032 / RomBios 2.43',13,10,'$'
+rom_ekta35:    db 'EktaSoft #0035 / RomBios 3.43',13,10,'$'
+rom_ekta37:    db 'EktaSoft #0037 / RomBios 3.43m',13,10,'$'
+rom_ekta43:    db 'EktaSoft #0043 / RomBios 2.43m',13,10,'$'
+rom_jmon33:    db 'Juku monitor 3.3',13,10,'$'
+rom_jmon22:    db 'Juku monitor 2.2 (known damaged archive)',13,10,'$'
+rom_ekta4401: db 'EktaSoft 4.4 #01 / RomBios 3.43m',13,10,'$'
+rom_ekta4402: db 'EktaSoft 4.4 #02 / RomBios 3.43m',13,10,'$'
+rom_jukunet_c4: db 'JukuNet C4 / ROM ABI 1.0',13,10,'$'
+rom_jukunet_c5: db 'JukuNet C5 / ROM ABI 1.1',13,10,'$'
+rom_jukunet_c6: db 'JukuNet C6 / ROM ABI 1.2',13,10,'$'
+rom_jukunet_c7: db 'JukuNet C7 / ROM ABI 1.2',13,10,'$'
+rom_jukunet_c8: db 'JukuNet C8 / ROM ABI 1.3',13,10,'$'
+
+rom_identity:
+        dw      0
+rom_class:
+        db      0
+rom_fingerprint:
+        ds      4
+s21_raw:
+        db      0
+previous_memory_mode:
+        db      0
 report_suite:
         db      1
 report_pass:
@@ -509,6 +708,7 @@ report_bit:
         include "pit-d57.asm"
         include "usart-status.asm"
         include "signature.asm"
+        include "s21-config.asm"
 
 checksum_fixture:
         db      00h,01h,02h,03h,04h,05h,06h,07h

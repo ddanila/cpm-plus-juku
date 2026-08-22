@@ -22,7 +22,7 @@
       "override": true,
       "provenance": {
         "source": "src/diag.asm and pinned juku-common diagnostics",
-        "version": "Juku Diag 0.5",
+        "version": "Juku Diag 0.6",
         "license": "LICENSE and third_party/juku-common notices"
       }
     },

@@ -99,7 +99,7 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	regenerate-cpm3 regenerate-cpm3-rom \
 	network-rom-locale-cosim-check network-rom-extended-local-cosim-check \
 	network-rom-extended-cosim-check \
-	bootstrap-observability-check
+	bootstrap-observability-check diag-check diag-compat-cosim-check
 all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
 	$(LOCALE_NATIVE_ROM_SYSTEM) $(LOCALE_NATIVE_ROM_FASTBOOT) \
 	$(EXTENDED_NATIVE_ROM_SYSTEM) $(EXTENDED_NATIVE_ROM_FASTBOOT) \
@@ -145,7 +145,7 @@ check: verify-prebuilt rom-budget-check distribution-input-check \
 	physical-acceptance-check vidtest-cosim-check display-acceptance-check history-check \
 	history-cosim-check panel-check panel-cosim-check \
 	netdisk-performance-check physical-closure-check physical-promotion-check \
-	bootstrap-observability-check
+	bootstrap-observability-check diag-check diag-compat-cosim-check
 	CPM_PLUS_JUKU_BOOT_PATH=all $(PYTHON) tests/cosim_check.py
 
 distribution-input-check:
@@ -1083,6 +1083,21 @@ $(CONTROL_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
 
 $(BUILD)/diag.cim: src/diag.asm $(wildcard $(COMMON)/diag/*.asm) $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -I$(COMMON)/diag -o $@ $<
+
+diag-check: $(BUILD)/diag.cim tests/diag_rom_identity_test.py
+	$(PYTHON) tests/diag_rom_identity_test.py
+
+diag-compat-cosim-check: $(SYSTEM) $(FASTBOOT) $(NATIVE_RECOVERY_VOLUME)
+	CPM_PLUS_JUKU_BOOT_PATH=stock \
+	CPM_PLUS_JUKU_STOCK_ROM=$(JUKU_COSIM_ROOT)/roms/ekta37.bin \
+	CPM_PLUS_JUKU_VOLUME=$(NATIVE_RECOVERY_VOLUME) \
+	CPM_PLUS_JUKU_EXTRA_COMMAND='DIAG' \
+	CPM_PLUS_JUKU_EXTRA_MARKER='Usage: DIAG' \
+	CPM_PLUS_JUKU_EXTRA_MARKERS='Juku Diag 0.6|ROM: EktaSoft #0037 / RomBios 3.43m' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND2='DIAG ALL' \
+	CPM_PLUS_JUKU_EXTRA_MARKER2='Keyboard/S21: PASS' \
+	CPM_PLUS_JUKU_EXTRA_MARKERS2='ROM: EktaSoft #0037 / RomBios 3.43m|CPU: PASS|RAM data: PASS|RAM address: PASS|RAM retention: PASS|Checksum: PASS|D57 PIT clock: PASS|D11 USART status: PASS|ROM image: PASS|Video/console: PASS|S21 raw: 06' \
+	$(PYTHON) tests/cosim_check.py
 
 $(C4_DIAG): prebuilt/cpm-plus-juku.img diskdefs | $(BUILD)
 	DISKDEFS=$(abspath diskdefs) cpmcp -f juku386 $< 0:DIAG.COM $@

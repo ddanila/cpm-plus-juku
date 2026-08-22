@@ -191,12 +191,15 @@ and publishes it through bounded, duplicate-safe operation 27h; ABI 1.0
 publishes a deterministic zero tuple. The regression corrupts one compressed
 stream, observes the retained retry, and then proves recovery through stage
 `50h` with matching host and target counts.
-The safe shared diagnostic matrix is now implemented in Diag 0.5:
+The safe shared diagnostic matrix is now implemented in Diag 0.6:
 CPU/memory, D57, D11, ROM/integrity, video, keyboard/S21, and combined suites
 use `juku-common` probes and publish a bounded machine-readable result over N4.
 Destructive tests are explicitly refused under live CP/M and remain a ROM-only
 responsibility. The immutable C4 image retains Diag 0.4; post-C4 profiles opt
-into Diag 0.5. See [`cpm3-diagnostics.md`](cpm3-diagnostics.md).
+into Diag 0.6. Its hardware mechanisms are linked into the transient rather
+than delegated to ROM, exact stock/JukuNet identities are reported, direct S21
+sampling works on both firmware families, and no-argument invocation alone
+prints usage. See [`cpm3-diagnostics.md`](cpm3-diagnostics.md).
 
 ## Priority 5: NetDisk performance and media safety
 
@@ -587,7 +590,7 @@ prevents performance or convenience work from obscuring hardware regressions.
 | 1. Distribution | **Complete** | `distribution-check`, deterministic profile reports, provenance checks, native B: conversion, and distribution cosimulation pass. |
 | 2. Native BIOS | **Complete** | `native-services-check` executes the character table, TIME, MULTIO, FLUSH, MOVE, USERF, status, diagnostics, and recovery paths. |
 | 3. S21/console/locale | **Complete** | Four exact framebuffer oracles, ABI 1.1 configuration/remap tests, locale source oracles, 53x24/64x20 CS00015 evidence, and C6 local/N4 block-output separation. |
-| 4. Diagnostics/observability | **Complete** | Diag 0.5 covers the safe shared matrix; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
+| 4. Diagnostics/observability | **Complete** | Diag 0.6 covers the safe shared matrix without ROM-owned test calls and identifies stock/JukuNet firmware; Status 1.3 preserves its status-block pointer across BDOS output and is checked by exact transcript lines; operations 24h/25h/27h cover configuration, diagnostics, and retained bootstrap state. |
 | 5. NetDisk/media safety | **Complete** | The immutable C6 baseline pins 10/0/1 boot/DIR/TYPE, per-drive read-ahead, ordered multi-request service, explicit capabilities, media policies, synchronous-write recovery, and a 64-cycle soak. The current loaded system reaches 8/0/1 and B: 4/0 with a measured hot-directory cache; exact local/N4 recovery, package, runtime-memory, and 64-cycle soak gates pass. The 2026-08-19 controlled CS00015 pair reproduced cache-off 10/0/1 plus B: 4/1 versus cache-on 8/0/1 plus B: 4/0 with zero retries and clean D11 status. Write-back caching remains deliberately out of scope. |
 | 6. Manifest/recovery | **Complete** | C6 manifest validation, station-independent media advertisement, two bounded system slots, last-known-good promotion, immutable C4 fallback, complete vector/map export, and byte-reproducible package pass. |
 | 7. Curated software/development | **Complete** | The 23-program DRI catalogue, every shipped DRI executable, ED/HEXCOM/PATCH/SID development image, and six project-owned gap tools pass strict-8080 execution. Exact `cpm-ls`/`HIST`/FIG-Forth decisions, seven individual DRI development-tool dispositions, Millfork/z88dk/uplm80 experiments, and live C6 disk/stack/RSX/TPA evidence for all 13 shipped programs are complete and fail-closed. |

@@ -26,7 +26,10 @@ COMMON = Path(os.environ.get(
     "JUKU_COMMON_ROOT", ROOT / "third_party" / "juku-common",
 )).resolve()
 ROM_DIRECT = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4402.bin"
-ROM_STOCK = COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4401.bin"
+ROM_STOCK = Path(os.environ.get(
+    "CPM_PLUS_JUKU_STOCK_ROM",
+    COSIM / "spinoffs" / "jukuravi" / "remix" / "ekta4401.bin",
+)).resolve()
 ROM_NETWORK = Path(os.environ.get(
     "CPM_PLUS_JUKU_NETWORK_ROM",
     COSIM / "spinoffs" / "jukuravi" / "network-rom" /
@@ -353,7 +356,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
     else:
         case_name = "cpm3-stock"
         rom = ROM_STOCK
-        boot_label = "stock Ekta4401 TN"
+        boot_label = f"stock {ROM_STOCK.stem} TN"
     if expect_disk_failure:
         case_name += f"-{expect_disk_failure}"
     if disk_fault:
@@ -1048,10 +1051,20 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             f"C8 status/map report differs: {status!r}",
                         )
                         print(f"COSIM {case.name}: C8 STATUS", flush=True)
+                        send_console(b"DIAG\r")
+                        diagnostic_help = read_until(b"A>", command_timeout)
+                        require(
+                            b"Usage: DIAG" in diagnostic_help
+                            and b"CPU: PASS" not in diagnostic_help,
+                            "C8 no-argument diagnostic policy differs: "
+                            f"{diagnostic_help!r}",
+                        )
                         send_console(b"DIAG CPU\r")
                         diagnostic = read_until(b"A>", command_timeout)
                         require(
-                            b"CPU: PASS" in diagnostic,
+                            b"CPU: PASS" in diagnostic
+                            and b"ROM: JukuNet C8 / ROM ABI 1.3" in diagnostic
+                            and b"Usage: DIAG" not in diagnostic,
                             f"C8 diagnostic report differs: {diagnostic!r}",
                         )
                         print(f"COSIM {case.name}: C8 DIAG", flush=True)
@@ -1285,6 +1298,18 @@ def run(trace: Path, work: Path, *, direct_core: bool,
         )
         require(b"DIAG CPU" in fourth and b"CPU: PASS" in fourth,
                 f"CP/M Plus transient diagnostic failed: {fourth!r}")
+        if b"Juku Diag 0.6" in fourth:
+            expected_rom_identity = (
+                b"ROM: JukuNet" if network_rom
+                else b"ROM: EktaSoft 4.4 #02" if direct_core
+                else b"ROM: EktaSoft #0037" if ROM_STOCK.name == "ekta37.bin"
+                else b"ROM: EktaSoft 4.4 #01"
+            )
+            require(
+                expected_rom_identity in fourth
+                and b"Usage: DIAG" not in fourth,
+                f"CP/M Plus Diag 0.6 policy differs: {fourth!r}",
+            )
         require(b"WBOOT" in fifth and b"A>" in fifth,
                 f"CP/M Plus warm boot did not return to CCP: {fifth!r}")
         require(b"ERA README.TXT" in sixth and b"A>" in sixth,
