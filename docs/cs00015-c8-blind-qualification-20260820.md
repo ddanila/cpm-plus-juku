@@ -181,3 +181,24 @@ observations and safe physical exercise of the C1--C5 POST failure tones. C6
 remains the immutable rollback image while those explicitly physical items are
 pending; exact simulator oracles continue to cover both without being presented
 as physical observations.
+
+## Apple Silicon host follow-up — 2026-08-21
+
+A native arm64 `jukuhost 0.3.0-m5` cold-booted the same fitted C8 pair from
+macOS with raw S21 `07h`. `STATUS` reported English, video mode 03 (80x24),
+ROM ABI 01.03, NetDisk v3, read-ahead 8, and two drives. The unattended
+`c8-cold` workload then passed `DIAG ALL`, `N4BULK`, and `SOAK`; all CPU, RAM,
+PIT, USART, ROM, video/console, and keyboard/S21 diagnostics passed.
+
+The retained run recorded 2,372 protocol requests, 33 reads carrying 264
+records, four writes to its private A: snapshot, zero target resets, zero
+reconnects, and zero UART errors. The host stopped cleanly and the independent
+physical-evidence audit passed 4/4.
+
+Two portability defects were fixed before the passing run. The host now drains
+the macOS USB-serial transmit queue before changing from Fastboot 8N1 to
+NetDisk 8O1. The acceptance runner also aligns host-capture and runner
+monotonic clocks before assigning request metrics; Darwin exposed that their
+epochs need not match. Synthetic cross-epoch and lifecycle/audit regressions
+pass. This follow-up adds a focused Apple Silicon cold-path qualification; it
+does not add physical display evidence.

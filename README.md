@@ -195,6 +195,9 @@ must be byte-identical.
   `N` recovery wait.
 - Bits 2:1 select 40x24, 53x24, 64x20, or MODX-compatible 80x24.
 - Bits 4:3 select English, Estonian, CP866 Russian, or English/user-remap.
+- Future runtime video/character-bank switching must treat S21 as the cold-reset
+  default and keep diagnostics valid when the active state intentionally differs;
+  see [`docs/runtime-console-switching.md`](docs/runtime-console-switching.md).
 - The Creep-derived 5x7 policy leaves a separator column for text while its
   CP437 UI subset joins with five edge pixels for continuous pseudographics.
 - Local display and keyboard are authoritative. N4 is optional, negotiated,
@@ -205,6 +208,10 @@ must be byte-identical.
   remains read-only and uses native Juku cylinder/head geometry.
 - `VER`, `STATUS`, `DIAG`, `HIST`, `PANEL`, `KEYTEST`, `VIDTEST`, `KEYRAW`, `SOAK`,
   and `N4BULK` provide bounded target and machine-readable observability.
+- The service-only `VIDPROBE` bypasses the console and writes a raw framebuffer
+  pattern for physical video-path isolation. Its CS00015/CS00014 control result
+  is recorded in
+  [`docs/cs00015-video-path-20260821.md`](docs/cs00015-video-path-20260821.md).
 - Full, development, and demo media retain one command across CCP reloads;
   `!!` repeats it and `HIST [CLEAR]` inspects or clears it. Recovery media keep
   the exact unmodified DRI CCP.
@@ -246,6 +253,7 @@ The authoritative current documents are:
 - [`docs/cpm-plus-feature-plan.md`](docs/cpm-plus-feature-plan.md)
 - [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md)
 - [`docs/plan-completion-audit.md`](docs/plan-completion-audit.md)
+- [`docs/c9-future-rom-policy.md`](docs/c9-future-rom-policy.md)
 - [`docs/cpm-plus-31-c6-simulator.md`](docs/cpm-plus-31-c6-simulator.md)
 - [`docs/distribution-profiles.md`](docs/distribution-profiles.md)
 - [`docs/project-utilities.md`](docs/project-utilities.md)
