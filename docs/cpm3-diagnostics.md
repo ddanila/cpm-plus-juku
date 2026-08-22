@@ -69,3 +69,18 @@ no-argument `DIAG` plus `DIAG ALL`; the JukuNet C8 gate checks
 help-versus-selected output. `make
 native-services-check` retains the machine-report checks; `DIAG IO` must
 publish pass mask `7Ch`, fail mask zero, and flags zero.
+
+## Physical compatibility confirmation
+
+On 2026-08-22, CS00000 with the known EK37 / RomBios 3.43m pair reached CP/M
+Plus through native C host `0.3.1-m6` and the native recovery image. Bare
+`DIAG` identified the fitted ROM and showed the command summary. The owner then
+ran `DIAG ALL`; every displayed diagnostic passed and the program returned to
+the prompt. The host session served 59 clean read requests / 177 records and
+ended with zero retries, resets, reconnects, or UART errors.
+
+This is physical confirmation that DIAG 0.6 runs independently of the JukuNet
+ROM diagnostic ABI on the EK37 compatibility path. It does not qualify the
+removed CS00000 `#0031` ROM pair, which still needs a controlled dump/socket
+comparison. The raw serial evidence and machine service record live in the
+adjacent `8080-cosim` repository.

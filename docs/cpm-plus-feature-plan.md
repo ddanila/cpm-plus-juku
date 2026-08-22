@@ -678,9 +678,10 @@ and `VIDTEST.COM` are network-loaded. Proceed in this order:
 3. retain the completed M5 command-history and status-panel additions behind
    the same source, license, size, memory, locale, and exact-C6 execution gates
    as the current utilities;
-4. keep M6 work machine-specific: investigate CS00000's USART and CS00024's
-   RAM/refresh/D57 evidence only on those machines, without changing CS00015's
-   known-good reference behavior.
+4. keep M6 work machine-specific: investigate CS00000's removed `#0031` ROM
+   pair, sockets, PSU, and intermittent startup plus CS00024's RAM/refresh/D57
+   evidence only on those machines, without changing CS00015's known-good
+   reference behavior. CS00000's former USART suspicion is rejected.
 
 M4 and M5 should normally remain network-loaded system/media changes. A C7 ROM
 is justified only when a measured improvement requires a new resident service
@@ -700,7 +701,7 @@ contracts and evidence below remain authoritative.
 | 3 | M4 physical acceptance — complete | Retain the manifest-bound cache-off and cache-on `performance` workloads and independent pair report. | The comparison proves 10/0/1 plus B: 4/1 becomes 8/0/1 plus B: 4/0, with zero retries, final clean D11 status, and synchronous erase writes in both runs. |
 | 4 | M5 text-interface tool — desk complete | Keep `PANEL.COM` behind its shared-JNS1, strict-8080, local/N4, locale-aware framebuffer, memory, and recovery-integrity gates. | Reproducible source/license/hash, exact-C6 execution, English connected-CP437 and Estonian ASCII-fallback cursor frames, disk/TPA/stack accounting, warm boot/reconnect, and unchanged recovery images pass; one optional hardware smoke remains. |
 | 5 | Close visual promotion | Run `VIDTEST.COM` in all four S21 modes when a working display is available, then apply the structured display auditor. | One portable four-mode report binds geometry, joined pseudographics, glyph spacing, cropping, both cursor phases, monitor identity, photographs, and exact run hashes. |
-| 6 | Maintain the physical fleet | Investigate CS00000's suspected USART path and CS00024's RAM/refresh/D57 path only when the corresponding board is available. | Machine-specific captures and diagnoses; CS00015 remains the unmodified known-good reference. |
+| 6 | Maintain the physical fleet | Investigate CS00000's removed `#0031` ROM pair, sockets, PSU/startup path and CS00024's RAM/refresh/D57 path only when the corresponding board is available; D11 is no longer suspect on CS00000. | Machine-specific captures and diagnoses; CS00015 remains the unmodified known-good reference. |
 | 7 | Profile later performance ideas | After M4 physical acceptance, measure alternating-drive and long sequential workloads before trying request coalescing, prediction, a lower-overhead protocol, compression, or experimental baud rates. | End-to-end wire, target, console, and host timings demonstrate a benefit without weakening recovery or data integrity. |
 
 Prepare the pinned M4 control and optimized artifacts and validate the pair
@@ -750,7 +751,7 @@ requirement and makes the cost of another manual hardware run explicit.
 | Visual promotion | Separate correct framebuffer bytes from analog monitor limitations. | Observe `VIDTEST` in all four S21 modes and record joined cells, font spacing, cursor phases, cropping, monitor identity, and photographs. | Existing C6; DIP change and working display only. |
 | Everyday usability | Preserve the admitted `!!`, `HIST`, and `PANEL` tools, then add UI or diagnostic presentation only when it removes a demonstrated workflow problem. | Exact-C6 strict-8080, locale, stack/TPA, disk, warm-boot, reconnect, and recovery-integrity gates for every addition. | Prefer transients/shared BIOS data; no ROM change by default. |
 | NetDisk evolution | Improve first-login, alternating-drive, or long sequential workloads; steady-state `DIR` is already local. | Profile first, then compare coalescing, prediction, a lower-overhead protocol, or compression end to end, including 8080 decode cost and failure recovery. | NetDisk v3 at proven 19,200 remains the compatibility baseline. |
-| Fleet diagnosis | Repair a faulty board without teaching shared software that its fault is normal. | CS00000 USART evidence and CS00024 RAM/refresh/D57 evidence stay in their machine records and simulations. | CS00015 remains the known-good reference. |
+| Fleet diagnosis | Repair a faulty board without teaching shared software that its fault is normal. | CS00000 ROM/socket/PSU/startup evidence and CS00024 RAM/refresh/D57 evidence stay in their machine records and simulations. | CS00015 remains the known-good reference. |
 | C7 bounded correction | Correct the resident raw-key service without rewriting physically qualified C6. | Complete desk gate plus one retained Shift-F8/Ctrl-Up/Home `c7-raw` run on CS00015. | Separately named C7 pair; C6 remains the rollback reference. |
 | Separate research | Explore higher baud rates, authenticated boot, write-back caching, or banked CP/M without destabilizing the accepted product. | Each gets its own benchmark and failure contract before adoption. | Not part of the current non-banked release. |
 
@@ -855,7 +856,7 @@ before its own evidence exists.
 | M3 | Close display acceptance | `VIDTEST.COM` and exact framebuffer oracles cover boundaries, glyph banks, joined box drawing, and both cursor phases in all four S21 modes. | Observe 40x24, 53x24, 64x20, and 80x24 on a working display; record any monitor-specific cropping separately. |
 | M4 | Improve NetDisk responsiveness | Complete: the measured three-record hot-directory cache reduces exact-C6 cold boot from 10 to 8 wire requests and first B: `DIR` from 1 to 0, while retaining synchronous invalidating writes. Its same-source cache-off control, structured request capture, pair auditor, recovery, replay, package, and long-soak gates pass. | Complete: both manifest-bound CS00015 workloads and their independent comparison pass with zero retries; no EPROM burn was required. |
 | M5 | Improve the distribution | The strict-8080 history slice and project-owned pseudographic `PANEL.COM` are exact-C6 qualified. Retain their reproducible source/license/size/runtime admission and keep the recovery profile small. | Optional short history/panel smoke only; no manual catalogue trawl on the bench. |
-| M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 USART and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
+| M6 | Maintain per-machine diagnoses | Keep CS00015 as reference; keep CS00000 ROM/socket/PSU/startup and CS00024 RAM/refresh/D57 hypotheses separate and evidence-backed. CS00000 D11 has passed the physical serial and diagnostic paths. | Machine-specific tests only when that machine is available; never weaken the reference configuration to accommodate an unproven fault. |
 
 Status on 2026-08-19:
 
@@ -965,7 +966,7 @@ repeating the old failing image would add no evidence.
    complete editor, assembler, documentation, and unambiguous package notice.
    Continue rejecting the unlicensed/source-less HIST reference binary.
 6. **Physical fleet.** Keep CS00015 as the known-good reference. Treat
-   CS00000's suspected USART fault and CS00024's RAM/refresh/D57 evidence as
+   CS00000's ROM/socket/PSU/startup evidence and CS00024's RAM/refresh/D57 evidence as
    separate per-machine investigations, preserving their machine profiles
    rather than generalizing either fault into the production model.
 
@@ -1000,7 +1001,7 @@ means the named evidence exists; an attractive prototype alone is not enough.
 5. **Improve observability (M6).** Keep host logs, target status, artifact
    identities, disk-call traces, and physical evidence machine-readable.
    Extend `DIAG` from the shared ROM diagnostic implementation when useful,
-   but keep CS00000 USART and CS00024 RAM/refresh/D57 work in separate machine
+   but keep CS00000 ROM/socket/PSU/startup and CS00024 RAM/refresh/D57 work in separate machine
    records. End goal: failures identify a machine, layer, and last good stage
    instead of merely appearing as a stalled boot.
 6. **C7 bounded ROM correction — desk complete, focused bench pending.** C7
@@ -1075,7 +1076,7 @@ board cannot block useful desk work:
 | Display | Close visual promotion | With a usable display, record all four S21 modes, joined pseudographics, glyph spacing, cropping, and both underline-cursor phases; retain photographs, pass the structured display auditor, then combine it with the blind closure in the final promotion report. Simulator framebuffer oracles remain authoritative for pixels. |
 | Distribution | Make everyday CP/M more pleasant | History and `PANEL.COM` are admitted. Consider further shared status/diagnostic presentation only for a measured workflow; admit only licensed, source-available strict-8080 programs. |
 | Performance | Improve only demonstrated bottlenecks | M4 is physically accepted. Profile alternating drives and longer sequential reads before considering request coalescing, predictive reads, a lower-overhead protocol, or compression. |
-| Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's suspected USART fault and CS00024's RAM/refresh/D57 path on those boards. CS00015 remains the known-good reference configuration. |
+| Fleet diagnosis | Preserve machine-specific evidence | Investigate CS00000's removed `#0031` ROM/socket and PSU/startup path and CS00024's RAM/refresh/D57 path on those boards. CS00000's D11 suspicion is rejected; CS00015 remains the known-good reference configuration. |
 | Future ROM | Finish C8's two postponed physical observations | C8/ABI 1.3 moves the final shared N4/host transport into ROM, adds real diagnostic selectors and short/long POST codes, and gains 512 TPA bytes. The exact pair is fitted in CS00015; automated and attended cold boot, resident services, local/N4 input, diagnostics, disk/soak, warm boot, reconnect, and normal sound pass. Display and safe physical POST-failure-tone observations are postponed. C6 remains rollback and C7 remains hash-pinned. |
 
 The explicit non-goals remain unchanged: no XMODEM in the standard image, no

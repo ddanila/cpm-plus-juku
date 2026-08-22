@@ -184,7 +184,10 @@ becoming a global software assumption:
 
 - CS00014: museum exhibition machine, stock ROM;
 - CS00015: home reference, exact C6 pair fitted; blind C6 matrix passed;
-- CS00000: USART suspicion remains board-local and unproven;
+- CS00000: the former USART suspicion is rejected by stock Janet, sustained
+  19,200-baud NetDisk, local D11 diagnostics, and the physical DIAG 0.6 pass;
+  the removed `#0031` ROM pair, sockets, original PSU, and intermittent startup
+  remain board-local investigations;
 - CS00024: RAM/D57/raster/parser investigation remains board-local.
 
 None of those open service items weakens the scoped C6 simulator result.
