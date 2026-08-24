@@ -8,10 +8,15 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+
+from cpmtools import cpmtool, driver_args  # noqa: E402
+
 TOOL = ROOT / "tools/build_volume.py"
 CASES = {
     "recovery": (
@@ -94,10 +99,8 @@ def require(condition: bool, message: str) -> None:
 
 def cpm_names(image: Path, geometry: str) -> set[str]:
     environment = {**os.environ, "DISKDEFS": str(ROOT / "diskdefs")}
-    local_cpmls = ROOT / "build/cpmtools-install/bin/cpmls"
     result = subprocess.run(
-        [str(local_cpmls) if local_cpmls.is_file() else "cpmls",
-         "-f", geometry, "-d", str(image)],
+        [cpmtool("cpmls"), *driver_args(), "-f", geometry, "-d", str(image)],
         cwd=ROOT, env=environment, check=True, capture_output=True, text=True,
     )
     names: set[str] = set()

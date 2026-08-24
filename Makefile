@@ -3,6 +3,21 @@ CC ?= cc
 CXX ?= c++
 BISON ?= bison
 
+# Homebrew's cpmtools is linked against libdsk, whose container autodetection
+# refuses the plain sector images built here; -T raw pins the raw driver.
+# cpmtools built without libdsk -- the usual Linux package, and what CI runs --
+# has no -T at all and would reject it.  Ask the installed tools instead of
+# reading their usage text: make a scratch image and see whether an ordinary
+# listing already works.  Anything unexpected leaves this empty, which is
+# exactly the command line used before the probe existed.
+# tools/cpmtools.py runs the same probe for the Python side.
+# cpmtools reads its diskdefs from the working directory, which for the probe
+# is this repository root -- the same place the recipes below run from.
+CPM_TYPE := $(shell probe=$$(mktemp -u) && \
+	mkfs.cpm -f juku386 "$$probe" >/dev/null 2>&1 && \
+	{ cpmls -f juku386 "$$probe" >/dev/null 2>&1 || echo '-T raw'; }; \
+	rm -f "$$probe")
+
 BUILD := build
 OUT := out
 BIN := $(BUILD)/bin
@@ -695,9 +710,19 @@ $(BUILD)/zmac/doc.inl: $(BUILD)/zmac/docgen third_party/zmac/doc.txt | $(BUILD)/
 	cp third_party/zmac/doc.txt $(BUILD)/zmac/doc.txt
 	cd $(BUILD)/zmac && ./docgen >/dev/null
 
-$(BUILD)/zmac/parser.c $(BUILD)/zmac/parser.h &: third_party/zmac/zmac.y | $(BUILD)/zmac
-	$(BISON) --defines=$(BUILD)/zmac/parser.h \
-		--output=$(BUILD)/zmac/parser.c $<
+# Grouped targets (`&:`) need GNU make 4.3 and macOS ships 3.81, so every
+# recipe here that writes more than one file names its command in a variable,
+# hangs the dependency off one primary output, and gives each remaining output
+# a rule that re-runs the command only if that file went missing on its own.
+# The command cannot use $< or $@: it is shared by rules with different ones.
+ZMAC_PARSER := $(BISON) --defines=$(BUILD)/zmac/parser.h \
+	--output=$(BUILD)/zmac/parser.c third_party/zmac/zmac.y
+
+$(BUILD)/zmac/parser.c: third_party/zmac/zmac.y | $(BUILD)/zmac
+	$(ZMAC_PARSER)
+
+$(BUILD)/zmac/parser.h: $(BUILD)/zmac/parser.c
+	@test -f $@ || $(ZMAC_PARSER)
 
 $(BUILD)/zmac/parser.o: $(BUILD)/zmac/parser.c $(BUILD)/zmac/parser.h \
 		$(BUILD)/zmac/doc.inl third_party/zmac/mio.h
@@ -720,10 +745,15 @@ $(ZMAC): $(BUILD)/zmac/parser.o $(BUILD)/zmac/doc.o \
 		$(BUILD)/zmac/mio.o $(BUILD)/zmac/zi80dis.o | $(BIN)
 	$(CXX) -o $@ $^
 
+# These two are GCC spellings; clang only reports that it does not know them,
+# once per translation unit. Ask the compiler before passing them.
+LD80_WARNINGS := $(shell $(CC) -Wno-stringop-truncation -x c -c /dev/null \
+	-o /dev/null 2>&1 | grep -q 'unknown warning' \
+	|| echo '-Wno-stringop-truncation -Wno-format-overflow')
+
 LD80_SOURCES := $(wildcard third_party/ld80/*.c)
 $(LD80): $(LD80_SOURCES) third_party/ld80/ld80.h | $(BIN)
-	$(CC) -O2 -Wno-stringop-truncation \
-		-Wno-format-overflow -Ithird_party/ld80 -o $@ $(LD80_SOURCES)
+	$(CC) -O2 $(LD80_WARNINGS) -Ithird_party/ld80 -o $@ $(LD80_SOURCES)
 
 ZX0_SOURCES := $(wildcard third_party/zx0/*.c)
 $(ZX0): $(ZX0_SOURCES) third_party/zx0/zx0.h | $(BIN)
@@ -1100,7 +1130,7 @@ diag-compat-cosim-check: $(SYSTEM) $(FASTBOOT) $(NATIVE_RECOVERY_VOLUME)
 	$(PYTHON) tests/cosim_check.py
 
 $(C4_DIAG): prebuilt/cpm-plus-juku.img diskdefs | $(BUILD)
-	DISKDEFS=$(abspath diskdefs) cpmcp -f juku386 $< 0:DIAG.COM $@
+	DISKDEFS=$(abspath diskdefs) cpmcp $(CPM_TYPE) -f juku386 $< 0:DIAG.COM $@
 	test "$$(sha256sum $@ | cut -d' ' -f1)" = \
 		7603115ef94bf7b6792f80cb87cc71916970af08c34227cfe2368c8e88331110
 
@@ -1152,12 +1182,17 @@ $(BUILD)/panel.cim: src/panel.asm $(ZMAC) | $(BUILD)
 $(BUILD)/history.cim: src/history.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
-$(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) &: \
-		third_party/cpm3/releases/cpm3src_unix-20260607.zip \
+BUILD_HISTORY_CCP := $(PYTHON) tools/build_cpm3_history_ccp.py \
+	--output $(HISTORY_CCP)
+
+$(HISTORY_CCP): third_party/cpm3/releases/cpm3src_unix-20260607.zip \
 		third_party/cpm3/ccp.com third_party/cpm3/LICENSE.md \
 		patches/ccp3-history.patch tools/build_cpm3_history_ccp.py \
 		$(ZXCC) | $(BUILD)
-	$(PYTHON) tools/build_cpm3_history_ccp.py --output $(HISTORY_CCP)
+	$(BUILD_HISTORY_CCP)
+
+$(HISTORY_CCP_MANIFEST): $(HISTORY_CCP)
+	@test -f $@ || $(BUILD_HISTORY_CCP)
 
 $(BUILD)/keyraw.cim: src/keyraw.asm $(COMMON)/platform/rom-abi.inc \
 		$(ZMAC) | $(BUILD)
@@ -1193,37 +1228,57 @@ $(BUILD)/HELLO.hex: volume/HELLO.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -8 --od $(BUILD) --oo hex $<
 	test -f $@
 
-$(RECOVERY_VOLUME) $(RECOVERY_REPORT) &: third_party/cpm3/ccp.com \
+BUILD_RECOVERY_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/recovery.json \
+	--output $(RECOVERY_VOLUME) --report $(RECOVERY_REPORT)
+
+$(RECOVERY_VOLUME): third_party/cpm3/ccp.com \
 		$(C4_DIAG) $(BUILD)/wboot.cim volume/README.txt \
 		volume/profiles/recovery.json tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py --profile volume/profiles/recovery.json \
-		--output $(RECOVERY_VOLUME) --report $(RECOVERY_REPORT)
+	$(BUILD_RECOVERY_VOLUME)
+
+$(RECOVERY_REPORT): $(RECOVERY_VOLUME)
+	@test -f $@ || $(BUILD_RECOVERY_VOLUME)
 
 $(VOLUME): $(RECOVERY_VOLUME) | $(OUT)
 	cp $(RECOVERY_VOLUME) $@
 
-$(NATIVE_RECOVERY_VOLUME) $(NATIVE_RECOVERY_REPORT) &: \
+BUILD_NATIVE_RECOVERY_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/native-recovery.json \
+	--output $(NATIVE_RECOVERY_VOLUME) \
+	--report $(NATIVE_RECOVERY_REPORT)
+
+$(NATIVE_RECOVERY_VOLUME): \
 		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot-user.cim \
 		$(BUILD)/status.cim $(BUILD)/keytest.cim volume/README.txt \
 		volume/profiles/recovery.json volume/profiles/native-recovery.json \
 		tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py \
-		--profile volume/profiles/native-recovery.json \
-		--output $(NATIVE_RECOVERY_VOLUME) \
-		--report $(NATIVE_RECOVERY_REPORT)
+	$(BUILD_NATIVE_RECOVERY_VOLUME)
 
-$(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) &: \
+$(NATIVE_RECOVERY_REPORT): $(NATIVE_RECOVERY_VOLUME)
+	@test -f $@ || $(BUILD_NATIVE_RECOVERY_VOLUME)
+
+BUILD_C6_RECOVERY_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/c6-recovery.json \
+	--output $(C6_RECOVERY_VOLUME) --report $(C6_RECOVERY_REPORT)
+
+$(C6_RECOVERY_VOLUME): \
 		third_party/cpm3/ccp.com $(BUILD)/diag.cim $(BUILD)/wboot-user.cim \
 		$(BUILD)/status.cim $(BUILD)/keytest.cim $(BUILD)/keyraw.cim \
 		$(BUILD)/disksoak.cim $(BUILD)/n4bulk.cim \
 		volume/README.txt volume/profiles/recovery.json \
 		volume/profiles/native-recovery.json volume/profiles/c6-recovery.json \
 		tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py \
-		--profile volume/profiles/c6-recovery.json \
-		--output $(C6_RECOVERY_VOLUME) --report $(C6_RECOVERY_REPORT)
+	$(BUILD_C6_RECOVERY_VOLUME)
 
-$(FULL_VOLUME) $(FULL_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
+$(C6_RECOVERY_REPORT): $(C6_RECOVERY_VOLUME)
+	@test -f $@ || $(BUILD_C6_RECOVERY_VOLUME)
+
+BUILD_FULL_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/full.json \
+	--output $(FULL_VOLUME) --report $(FULL_REPORT)
+
+$(FULL_VOLUME): $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
 		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/panel.cim \
 		$(BUILD)/history.cim \
@@ -1232,22 +1287,40 @@ $(FULL_VOLUME) $(FULL_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/strings.cim $(BUILD)/ver.cim volume/README.txt volume/TOOLS.txt \
 		$(BUILD)/cpm3-utilities/manifest.json volume/profiles/full.json \
 		tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py --profile volume/profiles/full.json \
-		--output $(FULL_VOLUME) --report $(FULL_REPORT)
+	$(BUILD_FULL_VOLUME)
 
-$(DEV_VOLUME) $(DEV_REPORT) &: $(FULL_VOLUME) \
+$(FULL_REPORT): $(FULL_VOLUME)
+	@test -f $@ || $(BUILD_FULL_VOLUME)
+
+BUILD_DEV_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/dev.json \
+	--output $(DEV_VOLUME) --report $(DEV_REPORT)
+
+$(DEV_VOLUME): $(FULL_VOLUME) \
 		$(BUILD)/cpm3-utilities/manifest.json $(BUILD)/HELLO.hex \
 		volume/HELLO.asm volume/profiles/full.json volume/profiles/dev.json \
 		tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py --profile volume/profiles/dev.json \
-		--output $(DEV_VOLUME) --report $(DEV_REPORT)
+	$(BUILD_DEV_VOLUME)
 
-$(APPS_VOLUME) $(APPS_REPORT) &: $(BUILD)/diag.cim volume/APPS.txt \
+$(DEV_REPORT): $(DEV_VOLUME)
+	@test -f $@ || $(BUILD_DEV_VOLUME)
+
+BUILD_APPS_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/apps.json \
+	--output $(APPS_VOLUME) --report $(APPS_REPORT)
+
+$(APPS_VOLUME): $(BUILD)/diag.cim volume/APPS.txt \
 		volume/profiles/apps.json tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py --profile volume/profiles/apps.json \
-		--output $(APPS_VOLUME) --report $(APPS_REPORT)
+	$(BUILD_APPS_VOLUME)
 
-$(DEMO_VOLUME) $(DEMO_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
+$(APPS_REPORT): $(APPS_VOLUME)
+	@test -f $@ || $(BUILD_APPS_VOLUME)
+
+BUILD_DEMO_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/demo.json \
+	--output $(DEMO_VOLUME) --report $(DEMO_REPORT)
+
+$(DEMO_VOLUME): $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		$(BUILD)/diag.cim $(BUILD)/wboot-user.cim $(BUILD)/status.cim \
 		$(BUILD)/keytest.cim $(BUILD)/vidtest.cim $(BUILD)/panel.cim \
 		$(BUILD)/history.cim \
@@ -1257,8 +1330,10 @@ $(DEMO_VOLUME) $(DEMO_REPORT) &: $(HISTORY_CCP) $(HISTORY_CCP_MANIFEST) \
 		volume/PROFILE.sub $(BUILD)/cpm3-utilities/manifest.json \
 		volume/profiles/full.json volume/profiles/demo.json \
 		tools/build_volume.py diskdefs | $(OUT)
-	$(PYTHON) tools/build_volume.py --profile volume/profiles/demo.json \
-		--output $(DEMO_VOLUME) --report $(DEMO_REPORT)
+	$(BUILD_DEMO_VOLUME)
+
+$(DEMO_REPORT): $(DEMO_VOLUME)
+	@test -f $@ || $(BUILD_DEMO_VOLUME)
 
 $(BOOT_MANIFEST): $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 		$(ROM_SYSTEM) $(ROM_FASTBOOT) \

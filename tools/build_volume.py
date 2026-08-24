@@ -13,16 +13,11 @@ import re
 import subprocess
 import tempfile
 
+from cpmtools import cpmtool, driver_args
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_SCHEMA = "cpm-plus-juku-volume-profile-v1"
 REPORT_SCHEMA = "cpm-plus-juku-volume-report-v1"
-LOCAL_CPMTOOLS = ROOT / "build/cpmtools-install/bin"
-
-
-def cpmtool(name: str) -> str:
-    local = LOCAL_CPMTOOLS / name
-    return str(local) if local.is_file() else name
 
 
 def digest(data: bytes) -> str:
@@ -160,8 +155,8 @@ def source_bytes(record: dict[str, object]) -> tuple[Path, bytes]:
 def inspect_volume(path: Path, geometry: str,
                    environment: dict[str, str]) -> tuple[str, int, int]:
     result = subprocess.run(
-        [cpmtool("cpmls"), "-f", geometry, "-D", str(path)], cwd=ROOT,
-        env=environment, check=True, text=True, capture_output=True,
+        [cpmtool("cpmls"), *driver_args(), "-f", geometry, "-D", str(path)],
+        cwd=ROOT, env=environment, check=True, text=True, capture_output=True,
     )
     listing = result.stdout
     match = re.search(
@@ -206,29 +201,30 @@ def build(output: Path, profile_path: Path,
     with tempfile.TemporaryDirectory(
             prefix="cpm-plus-juku-volume.", dir=output.parent) as name:
         temporary = (Path(name) / output.name).resolve()
-        subprocess.run(["truncate", "-s", "0", str(temporary)], check=True)
+        # os.truncate rather than truncate(1): macOS ships the latter only on
+        # recent releases, and Python is a hard dependency here regardless.
+        temporary.write_bytes(b"")
         subprocess.run(
             [cpmtool("mkfs.cpm"), "-f", geometry, str(temporary)],
             cwd=ROOT, env=environment, check=True,
         )
-        subprocess.run(
-            ["truncate", "-s", str(image_bytes), str(temporary)], check=True,
-        )
+        os.truncate(temporary, image_bytes)
         staging = Path(name) / "files"
         staging.mkdir()
         for index, (record, _source, data) in enumerate(prepared):
             copy = staging / f"{index:03d}.bin"
             copy.write_bytes(data)
             subprocess.run(
-                [cpmtool("cpmcp"), "-f", geometry, str(temporary), str(copy),
-                 str(record["destination"])],
+                [cpmtool("cpmcp"), *driver_args(), "-f", geometry,
+                 str(temporary), str(copy), str(record["destination"])],
                 cwd=ROOT, env=environment, check=True,
             )
             attributes = str(record.get("attributes", ""))
             if attributes:
                 subprocess.run(
-                    [cpmtool("cpmchattr"), "-f", geometry, str(temporary),
-                     attributes, str(record["destination"])],
+                    [cpmtool("cpmchattr"), *driver_args(), "-f", geometry,
+                     str(temporary), attributes,
+                     str(record["destination"])],
                     cwd=ROOT, env=environment, check=True,
                 )
         if temporary.stat().st_size != image_bytes:

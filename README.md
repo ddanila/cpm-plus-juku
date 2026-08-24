@@ -106,6 +106,25 @@ cd cpm-plus-juku
 make check
 ```
 
+On macOS the Command Line Tools cover `make`, `bison`, and the C compiler --
+the build targets GNU make 3.81 and needs nothing newer -- so only cpmtools and
+pexpect have to be added:
+
+```sh
+xcode-select --install
+brew install cpmtools
+python3 -m venv ~/.venvs/cpm-plus-juku
+~/.venvs/cpm-plus-juku/bin/pip install pexpect
+git clone --recurse-submodules https://github.com/ddanila/cpm-plus-juku.git
+cd cpm-plus-juku
+make check PYTHON=~/.venvs/cpm-plus-juku/bin/python3
+```
+
+Homebrew's cpmtools is linked against libdsk, whose container autodetection
+refuses the plain sector images built here. Both the Makefile and
+`tools/cpmtools.py` probe for that and pass `-T raw` when it applies; override
+`CPM_TYPE` if the probe guesses wrong for a given install.
+
 The repository builds pinned zmac, ld80, ZX0, and CP/M artifacts locally.
 GitHub Actions runs the distribution check in a digest-pinned build container;
 the container is rebuilt only when its definition or publishing workflow changes.

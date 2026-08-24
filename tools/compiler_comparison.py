@@ -14,6 +14,7 @@ import tempfile
 from pathlib import Path
 
 from audit_8080_com import audit_file
+from cpmtools import cpmtool, driver_args
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT = ROOT / "experiments" / "compiler-comparison"
@@ -205,8 +206,8 @@ def run_strict_cosim(work: Path,
     for (toolchain, program), output in outputs.items():
         prefix = "mf" if toolchain == "millfork" else "z"
         run([
-            "cpmcp", "-f", "juku386", str(volume), str(output),
-            f"0:{prefix}{program}.com",
+            cpmtool("cpmcp"), *driver_args(), "-f", "juku386", str(volume),
+            str(output), f"0:{prefix}{program}.com",
         ])
     environment = os.environ.copy()
     metrics_path = work / "compiler-cosim-metrics.json"
