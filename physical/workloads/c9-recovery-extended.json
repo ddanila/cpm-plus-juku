@@ -1,0 +1,139 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c9-recovery-extended",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["A>"],
+  "required_coverage": [
+    "DIAG.COM",
+    "KEYTEST.COM",
+    "N4BULK.COM",
+    "SOAK.COM",
+    "STATUS.COM",
+    "WBOOT.COM"
+  ],
+  "commands": [
+    {
+      "name": "dir-a-after-reconnect",
+      "command": "DIR",
+      "expect": ["DIAG", "KEYTEST", "SOAK", "STATUS"]
+    },
+    {
+      "name": "status-after-reconnect",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.3",
+        "ROM: Juku ABI 01.04",
+        "Transport: NetDisk v3, 19200 baud, N4 services",
+        "Disk status: 00",
+        "N4 last failure: 02"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "n4-bulk-after-reconnect",
+      "command": "N4BULK",
+      "expect": ["N4 BULK PASS"],
+      "coverage": ["N4BULK.COM"]
+    },
+    {
+      "name": "keytest-remote-after-reconnect",
+      "command": "KEYTEST B",
+      "steps": [
+        {
+          "wait": "Juku Keytest 1.1 READY",
+          "send_hex": "41 20 31 0d 1b",
+          "delay": 0.5
+        }
+      ],
+      "expect": [
+        "BATCH 04",
+        "KEY 20 ' '",
+        "KEY 1B",
+        "Juku Keytest 1.1 DONE"
+      ],
+      "coverage": ["KEYTEST.COM"]
+    },
+    {
+      "name": "diag-all-after-reconnect",
+      "command": "DIAG ALL",
+      "expect": [
+        "ROM: JukuNet ROM ABI 01.04",
+        "CPU: PASS",
+        "RAM data: PASS",
+        "RAM address: PASS",
+        "RAM retention: PASS",
+        "Checksum: PASS",
+        "D57 PIT clock: PASS",
+        "D11 USART status: PASS",
+        "ROM image: PASS",
+        "Video/console: PASS",
+        "Keyboard/S21: PASS"
+      ],
+      "coverage": ["DIAG.COM"]
+    },
+    {
+      "name": "disk-soak-1",
+      "command": "SOAK",
+      "expect": ["SOAK: PASS"],
+      "coverage": ["SOAK.COM"]
+    },
+    {
+      "name": "disk-soak-2",
+      "command": "SOAK",
+      "expect": ["SOAK: PASS"]
+    },
+    {
+      "name": "select-b",
+      "command": "B:",
+      "prompt": "B>"
+    },
+    {
+      "name": "dir-b",
+      "command": "DIR",
+      "prompt": "B>",
+      "expect": ["DIAG", "README"]
+    },
+    {
+      "name": "diag-all-b",
+      "command": "DIAG ALL",
+      "prompt": "B>",
+      "expect": [
+        "ROM: JukuNet ROM ABI 01.04",
+        "CPU: PASS",
+        "D57 PIT clock: PASS",
+        "D11 USART status: PASS",
+        "ROM image: PASS"
+      ]
+    },
+    {
+      "name": "select-a",
+      "command": "A:",
+      "prompt": "A>"
+    },
+    {
+      "name": "warm-boot",
+      "command": "WBOOT",
+      "coverage": ["WBOOT.COM"]
+    },
+    {
+      "name": "status-after-warm-boot",
+      "command": "STATUS",
+      "expect": [
+        "ROM: Juku ABI 01.04",
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 02"
+      ]
+    },
+    {
+      "name": "n4-bulk-after-warm-boot",
+      "command": "N4BULK",
+      "expect": ["N4 BULK PASS"]
+    },
+    {
+      "name": "disk-soak-after-warm-boot",
+      "command": "SOAK",
+      "expect": ["SOAK: PASS"]
+    }
+  ]
+}

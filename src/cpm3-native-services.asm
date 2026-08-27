@@ -286,11 +286,25 @@ NSREFRESHCOPY2:
         jnz     NSREFRESHCOPY2
 .ifdef ROM_ABI_HOSTSERVICES
         call    NCHOSTSTATE
+.ifdef ROM_ABI_C9
         mov     a,m
         sta     NSCONFAIL
         inx     h
         mov     a,m
         sta     NSCONRECONNECT
+        inx     h
+        mov     a,m
+        sta     NSCONFLAGS
+        inx     h
+        mov     a,m
+        sta     NSCONLASTOP
+.else
+        mov     a,m
+        sta     NSCONFAIL
+        inx     h
+        mov     a,m
+        sta     NSCONRECONNECT
+.endif
 .else
         lda     NCLASTFAIL
         sta     NSCONFAIL
@@ -373,7 +387,11 @@ NSCHRTBL:
 ; bit2 host time, bit3 raw/decoded S21.
 NSINFO:
         db      'J','N','S','1'
+.ifdef ROM_ABI_C9
+        db      1,2
+.else
         db      1,1
+.endif
         db      NSINFOEND-NSINFO
         db      01fh
 NSRAWS21:
@@ -411,6 +429,9 @@ NSBOOTPROTO:
 NSROMMAJOR:
         db      1
 NSROMMINOR:
+.ifdef ROM_ABI_C9
+        db      4
+.else
 .ifdef ROM_ABI_HOSTSERVICES
         db      3
 .else
@@ -423,6 +444,13 @@ NSROMMINOR:
         db      0
 .endif
 .endif
+.endif
+.endif
+.ifdef ROM_ABI_C9
+NSCONFLAGS:
+        db      0                       ; ABI 1.4 negotiation/runtime flags
+NSCONLASTOP:
+        db      0                       ; operation retained with last failure
 .endif
 NSINFOEND:
 NSCAPDONE:

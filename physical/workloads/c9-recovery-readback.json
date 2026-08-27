@@ -1,0 +1,39 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c9-recovery-readback",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["A>"],
+  "required_coverage": ["README.TXT"],
+  "commands": [
+    {
+      "name": "type-readme-a",
+      "command": "TYPE README.TXT",
+      "expect": [
+        "CP/M Plus 3.1 for Juku E5101/E5104",
+        "host-backed NetDisk-v3",
+        "Project: https://github.com/ddanila/cpm-plus-juku"
+      ],
+      "coverage": ["README.TXT"]
+    },
+    {
+      "name": "select-b",
+      "command": "B:",
+      "prompt": "B>"
+    },
+    {
+      "name": "type-readme-b",
+      "command": "TYPE README.TXT",
+      "prompt": "B>",
+      "expect": [
+        "approved applications B:",
+        "native 800 KiB Juku volume",
+        "known-good native-geometry load test"
+      ]
+    },
+    {
+      "name": "select-a",
+      "command": "A:",
+      "prompt": "A>"
+    }
+  ]
+}

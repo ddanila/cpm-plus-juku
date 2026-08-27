@@ -270,8 +270,17 @@ run_video_sub:
         call    bioscall
         inr     a                       ; FFh is ready
         jnz     run_video_fail
+.ifdef ROM_ABI_C10
+        ; C10's physical acceptance discriminator: mode/renderer readiness is
+        ; insufficient while PPI0 PC7/POF is high. An output-port read returns
+        ; the 8255 latch; bit 7 set is the exact C9 sync-without-pixels fault.
+        in      DIAG_MODE_PORT
+        ani     080h
+        jmp     run_video_result
+.else
         xra     a
         jmp     run_video_result
+.endif
 run_video_fail:
         mvi     a,1
 run_video_result:
@@ -560,9 +569,15 @@ bioscall:
         call    0000h
         ret
 
+.ifdef ROM_ABI_C10
+banner:
+        db      13,10,'Juku Diag 0.7',13,10
+        db      'Self-contained non-destructive 8080 diagnostics.',13,10,'$'
+.else
 banner:
         db      13,10,'Juku Diag 0.6',13,10
         db      'Self-contained non-destructive 8080 diagnostics.',13,10,'$'
+.endif
 usage:
         db      'Usage: DIAG [CPU|MEM|ADDR|RET|RAM|SUM|PIT|USART|ROM',13,10
         db      '             |VIDEO|KEY|IO|ALL|DESTRUCT|HELP]',13,10,'$'
@@ -584,8 +599,13 @@ usart_label:
         db      'D11 USART status: $'
 rom_label:
         db      'ROM image: $'
+.ifdef ROM_ABI_C10
+video_label:
+        db      'Video enable/console state: $'
+.else
 video_label:
         db      'Video/console: $'
+.endif
 keyboard_label:
         db      'Keyboard/S21: $'
 s21_label:

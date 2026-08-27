@@ -1,0 +1,28 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "c9-full.json",
+  "name": "c10-full-a",
+  "description": "C10 ABI 1.4 physical-video release qualification A:",
+  "files": [
+    {
+      "source": "build/status-c10.cim",
+      "destination": "0:STATUS.COM",
+      "override": true,
+      "provenance": {
+        "source": "src/status.asm",
+        "version": "Juku Status 1.5 with PPI0/POF state",
+        "license": "LICENSE"
+      }
+    },
+    {
+      "source": "build/diag-c10.cim",
+      "destination": "0:DIAG.COM",
+      "override": true,
+      "provenance": {
+        "source": "src/diag.asm and pinned juku-common diagnostics",
+        "version": "Juku Diag 0.7 with POF video-enable check",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}

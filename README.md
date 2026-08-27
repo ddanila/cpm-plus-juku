@@ -102,7 +102,20 @@ The additive ROM line is:
   CS00015 and its automated cold-boot plus two repeated live-reconnect matrices
   pass. Two further cold boots, a physical-keyboard sample, and normal sound
   also pass; display and forced POST-failure observations are postponed. See
-  [`docs/cs00015-c8-blind-qualification-20260820.md`](docs/cs00015-c8-blind-qualification-20260820.md).
+  [`docs/cs00015-c8-blind-qualification-20260820.md`](docs/cs00015-c8-blind-qualification-20260820.md);
+- C9 / ABI 1.4: a separately named simulator/HDL candidate with bounded
+  resident-host transactions, reason/negotiation telemetry, and unconditional
+  network boot. Its system retains the C8 `0100h..9BFFh` TPA and adds
+  `STATUS` 1.4. Local and native N4 gates pass `VER`, `DATE`, `DIAG`, A:/B:,
+  NetDisk-v3 write/readback, warm boot, and host replacement. Its CS00000
+  evaluation proved a PC7/POF local-video defect, so C9 remains immutable
+  evidence and is not promoted;
+- C10 / ABI 1.4: the focused stock-compatible POF-release successor. It
+  preserves the exact C9 system and Fastboot, enters runtime with Port C
+  `01h`, adds `STATUS` 1.5 and `DIAG` 0.7 video-state coverage, and passes the
+  complete C-model fault, visible-frame, HDL, local/remote CP/M, native-host
+  replacement, media, manifest, and reproducible-package gates. Its D15/D16
+  pair is ready to program; CS00000 physical acceptance remains pending.
 
 ## Build and verification
 
@@ -161,6 +174,39 @@ diagnostics, raw-key and N4-block utilities, warm boot and write/erase, runs a
 64-cycle read/write/reconnect soak, then produces and independently reproduces
 the complete package.
 
+Build and exercise the C9 candidate without creating a physical-programming
+release:
+
+```sh
+make c9-check
+```
+
+After those gates, reproduce the explicitly non-physical C9 package with:
+
+```sh
+make c9-simulator-candidate
+```
+
+It runs the complete historical/C9 ABI and focused HDL matrices, the C9
+local/remote CP/M checks, and the native N4 output, write, warm-boot and
+host-replacement gate before producing and independently reproducing the
+complete simulator package.
+
+The retained from-empty-output run is
+`out/c9-simulator-candidate-cleanroom-20260826.log`; its adjacent `.sha256`
+file binds the complete log. Physical work is recorded in
+[`docs/c9-physical-acceptance-worksheet.md`](docs/c9-physical-acceptance-worksheet.md).
+
+Build, fully exercise, and reproduce the burn-ready C10 candidate with:
+
+```sh
+make c10-release-candidate
+```
+
+The programming order, hashes, one-blank-scan policy, rollback steps, and
+manifest-bound cold/display/full profiles are recorded in
+[`docs/c10-physical-acceptance-worksheet.md`](docs/c10-physical-acceptance-worksheet.md).
+
 Prepare the distinct C7 programmer/bench bundle with:
 
 ```sh
@@ -212,6 +258,20 @@ out/cpm-plus-juku-c7-manifest.json
 out/cpm-plus-3.1-juku-c7-modified-raw-bench/
 out/cpm-plus-3.1-juku-c7-modified-raw-bench.tar
 out/cpm-plus-3.1-juku-c7-modified-raw-bench.tar.sha256
+out/cpm-plus-juku-network-rom-c9-system.bin
+out/cpm-plus-juku-network-rom-c9-fastboot-v16.bin
+out/cpm-plus-juku-c9-full.img
+out/cpm-plus-juku-c9-manifest.json
+out/cpm-plus-3.1-juku-c9-bounded-host-simulator/
+out/cpm-plus-3.1-juku-c9-bounded-host-simulator.tar
+out/cpm-plus-3.1-juku-c9-bounded-host-simulator.tar.sha256
+out/cpm-plus-juku-network-rom-c10-system.bin
+out/cpm-plus-juku-network-rom-c10-fastboot-v16.bin
+out/cpm-plus-juku-c10-full.img
+out/cpm-plus-juku-c10-manifest.json
+out/cpm-plus-3.1-juku-c10-pof-release-candidate/
+out/cpm-plus-3.1-juku-c10-pof-release-candidate.tar
+out/cpm-plus-3.1-juku-c10-pof-release-candidate.tar.sha256
 ```
 
 The release directory contains the combined 16 KiB ROM, exact low D15 and high
@@ -222,8 +282,9 @@ must be byte-identical.
 
 ## System behavior
 
-- Reset-latched S21 bit 0 selects immediate network boot or a concealed local
-  `N` recovery wait.
+- C4--C8 use reset-latched S21 bit 0 to select immediate network boot or a
+  concealed local `N` recovery wait. C9/C10 reserve bit 0 and boot from the
+  network unconditionally.
 - Bits 2:1 select 40x24, 53x24, 64x20, or MODX-compatible 80x24.
 - Bits 4:3 select English, Estonian, CP866 Russian, or English/user-remap.
 - Future runtime video/character-bank switching must treat S21 as the cold-reset
@@ -288,6 +349,8 @@ The authoritative current documents are:
 - [`docs/network-first-rom-plan.md`](docs/network-first-rom-plan.md)
 - [`docs/plan-completion-audit.md`](docs/plan-completion-audit.md)
 - [`docs/c9-future-rom-policy.md`](docs/c9-future-rom-policy.md)
+- [`docs/c9-physical-acceptance-worksheet.md`](docs/c9-physical-acceptance-worksheet.md)
+- [`docs/c10-physical-acceptance-worksheet.md`](docs/c10-physical-acceptance-worksheet.md)
 - [`docs/cpm-plus-31-c6-simulator.md`](docs/cpm-plus-31-c6-simulator.md)
 - [`docs/distribution-profiles.md`](docs/distribution-profiles.md)
 - [`docs/project-utilities.md`](docs/project-utilities.md)

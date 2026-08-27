@@ -55,6 +55,19 @@ PROFILE_VOLUMES = {
     "c8-attended": "c6-recovery-a",
     "c8-cold": "c6-recovery-a",
     "c8-sound": "c6-recovery-a",
+    "c9-cold": "c9-full-a",
+    "c9-display": "c9-full-a",
+    "c9-full": "c9-full-a",
+    "c9-full-extended": "c9-full-a",
+    "c9-full-reconnect": "c9-full-a",
+    "c9-full-ui": "c9-full-a",
+    "c9-recovery": "c6-recovery-a",
+    "c9-recovery-extended": "c6-recovery-a",
+    "c9-recovery-readback": "c6-recovery-a",
+    "c9-recovery-transition": "c6-recovery-a",
+    "c10-cold": "c10-full-a",
+    "c10-display": "c10-full-a",
+    "c10-full": "c10-full-a",
 }
 PROFILE_ROM_CANDIDATES = {
     "c7-raw": "network-first-abi1.2-c7-modified-raw-simulator",
@@ -63,6 +76,19 @@ PROFILE_ROM_CANDIDATES = {
     "c8-attended": "network-first-abi1.3-c8-resident-host-simulator",
     "c8-cold": "network-first-abi1.3-c8-resident-host-simulator",
     "c8-sound": "network-first-abi1.3-c8-resident-host-simulator",
+    "c9-cold": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-display": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-full": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-full-extended": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-full-reconnect": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-full-ui": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-recovery": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-recovery-extended": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-recovery-readback": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c9-recovery-transition": "network-first-abi1.4-c9-bounded-host-simulator",
+    "c10-cold": "network-first-abi1.4-c10-pof-release-candidate",
+    "c10-display": "network-first-abi1.4-c10-pof-release-candidate",
+    "c10-full": "network-first-abi1.4-c10-pof-release-candidate",
 }
 PROFILE_ROM_ABIS = {
     "c8-blind": "1.3",
@@ -70,6 +96,19 @@ PROFILE_ROM_ABIS = {
     "c8-attended": "1.3",
     "c8-cold": "1.3",
     "c8-sound": "1.3",
+    "c9-cold": "1.4",
+    "c9-display": "1.4",
+    "c9-full": "1.4",
+    "c9-full-extended": "1.4",
+    "c9-full-reconnect": "1.4",
+    "c9-full-ui": "1.4",
+    "c9-recovery": "1.4",
+    "c9-recovery-extended": "1.4",
+    "c9-recovery-readback": "1.4",
+    "c9-recovery-transition": "1.4",
+    "c10-cold": "1.4",
+    "c10-display": "1.4",
+    "c10-full": "1.4",
 }
 DEFAULT_ROM_CANDIDATE = "network-first-abi1.2-c6-simulator"
 
@@ -318,6 +357,51 @@ def load_workload(profile: str, path: Path | None = None) \
         }
     elif profile == "c8-cold":
         admitted = {"DIAG.COM", "N4BULK.COM", "SOAK.COM", "STATUS.COM"}
+    elif profile == "c9-cold":
+        admitted = {"DIAG.COM", "STATUS.COM"}
+    elif profile == "c9-display":
+        admitted = {"VIDTEST.COM"}
+    elif profile == "c9-full":
+        admitted = {
+            "DATE.COM", "DIAG.COM", "PIP.COM", "README.TXT",
+            "STATUS.COM", "VER.COM", "WBOOT.COM",
+        }
+    elif profile == "c9-full-extended":
+        admitted = {
+            "CMP.COM", "CRC.COM", "DATE.COM", "DEVICE.COM", "DIAG.COM",
+            "DUMP.COM", "FIND.COM", "HELP.COM", "KEYTEST.COM", "MEM.COM",
+            "PIP.COM", "SET.COM", "SETDEF.COM", "SHOW.COM", "STATUS.COM",
+            "STRINGS.COM", "SUBMIT.COM", "VER.COM", "WBOOT.COM", "WC.COM",
+        }
+    elif profile == "c9-full-reconnect":
+        admitted = {
+            "PIP.COM", "README.TXT", "STATUS.COM", "VER.COM",
+        }
+    elif profile == "c9-full-ui":
+        admitted = {
+            "HIST.COM", "PANEL.COM", "SHOW.COM", "STATUS.COM",
+            "VIDTEST.COM",
+        }
+    elif profile == "c9-recovery":
+        admitted = {"N4BULK.COM", "SOAK.COM"}
+    elif profile == "c9-recovery-extended":
+        admitted = {
+            "DIAG.COM", "KEYTEST.COM", "N4BULK.COM", "SOAK.COM",
+            "STATUS.COM", "WBOOT.COM",
+        }
+    elif profile == "c9-recovery-readback":
+        admitted = {"README.TXT"}
+    elif profile == "c9-recovery-transition":
+        admitted = {"N4BULK.COM", "SOAK.COM"}
+    elif profile == "c10-cold":
+        admitted = {"DIAG.COM", "STATUS.COM"}
+    elif profile == "c10-display":
+        admitted = {"VIDTEST.COM"}
+    elif profile == "c10-full":
+        admitted = {
+            "DATE.COM", "DIAG.COM", "PIP.COM", "README.TXT",
+            "STATUS.COM", "VER.COM", "WBOOT.COM",
+        }
     elif profile == "c8-sound":
         admitted = {"SOUND.COM"}
     elif isinstance(programs, dict):
@@ -751,6 +835,19 @@ def run_acceptance(args: argparse.Namespace) -> int:
     profile = args.profile
     artifacts = verify_manifest(args.manifest, args.cosim, profile)
     workload_path, workload = load_workload(profile, args.workload)
+    if args.resume_volume is not None and not args.resume:
+        raise AcceptanceError("--resume-volume requires --resume")
+    resume_volume = args.resume_volume.resolve() \
+        if args.resume_volume is not None else None
+    if resume_volume is not None:
+        if not resume_volume.is_file():
+            raise AcceptanceError(
+                f"resume volume is missing: {resume_volume}"
+            )
+        if resume_volume.stat().st_size != artifacts["volume"]["bytes"]:
+            raise AcceptanceError(
+                "resume volume size differs from the manifest-bound geometry"
+            )
     output = args.output.resolve()
     # The manifest binds volumes by both digest and basename.  Keep the selected
     # A: basename for the private writable copy passed to the retained host.
@@ -794,11 +891,19 @@ def run_acceptance(args: argparse.Namespace) -> int:
     artifacts, workload_path, server, runner_snapshot = snapshot_inputs(
         output, artifacts, workload_path, server,
     )
+    if resume_volume is not None:
+        resume_snapshot = snapshot_file(
+            resume_volume, output / "inputs" / "resume-volume.img",
+        )
+        artifacts["resume_volume_source"] = resume_snapshot
+        volume_seed = Path(resume_snapshot["path"])
+    else:
+        volume_seed = Path(artifacts["volume"]["path"])
     command = server_command(
         args, artifacts, working_volume, console_pty, request_trace_path,
         server,
     )
-    shutil.copyfile(Path(artifacts["volume"]["path"]), working_volume)
+    shutil.copyfile(volume_seed, working_volume)
     volume_before = sha256(working_volume)
     events = EventLog(events_path)
     started_at = utc_now()
@@ -1097,6 +1202,17 @@ def audit_directory(directory: Path) -> list[str]:
         if not path.is_file() or path.stat().st_size != entry.get("bytes") or \
                 sha256(path) != entry.get("sha256"):
             failures.append(f"bound artifact changed: {name}")
+    resume_volume_source = artifacts.get("resume_volume_source")
+    if resume_volume_source is not None:
+        if not isinstance(resume_volume_source, dict):
+            failures.append("resume-volume source identity is malformed")
+        else:
+            resume_path = Path(str(resume_volume_source.get("path", "")))
+            if not resume_path.is_file() or \
+                    resume_path.stat().st_size != \
+                    resume_volume_source.get("bytes") or \
+                    sha256(resume_path) != resume_volume_source.get("sha256"):
+                failures.append("resume-volume source changed")
     host_dependencies = artifacts.get("host_dependencies")
     if not isinstance(host_dependencies, list):
         failures.append("host dependency identities are missing")
@@ -1111,7 +1227,12 @@ def audit_directory(directory: Path) -> list[str]:
                 failures.append(f"bound host dependency changed: {number}")
     working = result.get("working_volume", {})
     working_path = Path(str(working.get("path", "")))
-    if working.get("sha256_before") != artifacts["volume"].get("sha256") or \
+    expected_volume_before = (
+        resume_volume_source.get("sha256")
+        if isinstance(resume_volume_source, dict)
+        else artifacts["volume"].get("sha256")
+    )
+    if working.get("sha256_before") != expected_volume_before or \
             not working_path.is_file() or \
             working_path.parent.resolve() != directory or \
             sha256(working_path) != working.get("sha256_after"):
@@ -1261,6 +1382,10 @@ def parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "--resume", action="store_true",
         help="reattach to an already-running N4 session without boot or RESET",
+    )
+    run_parser.add_argument(
+        "--resume-volume", type=Path,
+        help="seed resumed A: from the exact private volume served previously",
     )
     run_parser.add_argument(
         "--external-operator", action="store_true",

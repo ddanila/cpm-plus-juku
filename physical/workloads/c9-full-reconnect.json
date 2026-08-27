@@ -1,0 +1,76 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c9-full-reconnect",
+  "volume_profile": "c9-full-a",
+  "boot_expect": ["A>"],
+  "required_coverage": [
+    "PIP.COM",
+    "README.TXT",
+    "STATUS.COM",
+    "VER.COM"
+  ],
+  "commands": [
+    {
+      "name": "status-after-reconnect",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.4",
+        "ROM: Juku ABI 01.04",
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 02",
+        "N4 state flags: 1F",
+        "last operation: 20",
+        "N4 failure reason: receive timeout"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "ver-after-reconnect",
+      "command": "VER",
+      "expect": ["CP/M Plus 3.1 for Juku"],
+      "coverage": ["VER.COM"]
+    },
+    {
+      "name": "type-readme-after-reconnect",
+      "command": "TYPE README.TXT",
+      "expect": ["host-backed NetDisk-v3", "Project:"],
+      "coverage": ["README.TXT"]
+    },
+    {
+      "name": "pip-copy-after-reconnect",
+      "command": "PIP C9RCON.TXT=README.TXT",
+      "coverage": ["PIP.COM"]
+    },
+    {
+      "name": "type-copy-after-reconnect",
+      "command": "TYPE C9RCON.TXT",
+      "expect": ["host-backed NetDisk-v3", "Project:"]
+    },
+    {
+      "name": "erase-copy-after-reconnect",
+      "command": "ERA C9RCON.TXT"
+    },
+    {
+      "name": "dir-a-after-reconnect",
+      "command": "DIR",
+      "expect": ["DIAG", "PIP", "README", "STATUS", "VER"]
+    },
+    {
+      "name": "select-b-after-reconnect",
+      "command": "B:",
+      "prompt": "B>"
+    },
+    {
+      "name": "dir-b-after-reconnect",
+      "command": "DIR",
+      "prompt": "B>",
+      "expect": ["DIAG", "README"]
+    },
+    {
+      "name": "select-a-after-reconnect",
+      "command": "A:",
+      "prompt": "A>"
+    }
+  ]
+}

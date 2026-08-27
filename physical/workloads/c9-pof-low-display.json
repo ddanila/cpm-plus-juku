@@ -1,0 +1,29 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c9-display",
+  "volume_profile": "c9-full-a",
+  "boot_expect": ["A>"],
+  "required_coverage": ["VIDTEST.COM"],
+  "commands": [
+    {
+      "name": "pof-low",
+      "command": "WBOOT",
+      "expect": ["A>"]
+    },
+    {
+      "name": "vidtest-after-pof-low",
+      "command": "VIDTEST",
+      "steps": [
+        {"wait": "VIDTEST READY", "delay": 60, "send_hex": "0d"}
+      ],
+      "expect": [
+        "Juku Vidtest 1.0",
+        "Mode ",
+        "Locale ",
+        "VIDTEST READY",
+        "Juku Vidtest 1.0 DONE"
+      ],
+      "coverage": ["VIDTEST.COM"]
+    }
+  ]
+}

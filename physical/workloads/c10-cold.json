@@ -1,0 +1,46 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c10-cold",
+  "volume_profile": "c10-full-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": [
+    "DIAG.COM",
+    "STATUS.COM"
+  ],
+  "commands": [
+    {
+      "name": "status-cold",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.5",
+        "ROM: Juku ABI 01.04",
+        "Map: TPA 0100-9BFF",
+        "PPI0 Port C: 01  POF: released (picture enabled)",
+        "Boot marker (00 cold/01 warm): 00  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 00",
+        "N4 state flags: 0F",
+        "N4 failure reason: none"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "diag-all",
+      "command": "DIAG ALL",
+      "expect": [
+        "Juku Diagnostics 0.7",
+        "CPU: PASS",
+        "RAM data: PASS",
+        "RAM address: PASS",
+        "RAM retention: PASS",
+        "Checksum: PASS",
+        "D57 PIT clock: PASS",
+        "D11 USART status: PASS",
+        "ROM image: PASS",
+        "Video enable/console state: PASS",
+        "Keyboard/S21: PASS"
+      ],
+      "coverage": ["DIAG.COM"]
+    }
+  ]
+}

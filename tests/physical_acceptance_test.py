@@ -290,7 +290,7 @@ def event(elapsed, text):
 capture = b"JHCAP1\x01\0" + struct.pack("<Q", started)
 capture += event(5, "Fastboot V16 complete: 123 compressed bytes")
 capture += event(
-    370,
+    20,
     "request op=14 seq=01 drive=0 track=2 sector=1 status=0 "
     "records=8 request-bytes=9 reply-bytes=549 duplicate=0",
 )
@@ -407,6 +407,7 @@ def lifecycle_and_audit_test() -> None:
 def main() -> int:
     c7_manifest = ROOT / "out/cpm-plus-juku-c7-manifest.json"
     c8_manifest = ROOT / "out/cpm-plus-juku-c8-manifest.json"
+    c10_manifest = ROOT / "out/cpm-plus-juku-c10-manifest.json"
     for profile, minimum_commands, manifest in (
         ("full", 30, acceptance.DEFAULT_MANIFEST),
         ("development", 10, acceptance.DEFAULT_MANIFEST),
@@ -417,6 +418,9 @@ def main() -> int:
         ("c8-reconnect", 15, c8_manifest),
         ("c8-attended", 7, c8_manifest),
         ("c8-cold", 4, c8_manifest),
+        ("c10-cold", 2, c10_manifest),
+        ("c10-display", 1, c10_manifest),
+        ("c10-full", 15, c10_manifest),
     ):
         artifacts = acceptance.verify_manifest(
             manifest, acceptance.DEFAULT_COSIM, profile,

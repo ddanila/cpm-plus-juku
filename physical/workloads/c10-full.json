@@ -1,0 +1,129 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c10-full",
+  "volume_profile": "c10-full-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": [
+    "DATE.COM",
+    "DIAG.COM",
+    "PIP.COM",
+    "README.TXT",
+    "STATUS.COM",
+    "VER.COM",
+    "WBOOT.COM"
+  ],
+  "commands": [
+    {
+      "name": "dir-a",
+      "command": "DIR",
+      "expect": ["DIAG", "PIP", "STATUS", "VER"]
+    },
+    {
+      "name": "type-readme",
+      "command": "TYPE README.TXT",
+      "expect": ["host-backed NetDisk-v3", "Project:"],
+      "coverage": ["README.TXT"]
+    },
+    {
+      "name": "status-cold",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.5",
+        "ROM: Juku ABI 01.04",
+        "Map: TPA 0100-9BFF",
+        "PPI0 Port C: 01  POF: released (picture enabled)",
+        "Boot marker (00 cold/01 warm): 00  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 00",
+        "N4 state flags: 0F",
+        "N4 failure reason: none"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "ver",
+      "command": "VER",
+      "expect": ["CP/M Plus 3.1 for Juku"],
+      "coverage": ["VER.COM"]
+    },
+    {
+      "name": "date-error-path",
+      "command": "DATE BAD",
+      "expect": ["Illegal time/date specification"],
+      "coverage": ["DATE.COM"]
+    },
+    {
+      "name": "diag-all",
+      "command": "DIAG ALL",
+      "expect": [
+        "Juku Diagnostics 0.7",
+        "ROM: JukuNet ROM ABI 01.04",
+        "CPU: PASS",
+        "RAM data: PASS",
+        "RAM address: PASS",
+        "RAM retention: PASS",
+        "Checksum: PASS",
+        "D57 PIT clock: PASS",
+        "D11 USART status: PASS",
+        "ROM image: PASS",
+        "Video enable/console state: PASS",
+        "Keyboard/S21: PASS"
+      ],
+      "coverage": ["DIAG.COM"]
+    },
+    {
+      "name": "pip-copy",
+      "command": "PIP C10COPY.TXT=README.TXT",
+      "coverage": ["PIP.COM"]
+    },
+    {
+      "name": "type-copy",
+      "command": "TYPE C10COPY.TXT",
+      "expect": ["host-backed NetDisk-v3", "Project:"]
+    },
+    {
+      "name": "erase-copy",
+      "command": "ERA C10COPY.TXT"
+    },
+    {
+      "name": "dir-after-erase",
+      "command": "DIR",
+      "expect": ["DIAG", "PIP", "README", "STATUS", "VER"]
+    },
+    {
+      "name": "select-b",
+      "command": "B:",
+      "prompt": "B>"
+    },
+    {
+      "name": "dir-b",
+      "command": "DIR",
+      "prompt": "B>",
+      "expect": ["DIAG", "README"]
+    },
+    {
+      "name": "select-a",
+      "command": "A:",
+      "prompt": "A>"
+    },
+    {
+      "name": "warm-boot",
+      "command": "WBOOT",
+      "coverage": ["WBOOT.COM"]
+    },
+    {
+      "name": "status-warm",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.5",
+        "ROM: Juku ABI 01.04",
+        "PPI0 Port C: 01  POF: released (picture enabled)",
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 00",
+        "N4 state flags: 0F",
+        "N4 failure reason: none"
+      ]
+    }
+  ]
+}

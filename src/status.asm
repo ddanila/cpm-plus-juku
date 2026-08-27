@@ -5,6 +5,7 @@
 
 BDOS            equ     0005h
 PRINT           equ     9
+PPI0_PORT_C     equ     006h
 
         org     0100h
 
@@ -118,6 +119,26 @@ printmap:
         mov     d,m
         call    puts
 
+.ifdef ROM_ABI_C10
+        ; C9 could publish a valid geometry while PC7/POF still suppressed
+        ; every physical pixel. Report the complete latch and its picture
+        ; state directly; this is digital state, not an analog X7 self-test.
+        lxi     d,pofportmsg
+        call    puts
+        in      PPI0_PORT_C
+        sta     pofportc
+        call    printhex
+        lxi     d,pofstatemsg
+        call    puts
+        lda     pofportc
+        ani     080h
+        lxi     d,pofreleasedmsg
+        jz      status_pof_print
+        lxi     d,pofsuppressedmsg
+status_pof_print:
+        call    puts
+.endif
+
         lxi     d,featuresmsg
         call    puts
         lhld    infobase
@@ -211,6 +232,59 @@ printmap:
         call    printhex
         lxi     d,newline
         call    puts
+
+.ifdef ROM_ABI_C9
+        ; JNS1 v1.2 appends the ABI 1.4 host flags and retained failure
+        ; operation without moving any field consumed by Status 1.3.
+        lhld    infobase
+        lxi     d,5
+        dad     d
+        mov     a,m                     ; JNS1 schema minor
+        cpi     2
+        jc      status_host14_done
+        inx     h
+        mov     a,m                     ; record length
+        cpi     30
+        jc      status_host14_done
+        lxi     d,hostflagsmsg
+        call    puts
+        lhld    infobase
+        lxi     d,28
+        dad     d
+        mov     a,m
+        call    printhex
+        push    h
+        lxi     d,hostlastopmsg
+        call    puts
+        pop     h
+        inx     h
+        mov     a,m
+        call    printhex
+        lxi     d,newline
+        call    puts
+        lxi     d,hostreasonmsg
+        call    puts
+        lhld    infobase
+        lxi     d,21
+        dad     d
+        mov     a,m
+        cpi     7
+        jnc     status_host_reason_unknown
+        add     a
+        mov     e,a
+        mvi     d,0
+        lxi     h,hostreasontable
+        dad     d
+        mov     e,m
+        inx     h
+        mov     d,m
+        call    puts
+        jmp     status_host14_done
+status_host_reason_unknown:
+        lxi     d,hostreasonunknown
+        call    puts
+status_host14_done:
+.endif
 
         lxi     d,bootstrapmsg
         call    puts
@@ -339,7 +413,15 @@ bioscall:
         call    0000h
         ret
 
+.ifdef ROM_ABI_C10
+title:  db      13,10,'Juku Status 1.5',13,10,'$'
+.else
+.ifdef ROM_ABI_C9
+title:  db      13,10,'Juku Status 1.4',13,10,'$'
+.else
 title:  db      13,10,'Juku Status 1.3',13,10,'$'
+.endif
+.endif
 identity:
         db      'System: CP/M Plus 3.1, native profile 1',13,10
         db      'Transport: NetDisk v3, 19200 baud, N4 services',13,10,'$'
@@ -362,6 +444,16 @@ videomsg:
         db      '  video: $'
 localemsg:
         db      'Locale: $'
+.ifdef ROM_ABI_C10
+pofportmsg:
+        db      'PPI0 Port C: $'
+pofstatemsg:
+        db      '  POF: $'
+pofreleasedmsg:
+        db      'released (picture enabled)',13,10,'$'
+pofsuppressedmsg:
+        db      'asserted (pixels suppressed)',13,10,'$'
+.endif
 featuresmsg:
         db      13,10,'Features: $'
 multiomsg:
@@ -386,6 +478,25 @@ consolemsg:
         db      13,10,'N4 last failure: $'
 reconnectmsg:
         db      '  reconnects: $'
+.ifdef ROM_ABI_C9
+hostflagsmsg:
+        db      'N4 state flags: $'
+hostlastopmsg:
+        db      '  last operation: $'
+hostreasonmsg:
+        db      'N4 failure reason: $'
+hostreason0: db 'none',13,10,'$'
+hostreason1: db 'transmitter timeout',13,10,'$'
+hostreason2: db 'receive timeout',13,10,'$'
+hostreason3: db 'synchronization budget exhausted',13,10,'$'
+hostreason4: db 'sequence mismatch',13,10,'$'
+hostreason5: db 'reply integrity mismatch',13,10,'$'
+hostreason6: db 'host status rejected/unsupported',13,10,'$'
+hostreasonunknown: db 'unknown nonzero reason',13,10,'$'
+hostreasontable:
+        dw      hostreason0,hostreason1,hostreason2,hostreason3
+        dw      hostreason4,hostreason5,hostreason6
+.endif
 bootstrapmsg:
         db      'Bootstrap stage: $'
 bootstrapretrymsg:
@@ -422,4 +533,8 @@ infobase:
         dw      0
 capsbase:
         dw      0
+.ifdef ROM_ABI_C10
+pofportc:
+        db      0
+.endif
         end

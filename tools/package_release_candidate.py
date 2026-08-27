@@ -75,6 +75,47 @@ VARIANTS = {
             "limited to the focused c7-raw workload and is not yet claimed."
         ),
     },
+    "c9": {
+        "candidate": "cpm-plus-3.1-juku-c9-bounded-host-simulator",
+        "abi": "1.4",
+        "rom_stem": "juku-network-rom-abi1.4-c9",
+        "manifest": "cpm-plus-juku-c9-manifest.json",
+        "system": "cpm-plus-juku-network-rom-c9-system.bin",
+        "fast_stage": "cpm-plus-juku-network-rom-c9-fastboot-v16.bin",
+        "recovery": "cpm-plus-juku-c6-recovery",
+        "full": "cpm-plus-juku-c9-full",
+        "adapter": "adapter-romabi-c9-native.bin",
+        "status": "simulator/HDL-qualified; physical programming not authorized",
+        "target": "Juku family; C8 remains the fitted physical rollback",
+        "qualification": (
+            "It passes the C-model, structural HDL, CP/M local/remote, native "
+            "N4,\nfault, write/time/diagnostic/warm-boot, live-replacement, "
+            "and VC gates.\nPhysical EPROM programming requires a separate "
+            "explicit decision and is not\nclaimed by this simulator package."
+        ),
+    },
+    "c10": {
+        "candidate": "cpm-plus-3.1-juku-c10-pof-release-candidate",
+        "abi": "1.4",
+        "rom_stem": "juku-network-rom-abi1.4-c10",
+        "manifest": "cpm-plus-juku-c10-manifest.json",
+        "system": "cpm-plus-juku-network-rom-c10-system.bin",
+        "fast_stage": "cpm-plus-juku-network-rom-c10-fastboot-v16.bin",
+        "recovery": "cpm-plus-juku-c6-recovery",
+        "full": "cpm-plus-juku-c10-full",
+        "adapter": "adapter-romabi-c10-native.bin",
+        "status": "desk-qualified and ready for physical programming",
+        "target": "Juku CS00000 local-video and complete C9 carry-forward acceptance",
+        "qualification": (
+            "It corrects the physically proved C9 PC7/POF blank-video fault, "
+            "adds\nfull-Port-C and video-enable regressions, and preserves "
+            "the exact C9\nloaded system and Fastboot artifacts. All desk, "
+            "C-model, HDL, CP/M,\nnative-host, replacement, fault, package, "
+            "and reproducibility gates pass.\nThe pair is ready to program; "
+            "physical display and workload acceptance\nremain the next "
+            "promotion step."
+        ),
+    },
 }
 
 
@@ -125,6 +166,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
     system = out / config["system"]
     fast_stage = out / config["fast_stage"]
     adapter = ROOT / "build" / config["adapter"]
+    full_stem = config.get("full", "cpm-plus-juku-full")
     fallback_system = out / "cpm-plus-juku-network-rom-system.bin"
     fallback_fast_stage = out / "cpm-plus-juku-network-rom-fastboot-v15.bin"
     if d15.read_bytes() + d16.read_bytes() != rom.read_bytes():
@@ -140,8 +182,8 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
         fallback_system, fallback_fast_stage, boot_manifest_path,
         out / f"{config['recovery']}.img",
         out / f"{config['recovery']}.report.json",
-        out / "cpm-plus-juku-full.img",
-        out / "cpm-plus-juku-full.report.json",
+        out / f"{full_stem}.img",
+        out / f"{full_stem}.report.json",
         out / "cpm-plus-juku-dev.img",
         out / "cpm-plus-juku-dev.report.json",
         out / "cpm-plus-juku-museum-demo.img",
@@ -150,6 +192,13 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
         out / "cpm-plus-juku-apps.report.json",
         ROOT / "LICENSE", ROOT / "NOTICE.md",
     ]
+    if variant == "c10":
+        sources.extend([
+            ROOT / "docs/c10-physical-acceptance-worksheet.md",
+            ROOT / "physical/workloads/c10-cold.json",
+            ROOT / "physical/workloads/c10-display.json",
+            ROOT / "physical/workloads/c10-full.json",
+        ])
     missing = [str(path) for path in sources if not path.is_file()]
     if missing:
         raise FileNotFoundError("missing release inputs: " + ", ".join(missing))
@@ -159,7 +208,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
     }
     for image in [
             out / f"{config['recovery']}.img",
-            out / "cpm-plus-juku-full.img",
+            out / f"{full_stem}.img",
             out / "cpm-plus-juku-dev.img",
             out / "cpm-plus-juku-museum-demo.img",
             out / "cpm-plus-juku-apps.juk"]:
@@ -175,15 +224,18 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             shutil.copyfile(source, temporary / source.name)
 
         build_map_path = temporary / "memory-map.json"
-        adapter_end = 0xC000 + adapter.stat().st_size - 1
+        adapter_start = 0xC200 if variant in ("c9", "c10") else 0xC000
+        adapter_end = adapter_start + adapter.stat().st_size - 1
         ram_map = {
-            "transient": "0100h..99FFh (39168 bytes)",
-            "loader": "9A00h..9CFFh",
-            "bdos": "9D00h..BB9Bh",
-            "scb": "BB9Ch..BBFFh",
-            "bios": "BC00h..BFFFh",
+            "transient": ("0100h..9BFFh (39680 bytes)"
+                          if variant in ("c9", "c10")
+                          else "0100h..99FFh (39168 bytes)"),
+            "loader": "9C00h..9EFFh" if variant in ("c9", "c10") else "9A00h..9CFFh",
+            "bdos": "9F00h..BD9Bh" if variant in ("c9", "c10") else "9D00h..BB9Bh",
+            "scb": "BD9Ch..BDFFh" if variant in ("c9", "c10") else "BB9Ch..BBFFh",
+            "bios": "BE00h..BFFFh" if variant in ("c9", "c10") else "BC00h..BFFFh",
             "adapter": (
-                f"C000h..{adapter_end:04X}h "
+                f"{adapter_start:04X}h..{adapter_end:04X}h "
                 f"({adapter.stat().st_size} bytes)"
             ),
             "resident_work": "D600h..D7FFh (512 bytes)",
@@ -213,7 +265,9 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
                 "abi_vectors": rom_metadata_record["abi_vectors"],
             },
             "ram": ram_map,
-            "tpa_gain_over_frozen_ram_bios": 8192,
+            "tpa_gain_over_frozen_ram_bios": (
+                8704 if variant in ("c9", "c10") else 8192
+            ),
             "bindings": {
                 "rom_sha256": sha256(rom),
                 "system_sha256": sha256(system),
@@ -222,6 +276,16 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
         }, indent=2) + "\n")
 
         readme = temporary / "README.txt"
+        bench_instructions = (
+            f"The two ROM halves are {config['rom_stem']}-d15.bin (low) and\n"
+            f"{config['rom_stem']}-d16.bin (high). They are included only "
+            "for reproducibility;\nphysical EPROM programming is not "
+            "authorized by this simulator candidate.\n"
+            if variant == "c9" else
+            f"Program D15-low from {config['rom_stem']}-d15.bin and\n"
+            f"D16-high from {config['rom_stem']}-d16.bin. Verify every\n"
+            "file against manifest.json before bench use.\n"
+        )
         readme.write_text(
             f"CP/M Plus 3.1 for Juku, {variant.upper()} release candidate\n"
             "========================================================\n\n"
@@ -229,15 +293,26 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             f"{variant.upper()} ROM, its D15/D16 halves,\n"
             "the matching CP/M Plus system and fastboot stage, and the\n"
             f"published A:/B: media profiles. {config['qualification']}\n\n"
-            f"Program D15-low from {config['rom_stem']}-d15.bin and\n"
-            f"D16-high from {config['rom_stem']}-d16.bin. Verify every\n"
-            "file against manifest.json before bench use.\n"
+            f"{bench_instructions}"
         )
 
         files = {
             path.name: {"bytes": path.stat().st_size, "sha256": sha256(path)}
             for path in sorted(temporary.iterdir()) if path.is_file()
         }
+        rom_order = [
+            f"{config['rom_stem']}-d15.bin",
+            f"{config['rom_stem']}-d16.bin",
+        ]
+        rom_policy = (
+            {"physical_programming_authorized": False,
+             "rom_half_order": rom_order}
+            if variant == "c9" else
+            ({"physical_programming_ready": True,
+              "programmer_order": rom_order}
+             if variant == "c10" else
+             {"programmer_order": rom_order})
+        )
         package_manifest = {
             "schema": SCHEMA,
             "candidate": config["candidate"],
@@ -247,10 +322,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             "build_identity": boot_manifest["build_identity"],
             "rom_abi": config["abi"],
             "target": config["target"],
-            "programmer_order": [
-                f"{config['rom_stem']}-d15.bin",
-                f"{config['rom_stem']}-d16.bin",
-            ],
+            **rom_policy,
             "files": files,
         }
         (temporary / "manifest.json").write_text(

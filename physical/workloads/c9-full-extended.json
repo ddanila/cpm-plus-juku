@@ -1,0 +1,171 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c9-full-extended",
+  "volume_profile": "c9-full-a",
+  "boot_expect": ["A>"],
+  "required_coverage": [
+    "CMP.COM", "CRC.COM", "DATE.COM", "DEVICE.COM", "DIAG.COM",
+    "DUMP.COM", "FIND.COM", "HELP.COM", "KEYTEST.COM", "MEM.COM",
+    "PIP.COM", "SET.COM", "SETDEF.COM", "SHOW.COM", "STATUS.COM",
+    "STRINGS.COM", "SUBMIT.COM", "VER.COM", "WBOOT.COM", "WC.COM"
+  ],
+  "commands": [
+    {
+      "name": "status-reconnected",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.4",
+        "ROM: Juku ABI 01.04",
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 02",
+        "N4 state flags: 1F",
+        "last operation: 20",
+        "N4 failure reason: receive timeout"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "crc-readme",
+      "command": "CRC README.TXT",
+      "expect": ["CRC16-CCITT: 4613  records: 0004"],
+      "coverage": ["CRC.COM"]
+    },
+    {
+      "name": "cmp-equal",
+      "command": "CMP CRC.COM CRC.COM",
+      "expect": ["files are identical"],
+      "coverage": ["CMP.COM"]
+    },
+    {
+      "name": "date-error",
+      "command": "DATE BAD",
+      "expect": ["Illegal time/date specification"],
+      "coverage": ["DATE.COM"]
+    },
+    {
+      "name": "device-names",
+      "command": "DEVICE NAMES",
+      "expect": ["Physical Devices:", "JUKU"],
+      "coverage": ["DEVICE.COM"]
+    },
+    {
+      "name": "diag-cpu",
+      "command": "DIAG CPU",
+      "expect": ["CPU: PASS"],
+      "coverage": ["DIAG.COM"]
+    },
+    {
+      "name": "dump-readme",
+      "command": "DUMP README.TXT",
+      "expect": ["0000", "43 50 2F 4D"],
+      "coverage": ["DUMP.COM"]
+    },
+    {
+      "name": "find-readme",
+      "command": "FIND README.TXT Juku",
+      "expect": ["FIND: 04", "host-backed NetDisk-v3"],
+      "coverage": ["FIND.COM"]
+    },
+    {
+      "name": "help-dump",
+      "command": "HELP DUMP",
+      "steps": [{"wait": "HELP>", "send_hex": "0d"}],
+      "expect": ["DUMP displays"],
+      "coverage": ["HELP.COM"]
+    },
+    {
+      "name": "keytest-remote",
+      "command": "KEYTEST B",
+      "steps": [{
+        "wait": "Juku Keytest 1.1 READY",
+        "send_hex": "41 20 31 0d 1b",
+        "delay": 0.5
+      }],
+      "expect": [
+        "BATCH 04", "KEY 20 ' '", "KEY 1B", "Juku Keytest 1.1 DONE"
+      ],
+      "coverage": ["KEYTEST.COM"]
+    },
+    {
+      "name": "mem",
+      "command": "MEM 0100 10",
+      "expect": ["0100:"],
+      "coverage": ["MEM.COM"]
+    },
+    {
+      "name": "pip-copy",
+      "command": "PIP C9EXT.TXT=README.TXT",
+      "coverage": ["PIP.COM"]
+    },
+    {
+      "name": "show-space",
+      "command": "SHOW A:[SPACE]",
+      "expect": ["Space:"],
+      "coverage": ["SHOW.COM"]
+    },
+    {
+      "name": "set-read-only",
+      "command": "SET C9EXT.TXT [RO]",
+      "expect": ["Read Only"],
+      "coverage": ["SET.COM"]
+    },
+    {
+      "name": "set-read-write",
+      "command": "SET C9EXT.TXT [RW]",
+      "expect": ["Read Write"]
+    },
+    {
+      "name": "erase-copy",
+      "command": "ERA C9EXT.TXT"
+    },
+    {
+      "name": "setdef",
+      "command": "SETDEF",
+      "expect": ["Drive Search Path"],
+      "coverage": ["SETDEF.COM"]
+    },
+    {
+      "name": "strings-readme",
+      "command": "STRINGS README.TXT",
+      "expect": ["host-backed NetDisk-v3"],
+      "coverage": ["STRINGS.COM"]
+    },
+    {
+      "name": "submit-error",
+      "command": "SUBMIT MISSING",
+      "expect": ["No 'SUB' File Found"],
+      "coverage": ["SUBMIT.COM"]
+    },
+    {
+      "name": "ver",
+      "command": "VER",
+      "expect": ["CP/M Plus 3.1 for Juku"],
+      "coverage": ["VER.COM"]
+    },
+    {
+      "name": "wc-readme",
+      "command": "WC README.TXT",
+      "expect": ["lines 000014", "bytes 0001FA"],
+      "coverage": ["WC.COM"]
+    },
+    {
+      "name": "warm-boot",
+      "command": "WBOOT",
+      "coverage": ["WBOOT.COM"]
+    },
+    {
+      "name": "status-after-warm",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.4",
+        "ROM: Juku ABI 01.04",
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "N4 last failure: 02",
+        "N4 state flags: 1F",
+        "N4 failure reason: receive timeout"
+      ]
+    }
+  ]
+}

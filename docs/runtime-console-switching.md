@@ -65,9 +65,11 @@ console configuration. Its console initialization reads the reset configuration
 again, so this feature must not be presented as an already available CP/M-only
 change.
 
-The preferred implementation is an appended ABI service in a future C9 or later
-ROM that owns active mode and character-bank transitions and publishes the
-expanded status. A carefully specified loaded-system override is acceptable
-only if it can preserve the same atomicity and compatibility. This proposal is
-not sufficient reason by itself to produce C9; it should accompany another
-measured improvement that justifies a new ROM and its qualification work.
+The preferred implementation is an appended ABI service in a future C10 or
+later ROM that owns active mode and character-bank transitions and publishes
+the expanded status. C9 is fixed as the bounded-host ABI 1.4 candidate and
+does not include this feature. A carefully specified loaded-system override is
+acceptable only if it can preserve the same atomicity and compatibility. This
+proposal is not sufficient reason by itself to produce another ROM; it should
+accompany a measured improvement that justifies a new candidate and its
+qualification work.

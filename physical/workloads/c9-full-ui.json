@@ -1,0 +1,72 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c9-full-ui",
+  "volume_profile": "c9-full-a",
+  "boot_expect": ["A>"],
+  "required_coverage": [
+    "HIST.COM", "PANEL.COM", "SHOW.COM", "STATUS.COM", "VIDTEST.COM"
+  ],
+  "commands": [
+    {
+      "name": "history-seed",
+      "command": "SHOW A:[SPACE]",
+      "expect": ["Space:"],
+      "coverage": ["SHOW.COM"]
+    },
+    {
+      "name": "history-inspect",
+      "command": "HIST",
+      "expect": ["Juku History 1.0", "Last: SHOW A:[SPACE]", "Repeat with !!"],
+      "coverage": ["HIST.COM"]
+    },
+    {
+      "name": "history-repeat",
+      "command": "!!",
+      "expect": ["Space:"]
+    },
+    {
+      "name": "history-clear",
+      "command": "HIST CLEAR",
+      "expect": ["Juku History 1.0", "History cleared"]
+    },
+    {
+      "name": "history-empty",
+      "command": "HIST",
+      "expect": ["Juku History 1.0", "History is empty"]
+    },
+    {
+      "name": "panel-mode-boundary",
+      "command": "PANEL",
+      "expect": ["PANEL requires S21 video mode 3 (80x24)."],
+      "coverage": ["PANEL.COM"]
+    },
+    {
+      "name": "vidtest-remote",
+      "command": "VIDTEST",
+      "steps": [
+        {"wait": "VIDTEST READY", "send_hex": "0d", "delay": 5}
+      ],
+      "expect": [
+        "Juku Vidtest 1.0",
+        "Mode ",
+        "Locale ",
+        "VIDTEST READY",
+        "Juku Vidtest 1.0 DONE"
+      ],
+      "coverage": ["VIDTEST.COM"]
+    },
+    {
+      "name": "status-after-ui",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.4",
+        "ROM: Juku ABI 01.04",
+        "S21 raw: 01  video: 00 (40x24)",
+        "Disk status: 00",
+        "N4 state flags: 1F",
+        "N4 failure reason: receive timeout"
+      ],
+      "coverage": ["STATUS.COM"]
+    }
+  ]
+}

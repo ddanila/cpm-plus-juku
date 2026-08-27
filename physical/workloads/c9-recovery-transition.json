@@ -1,0 +1,33 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c9-recovery-transition",
+  "volume_profile": "c6-recovery-a",
+  "boot_expect": ["A>"],
+  "required_coverage": ["N4BULK.COM", "SOAK.COM"],
+  "commands": [
+    {
+      "name": "ccp-control-c-warm-boot",
+      "command": "\u0003",
+      "steps": [
+        {"wait": "A>", "send_hex": ""}
+      ]
+    },
+    {
+      "name": "dir-recovery-after-warm-boot",
+      "command": "DIR",
+      "expect": ["DIAG", "N4BULK", "SOAK", "STATUS"]
+    },
+    {
+      "name": "n4-bulk-after-media-transition",
+      "command": "N4BULK",
+      "expect": ["N4 BULK PASS"],
+      "coverage": ["N4BULK.COM"]
+    },
+    {
+      "name": "soak-after-media-transition",
+      "command": "SOAK",
+      "expect": ["SOAK: PASS"],
+      "coverage": ["SOAK.COM"]
+    }
+  ]
+}
