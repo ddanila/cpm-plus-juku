@@ -9,6 +9,8 @@ are built as separately named network-ROM artifacts:
   fastboot-v15 bundle for the separately named ABI 1.1 C5 desk candidate;
 - `out/cpm-plus-juku-network-rom-extended-native-system.bin` and matching
   fastboot-v16 bundle for the ABI 1.2 C6 simulator candidate;
+- `out/cpm-plus-juku-network-rom-session-native-system.bin` and matching
+  fastboot-v16 bundle for consumers of the volatile-session extension;
 - `out/cpm-plus-juku-native-recovery.img` for post-C4 recovery use;
 - `out/cpm-plus-juku-native-test.img` for the target-side regression only.
 
@@ -53,6 +55,11 @@ command matrix, `NATIVE.COM`, and `STATUS.COM`.
   In the ABI 1.2 build, selector C=5 sends a caller-owned `DE` span of `B`
   bytes (1..32) through duplicate-safe operation 28h. It is deliberately
   absent from the C5 object, whose system image remains byte-identical.
+  In the session-native build, selectors C=6/7 expose one generic
+  keyed 127-byte volatile-session blob;
+  the caller supplies a four-byte owner and opaque bytes. The slot survives
+  warm boot/transient replacement, clears on cold load, and performs no disk
+  I/O. See [`cpm3-session-state.md`](cpm3-session-state.md).
   Unknown selectors fail with A=FFh and HL=0000h.
 - TIME gets CP/M day plus BCD hour/minute/second through optional NetDisk-v3
   operation 22h. SET uses operation 23h to establish a host session offset
@@ -165,16 +172,16 @@ the alternating-drive regression loads B:, returns to A:, reloads an A:
 transient, and proves both counts remain nonzero with the expected distinct
 pointers. The immutable C4/native binding and memory map remain unchanged.
 
-The current post-C6 loaded system adds a conservative directory hot set above
-those buffers: validity/drive state at `C5A0h..C5A1h`, three 128-byte records
-at `C5C0h..C63Fh` plus `D3C0h..D4BFh`, and 177 bytes of code at
-`D4C0h..D570h`. This preserves the ROM resident self-test stack/guards at
-`D5C0h..D5FFh`. BIOS-call tracing
-showed that translated track-2 sectors 1--3 are reread after the initial login
-scan and after first B: selection. Only those records are retained. Any write
-to the cached drive invalidates the set before the resident synchronous write;
-a failed write therefore leaves no stale cache entry. No TPA or ROM address
-changes.
+The named session-native loaded system coordinates its volatile-session slot
+with the conservative directory hot set. Ownership metadata is at
+`C5A2h..C5A6h`; the 119-byte session service occupies the former third cache
+record at `D440h..D4BFh`. Before a claim, translated track-2 sectors 1 and 2
+use `C5C0h..C63Fh` and `D3C0h..D43Fh`; a claim gives the first 127 bytes of
+the latter to the payload while sector 1 remains independently cached.
+Session-aware hot-cache code occupies `D4C0h..D570h`, ending immediately
+before the independent CCP `!!` state at `D571h`. The ordinary C6/C7 and C8
+artifacts retain their exact three-record implementation. No TPA or ROM
+address changes.
 
 `NATIVE.COM` calls the actual high-memory BIOS vectors on the emulated 8080.
 It verifies the device table, FLUSH, A-register MULTIO convention, USERF

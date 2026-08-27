@@ -65,14 +65,23 @@ NetDisk v3 and uses resident platform services:
 BB9Ch..BBFFh  SCB
 BC00h..BFFFh  BIOS
 C000h..D3B7h  C6 binding/services and independent A:/B: read-ahead
-C5A0h..C63Fh  post-C6 hot state and first retained record
-D3C0h..D570h  post-C6 retained records and cache code
+C5A0h..C5A1h  post-C6 hot-directory metadata
+C5C0h..C63Fh  retained directory record 1
+D3C0h..D4BFh  retained directory records 2 and 3
+D4C0h..D570h  hot-directory code
 D600h..D7FFh  ROM gate, helper, status, and mutable resident state
 D800h..FFFFh  resident ROM window / underlying framebuffer RAM
 ```
 
 The live page-zero chain and generated map prove an exact 8,192-byte TPA gain.
 No banked memory is claimed.
+
+The separately named session-native image adds generic USERF selectors 6/7
+without changing the TPA. It uses `C5A2h..C5A6h` for keyed-slot metadata,
+`D3C0h..D43Eh` for a 127-byte payload, and `D440h..D4BFh` for its 119-byte
+service, retaining hot directory record 1 throughout. `make
+session-state-check` proves the API, warm-boot persistence, hard `D571h`
+non-overlap, and unchanged 8/0/1 plus B: 4/0 request counts.
 
 The additive ROM line is:
 
@@ -180,6 +189,7 @@ make vidtest-cosim-check
 make display-acceptance-check
 make physical-promotion-check
 make history-cosim-check panel-cosim-check
+make session-state-check
 ```
 
 ## Generated outputs
@@ -191,6 +201,8 @@ ABI-specific boot manifests. The C6/C7-specific files include:
 ```text
 out/cpm-plus-juku-network-rom-extended-native-system.bin
 out/cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin
+out/cpm-plus-juku-network-rom-session-native-system.bin
+out/cpm-plus-juku-network-rom-session-native-fastboot-v16.bin
 out/cpm-plus-juku-c6-recovery.img
 out/cpm-plus-juku-c6-manifest.json
 out/cpm-plus-3.1-juku-c6-simulator/
@@ -234,6 +246,9 @@ must be byte-identical.
 - Full, development, and demo media retain one command across CCP reloads;
   `!!` repeats it and `HIST [CLEAR]` inspects or clears it. Recovery media keep
   the exact unmodified DRI CCP.
+- Session-native exposes one keyed 127-byte volatile blob for transient
+  programs such as VC/8080; it survives replacement and warm boot, clears on
+  cold load, and never writes disk.
 - `PANEL` is a compact 80x24 status front end for the shared JNS1 record. It
   uses the exact-C6 connected CP437 border where the locale permits, falls
   back to an ASCII frame for Estonian, and returns on any key; other video
@@ -279,6 +294,7 @@ The authoritative current documents are:
 - [`docs/cpm3-development-tools.md`](docs/cpm3-development-tools.md)
 - [`docs/external-software-audit.md`](docs/external-software-audit.md)
 - [`docs/cpm3-native-services.md`](docs/cpm3-native-services.md)
+- [`docs/cpm3-session-state.md`](docs/cpm3-session-state.md)
 - [`docs/cpm3-pip-warm-boot-fix.md`](docs/cpm3-pip-warm-boot-fix.md)
 - [`docs/cpm3-physical-acceptance.md`](docs/cpm3-physical-acceptance.md)
 - [`docs/cs00015-post-c6-acceptance-20260819.md`](docs/cs00015-post-c6-acceptance-20260819.md)

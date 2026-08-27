@@ -43,12 +43,15 @@ LOCALE_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-locale-native-syste
 LOCALE_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-locale-native-fastboot-v15.bin
 EXTENDED_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-extended-native-system.bin
 EXTENDED_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-extended-native-fastboot-v16.bin
+SESSION_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-session-native-system.bin
+SESSION_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-session-native-fastboot-v16.bin
 C8_NATIVE_ROM_SYS := $(BUILD)/cpm3-network-rom-c8.sys
 C8_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-c8-system.bin
 C8_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-c8-fastboot-v16.bin
 CONTROL_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-control-system.bin
 CONTROL_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-control-fastboot-v16.bin
 NATIVE_TEST_VOLUME := $(OUT)/cpm-plus-juku-native-test.img
+SESSION_TEST_VOLUME := $(OUT)/cpm-plus-juku-session-test.img
 C4_DIAG := $(BUILD)/diag-c4.cim
 NATIVE_RECOVERY_VOLUME := $(OUT)/cpm-plus-juku-native-recovery.img
 VOLUME := $(OUT)/cpm-plus-juku.img
@@ -108,6 +111,7 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check c7-manifest-check \
 	c8-check \
+	session-state session-state-check \
 	release-candidate release-candidate-check \
 	c6-release-candidate c6-release-candidate-check \
 	c7-bench-candidate c7-bench-candidate-check \
@@ -834,6 +838,11 @@ $(BUILD)/cpm3-native-services-extended.rel: src/cpm3-native-services.asm \
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
 		-DROM_ABI_EXTENDED -I$(COMMON)/platform -o $@ $<
 
+$(BUILD)/cpm3-native-services-session.rel: src/cpm3-native-services.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
+		-DROM_ABI_EXTENDED -DSESSION_STATE -I$(COMMON)/platform -o $@ $<
+
 $(BUILD)/cpm3-native-services-host.rel: src/cpm3-native-services.asm \
 		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROM_ABI_LOCALE \
@@ -847,6 +856,12 @@ $(BUILD)/cpm3-rom-host.rel: src/cpm3-rom-host.asm \
 		-I$(COMMON)/platform -o $@ $<
 
 $(BUILD)/cpm3-hot-directory.rel: src/cpm3-hot-directory.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
+
+$(BUILD)/cpm3-hot-directory-session.rel: src/cpm3-hot-directory.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DSESSION_STATE -o $@ $<
+
+$(BUILD)/cpm3-session.rel: src/cpm3-session.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -o $@ $<
 
 $(BUILD)/ram-keyboard.rel: $(COMMON)/platform/ram-keyboard.asm $(ZMAC) | $(BUILD)
@@ -938,6 +953,24 @@ $(BUILD)/adapter-romabi-extended-native.bin: \
 	# D5C0h..D5FFh belongs to the ROM resident-entry self-test stack/guards.
 	test $$(wc -c < $@) -le 5568
 
+$(BUILD)/adapter-romabi-session-native.all: \
+		$(BUILD)/platform-adapter-romabi-extended-native.rel \
+		$(BUILD)/netconsole-romabi-extended-native.rel \
+		$(BUILD)/cpm3-native-services-session.rel \
+		$(BUILD)/cpm3-session.rel $(BUILD)/cpm3-hot-directory-session.rel $(LD80)
+	$(LD80) -m -O bin -o $@ -s /dev/null \
+		-P0xc000 $(BUILD)/platform-adapter-romabi-extended-native.rel \
+		-P0xc2c0 $(BUILD)/netconsole-romabi-extended-native.rel \
+		-P0xca00 $(BUILD)/cpm3-native-services-session.rel \
+		-P0xd440 $(BUILD)/cpm3-session.rel \
+		-P0xd4c0 $(BUILD)/cpm3-hot-directory-session.rel
+
+$(BUILD)/adapter-romabi-session-native.bin: \
+		$(BUILD)/adapter-romabi-session-native.all
+	tail -c+49153 $< >$@
+	# D571h begins the independent CCP history state.
+	test $$(wc -c < $@) -le 5489
+
 $(BUILD)/adapter-romabi-host-native.all: \
 		$(BUILD)/platform-adapter-romabi-host-native.rel \
 		$(BUILD)/cpm3-rom-host.rel \
@@ -1007,6 +1040,13 @@ $(LOCALE_NATIVE_ROM_SYSTEM): prebuilt/cpm-plus-juku-c5-system.bin | $(OUT)
 $(EXTENDED_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-extended-native.bin \
 		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
 	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-extended-native.bin \
+		$(NATIVE_ROM_SYS) $@ --load-address 0x9000 \
+		--adapter-address 0xc000 --entry-address 0xbc00 \
+		--end-address 0xd600
+
+$(SESSION_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-session-native.bin \
+		$(NATIVE_ROM_SYS) tools/mksystem3.py | $(OUT)
+	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-romabi-session-native.bin \
 		$(NATIVE_ROM_SYS) $@ --load-address 0x9000 \
 		--adapter-address 0xc000 --entry-address 0xbc00 \
 		--end-address 0xd600
@@ -1097,6 +1137,13 @@ $(EXTENDED_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
 		$(BUILD)/fastboot-extension-rom-v16.cim \
 		$(EXTENDED_NATIVE_ROM_SYSTEM) $(ZX0) $@
 
+$(SESSION_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
+		$(BUILD)/fastboot-extension-rom-v16.cim \
+		$(SESSION_NATIVE_ROM_SYSTEM) $(ZX0) tools/build_fastboot.py | $(OUT)
+	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core-v16.cim \
+		$(BUILD)/fastboot-extension-rom-v16.cim \
+		$(SESSION_NATIVE_ROM_SYSTEM) $(ZX0) $@
+
 $(C8_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
 		$(BUILD)/fastboot-extension-rom-c8.cim \
 		$(C8_NATIVE_ROM_SYSTEM) $(ZX0) tools/build_fastboot.py | $(OUT)
@@ -1144,6 +1191,9 @@ $(BUILD)/wboot-user.cim: src/wboot-user.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
 $(BUILD)/nativecheck.cim: src/nativecheck.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
+
+$(BUILD)/sessioncheck.cim: src/sessioncheck.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
 $(BUILD)/status.cim: src/status.asm $(ZMAC) | $(BUILD)
@@ -1215,6 +1265,15 @@ $(NATIVE_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
 		volume/profiles/native-recovery.json volume/profiles/native-test.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/native-test.json \
+		--output $@
+
+$(SESSION_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
+		$(BUILD)/wboot-user.cim $(BUILD)/status.cim $(BUILD)/keytest.cim \
+		$(BUILD)/sessioncheck.cim \
+		volume/README.txt volume/profiles/recovery.json \
+		volume/profiles/native-recovery.json volume/profiles/session-test.json \
+		tools/build_volume.py diskdefs | $(OUT)
+	$(PYTHON) tools/build_volume.py --profile volume/profiles/session-test.json \
 		--output $@
 
 $(BUILD)/cpm3-utilities/manifest.json: \
@@ -1499,6 +1558,38 @@ native-services-check: $(NATIVE_ROM_SYSTEM) $(NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=2 \
 	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=2 \
 	CPM_PLUS_JUKU_EXPECT_IO_DIAG=1 \
+	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
+
+session-state: $(SESSION_NATIVE_ROM_SYSTEM) $(SESSION_NATIVE_ROM_FASTBOOT) \
+		$(SESSION_TEST_VOLUME) $(APPS_VOLUME)
+
+session-state-check: session-state $(BUILD)/adapter-romabi-session-native.bin
+	$(PYTHON) tools/audit_8080_com.py $(BUILD)/sessioncheck.cim >/dev/null
+	$(PYTHON) tests/native_services_test.py
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C6_ROM) \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(SESSION_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(SESSION_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(SESSION_TEST_VOLUME) \
+	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x01 \
+	CPM_PLUS_JUKU_EXPECT_PER_DRIVE_CACHE=1 \
+	CPM_PLUS_JUKU_READ_AHEAD_RECORDS=8 \
+	CPM_PLUS_JUKU_EXTRA_COMMAND=SESSION \
+	CPM_PLUS_JUKU_EXTRA_MARKER='SESSION: PASS' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND2=WBOOT \
+	CPM_PLUS_JUKU_EXTRA_MARKER2='A>' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND3='SESSION READ' \
+	CPM_PLUS_JUKU_EXTRA_MARKER3='SESSION READ: PASS' \
+	CPM_PLUS_JUKU_EXTRA_COMMAND4='SESSION CLEAR' \
+	CPM_PLUS_JUKU_EXTRA_MARKER4='SESSION CLEAR: PASS' \
+	CPM_PLUS_JUKU_EXPECT_BOOT_READS=8 \
+	CPM_PLUS_JUKU_EXPECT_DIR_READS=0 \
+	CPM_PLUS_JUKU_EXPECT_TYPE_READS=1 \
+	CPM_PLUS_JUKU_EXPECT_B_LOGIN_READS=4 \
+	CPM_PLUS_JUKU_EXPECT_B_DIR_READS=0 \
+	CPM_PLUS_JUKU_EXPECT_CAPABILITY_QUERIES=1 \
+	CPM_PLUS_JUKU_EXPECT_DIAG_REPORTS=3 \
 	CPM_PLUS_JUKU_EXPECT_NATIVE_BOOT_RECORD=1 \
 	CPM_PLUS_JUKU_BOOT_PATH=network-smoke $(PYTHON) tests/cosim_check.py
 

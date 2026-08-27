@@ -27,6 +27,10 @@
         extrn   NCCFG
 .ifdef ROM_ABI_EXTENDED
         extrn   NCBULK
+.ifdef SESSION_STATE
+        extrn   NSSESSREAD
+        extrn   NSSESSWRITE
+.endif
 .endif
 .ifdef ROM_ABI_HOSTSERVICES
         extrn   NCHOSTSTATE
@@ -191,7 +195,8 @@ NSTIMERET:
 ; C=2 publishes a diagnostic tuple in B/D/E/L. C=3 returns the host's
 ; explicit four-byte capability record. C=4 publishes retained bootstrap
 ; stage/retries/protocol/ABI minor. C=5 in the ABI 1.2 image sends a bounded
-; N4 span from DE with length B (1..32). Other selectors fail.
+; N4 span from DE with length B (1..32). C=6/7 read/write one keyed volatile-
+; session blob; the generic service owns no caller format. Other selectors fail.
 NSUSERF:
         mov     a,c
         ora     a
@@ -206,7 +211,17 @@ NSUSERF:
 .ifdef ROM_ABI_EXTENDED
         jz      NSUSERFBOOT
         dcr     a
+.ifdef SESSION_STATE
+        jz      NSUSERFBULK
+        dcr     a
+        jz      NSSESSREAD
+        dcr     a
+        jz      NSSESSWRITE
+        jmp     NSUSERFBAD
+NSUSERFBULK:
+.else
         jnz     NSUSERFBAD
+.endif
         xchg
         call    NCBULK
         ret

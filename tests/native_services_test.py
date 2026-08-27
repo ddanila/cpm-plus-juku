@@ -9,10 +9,13 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src" / "cpm3-native-services.asm"
+SESSION = ROOT / "src" / "cpm3-session.asm"
+HOT_DIRECTORY = ROOT / "src" / "cpm3-hot-directory.asm"
 ADAPTER = ROOT / "src" / "platform-adapter.asm"
 BIOS = ROOT / "src" / "cpm3-bios.asm"
 SYSTEM = ROOT / "out" / "cpm-plus-juku-network-rom-native-system.bin"
 FASTBOOT = ROOT / "out" / "cpm-plus-juku-network-rom-native-fastboot-v15.bin"
+SESSION_ADAPTER = ROOT / "build" / "adapter-romabi-session-native.bin"
 
 
 def memmove_fixture(data: bytes, source: int, destination: int,
@@ -47,6 +50,32 @@ def main() -> int:
     for marker in required:
         if marker not in source:
             raise AssertionError(f"native service marker missing: {marker}")
+    session = SESSION.read_text()
+    hot_directory = HOT_DIRECTORY.read_text()
+    makefile = (ROOT / "Makefile").read_text()
+    for marker in (
+        "SESSOWNER     equ     0c5a2h",
+        "SESSLEN       equ     0c5a6h",
+        "SESSDATA      equ     0d3c0h",
+        "extrn   NSMOVE",
+        "jm      NSSESSTOOBIG",
+        "sta     SESSLEN",
+    ):
+        if marker not in session:
+            raise AssertionError(f"volatile-session marker missing: {marker}")
+    for marker in (
+        "SESSLEN         equ     0c5a6h",
+        "HOTDATA1        equ     0c5c0h",
+        "HOTDATA2        equ     0d3c0h",
+        "HDSEL1:",
+        "jnz     HDMISS",
+    ):
+        if marker not in hot_directory:
+            raise AssertionError(f"session/cache arbitration missing: {marker}")
+    if "-P0xd440 $(BUILD)/cpm3-session.rel" not in makefile:
+        raise AssertionError(
+            "volatile-session service is not linked in the session profile"
+        )
     adapter = ADAPTER.read_text()
     if "mvi     a,04eh" not in adapter:
         raise AssertionError("native adapter presence marker is missing")
@@ -83,10 +112,22 @@ def main() -> int:
         raise AssertionError("native system container changed size")
     if FASTBOOT.read_bytes()[4:7] != b"F15":
         raise AssertionError("native V15 bootstrap header is missing")
+    adapter = SESSION_ADAPTER.read_bytes()
+    if len(adapter) > 0x1571:
+        raise AssertionError(
+            "extended adapter overlaps CCP history at D571h"
+        )
+    session_record = adapter[0x1440:0x14C0]
+    if not any(session_record) or any(session_record[119:]):
+        raise AssertionError(
+            "volatile-session service does not fit D440h..D4BFh"
+        )
+    if not any(adapter[0x14C0:]):
+        raise AssertionError("hot-directory service is missing at D4C0h")
     print(
         "CPM3-NATIVE-SERVICES: PASS "
         "(nonzero-user CCP reload, device, MULTIO, FLUSH, MOVE, TIME, USERF, "
-        "status/diag publish)"
+        "status/diag publish, keyed volatile session)"
     )
     return 0
 

@@ -6,8 +6,10 @@
 ;
 ; C6's resident NetDisk cache holds one eight-record reply per drive. CP/M 3
 ; revisits the first three directory records after its initial scan, by which
-; time that reply has been displaced by later directory groups. Preserve only
-; those measured hot records in otherwise unused high RAM. The cache is
+; time that reply has been displaced by later directory groups. Preserve
+; the measured records in otherwise unused high RAM. The ordinary profile
+; retains all three. SESSION_STATE reserves record 3 for service code and lets
+; its payload claim record 2 while keeping record 1 independently cached. The cache is
 ; read-only, shared by the currently active drive, and invalidated before any
 ; write to that drive. It therefore cannot weaken synchronous write-through.
 
@@ -22,11 +24,10 @@ SEKTRK          equ     0c93bh
 SEKSEC          equ     0c93dh
 MEMADR          equ     0c94eh
 
-; C5A0h..C63Fh is the measured gap between extended N4 code and native state.
-; Keeping one record there lets the module end below the ROM resident-entry
-; self-test's D5C0h..D5FFh stack/guard area.
+; SESSION_STATE uses D3C0h for its payload and D440h for service code.
 HOTVALID        equ     0c5a0h
 HOTDRIVE        equ     0c5a1h
+SESSLEN         equ     0c5a6h
 HOTDATA1        equ     0c5c0h
 HOTDATA2        equ     0d3c0h
 HOTDATA3        equ     0d440h
@@ -34,6 +35,9 @@ HOTDATA3        equ     0d440h
 HDINIT:
         xra     a
         sta     HOTVALID
+.ifdef SESSION_STATE
+        sta     SESSLEN
+.endif
         dcr     a
         sta     HOTDRIVE
         ret
@@ -110,7 +114,7 @@ HDINVAL:
         sta     HOTVALID
         ret
 
-; Select one of track 2's translated sectors 1, 2, or 3. Return its cache
+; Select one of track 2's translated hot sectors. Return its cache
 ; pointer in HL and validity mask in C, or carry set when the key is not hot.
 HDSELECT:
         lda     SEKDSK
@@ -127,16 +131,27 @@ HDSELECT:
         jz      HDSEL1
         cpi     2
         jz      HDSEL2
+.ifdef SESSION_STATE
+        jmp     HDMISS
+.else
         cpi     3
         jnz     HDMISS
         mvi     c,4
         lxi     h,HOTDATA3
         ora     a
         ret
+.endif
 HDSEL2:
+.ifdef SESSION_STATE
+        lda     SESSLEN
+        ora     a
+        jnz     HDMISS
+.endif
         mvi     c,2
         lxi     h,HOTDATA2
+.ifndef SESSION_STATE
         ora     a
+.endif
         ret
 HDSEL1:
         mvi     c,1

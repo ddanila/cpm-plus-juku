@@ -1,0 +1,18 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "native-recovery.json",
+  "name": "volatile-session-test-a",
+  "description": "Recovery A: plus generic volatile-session USERF regression",
+  "files": [
+    {
+      "source": "build/sessioncheck.cim",
+      "destination": "0:SESSION.COM",
+      "attributes": "s",
+      "provenance": {
+        "source": "src/sessioncheck.asm",
+        "version": "cpm-plus-juku build",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}
