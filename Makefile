@@ -1457,8 +1457,9 @@ $(NATIVE_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
 	$(PYTHON) tools/build_volume.py --profile volume/profiles/native-test.json \
 		--output $@
 
-$(SESSION_TEST_VOLUME): third_party/cpm3/ccp.com $(BUILD)/diag.cim \
-		$(BUILD)/wboot-user.cim $(BUILD)/status.cim $(BUILD)/keytest.cim \
+$(SESSION_TEST_VOLUME): third_party/cpm3/ccp.com $(C4_DIAG) \
+		$(BUILD)/wboot.cim $(BUILD)/diag.cim $(BUILD)/wboot-user.cim \
+		$(BUILD)/status.cim $(BUILD)/keytest.cim \
 		$(BUILD)/sessioncheck.cim \
 		volume/README.txt volume/profiles/recovery.json \
 		volume/profiles/native-recovery.json volume/profiles/session-test.json \
