@@ -1,0 +1,7 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "c10-full.json",
+  "name": "c11-full-a",
+  "description": "C11 ABI 1.4 deterministic POST and full-raster-clear qualification A:",
+  "files": []
+}

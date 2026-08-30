@@ -1045,8 +1045,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     if service_release is None and os.environ.get(
                             "CPM_PLUS_JUKU_QUICK_C8_SERVICES") == "1":
                         service_release = "c8"
-                    if service_release in ("c8", "c9", "c10"):
-                        service_abi = b"01.04" if service_release in ("c9", "c10") \
+                    if service_release in ("c8", "c9", "c10", "c11"):
+                        service_abi = b"01.04" if service_release in (
+                            "c9", "c10", "c11",
+                        ) \
                             else b"01.03"
                         send_console(b"STATUS\r")
                         status = read_until(b"A>", command_timeout)
@@ -1054,10 +1056,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             b"ROM: Juku ABI " + service_abi in status
                             and b"TPA 0100-9BFF" in status
                             and b"BIOS BE00-C1FF" in status
-                            and (service_release not in ("c9", "c10") or
+                            and (service_release not in ("c9", "c10", "c11") or
                                  (b"N4 state flags:" in status and
                                   b"N4 failure reason: none" in status))
-                            and (service_release != "c10" or
+                            and (service_release not in ("c10", "c11") or
                                  (b"Juku Status 1.5" in status and
                                   b"PPI0 Port C: 01" in status and
                                   b"POF: released (picture enabled)" in status)),
@@ -1090,6 +1092,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                 or (service_release == "c10" and
                                     b"JukuNet C10 ROM ABI 1.4" in diagnostic
                                     and b"Juku Diag 0.7" in diagnostic)
+                                or (service_release == "c11" and
+                                    b"JukuNet C11 ROM ABI 1.4 deterministic "
+                                    b"POST raster" in diagnostic
+                                    and b"Juku Diag 0.7" in diagnostic)
                             )
                             and b"Usage: DIAG" not in diagnostic,
                             f"{service_release.upper()} diagnostic report "
@@ -1099,7 +1105,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             f"COSIM {case.name}: "
                             f"{service_release.upper()} DIAG", flush=True,
                         )
-                        if service_release == "c10":
+                        if service_release in ("c10", "c11"):
                             send_console(b"DIAG VIDEO\r")
                             video_diagnostic = read_until(
                                 b"A>", command_timeout,
@@ -1107,11 +1113,13 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             require(
                                 b"Video enable/console state: PASS" in
                                 video_diagnostic,
-                                "C10 POF video diagnostic differs: "
+                                f"{service_release.upper()} POF video "
+                                "diagnostic differs: "
                                 f"{video_diagnostic!r}",
                             )
                             print(
-                                f"COSIM {case.name}: C10 DIAG VIDEO",
+                                f"COSIM {case.name}: "
+                                f"{service_release.upper()} DIAG VIDEO",
                                 flush=True,
                             )
                         send_console(b"WBOOT\r")
@@ -1137,7 +1145,9 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         f"JUKU CP/M PLUS 3.1: PASS ({boot_label}, A>, DIR, "
                         + (
                             "VER, STATUS, DIAG, WBOOT)"
-                            if service_release in ("c8", "c9", "c10") else "VER)"
+                            if service_release in (
+                                "c8", "c9", "c10", "c11",
+                            ) else "VER)"
                         ),
                         flush=True,
                     )

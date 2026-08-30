@@ -116,6 +116,28 @@ VARIANTS = {
             "promotion step."
         ),
     },
+    "c11": {
+        "candidate": "cpm-plus-3.1-juku-c11-post-raster-candidate",
+        "abi": "1.4",
+        "rom_stem": "juku-network-rom-abi1.4-c11",
+        "manifest": "cpm-plus-juku-c11-manifest.json",
+        "system": "cpm-plus-juku-network-rom-c11-system.bin",
+        "fast_stage": "cpm-plus-juku-network-rom-c11-fastboot-v16.bin",
+        "recovery": "cpm-plus-juku-c6-recovery",
+        "full": "cpm-plus-juku-c11-full",
+        "adapter": "adapter-romabi-c11-native.bin",
+        "status": "desk-qualified and ready for focused physical programming",
+        "target": "Juku CS00000 deterministic POST and complete-raster acceptance",
+        "qualification": (
+            "It preserves the exact C10 CP/M system, Fastboot, and adapter, "
+            "while\nmaking the pre-boot picture a deterministic 8x8 "
+            "checkerboard and clearing\nthe complete physical raster before "
+            "the CP/M console is exposed. C10 remains\nbyte-identical. All "
+            "desk, ABI, framebuffer, CP/M, native-host, replacement,\npackage, "
+            "and reproducibility gates pass. Physical acceptance is focused "
+            "on\nthe checkerboard quality and absence of a retained bottom raster line."
+        ),
+    },
 }
 
 
@@ -192,12 +214,12 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
         out / "cpm-plus-juku-apps.report.json",
         ROOT / "LICENSE", ROOT / "NOTICE.md",
     ]
-    if variant == "c10":
+    if variant in ("c10", "c11"):
         sources.extend([
-            ROOT / "docs/c10-physical-acceptance-worksheet.md",
-            ROOT / "physical/workloads/c10-cold.json",
-            ROOT / "physical/workloads/c10-display.json",
-            ROOT / "physical/workloads/c10-full.json",
+            ROOT / f"docs/{variant}-physical-acceptance-worksheet.md",
+            ROOT / f"physical/workloads/{variant}-cold.json",
+            ROOT / f"physical/workloads/{variant}-display.json",
+            ROOT / f"physical/workloads/{variant}-full.json",
         ])
     missing = [str(path) for path in sources if not path.is_file()]
     if missing:
@@ -224,16 +246,16 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             shutil.copyfile(source, temporary / source.name)
 
         build_map_path = temporary / "memory-map.json"
-        adapter_start = 0xC200 if variant in ("c9", "c10") else 0xC000
+        adapter_start = 0xC200 if variant in ("c9", "c10", "c11") else 0xC000
         adapter_end = adapter_start + adapter.stat().st_size - 1
         ram_map = {
             "transient": ("0100h..9BFFh (39680 bytes)"
-                          if variant in ("c9", "c10")
+                          if variant in ("c9", "c10", "c11")
                           else "0100h..99FFh (39168 bytes)"),
-            "loader": "9C00h..9EFFh" if variant in ("c9", "c10") else "9A00h..9CFFh",
-            "bdos": "9F00h..BD9Bh" if variant in ("c9", "c10") else "9D00h..BB9Bh",
-            "scb": "BD9Ch..BDFFh" if variant in ("c9", "c10") else "BB9Ch..BBFFh",
-            "bios": "BE00h..BFFFh" if variant in ("c9", "c10") else "BC00h..BFFFh",
+            "loader": "9C00h..9EFFh" if variant in ("c9", "c10", "c11") else "9A00h..9CFFh",
+            "bdos": "9F00h..BD9Bh" if variant in ("c9", "c10", "c11") else "9D00h..BB9Bh",
+            "scb": "BD9Ch..BDFFh" if variant in ("c9", "c10", "c11") else "BB9Ch..BBFFh",
+            "bios": "BE00h..BFFFh" if variant in ("c9", "c10", "c11") else "BC00h..BFFFh",
             "adapter": (
                 f"{adapter_start:04X}h..{adapter_end:04X}h "
                 f"({adapter.stat().st_size} bytes)"
@@ -244,6 +266,11 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             "resident_state": "D780h",
             "framebuffer": "D800h..FD7Fh (9600 bytes, mode 3 RAM)",
         }
+        if variant == "c11":
+            ram_map["physical_raster_clear"] = (
+                "D800h..FDAFh (9648-byte safe envelope; visible raster is "
+                "mode-dependent)"
+            )
         if variant in ("c6", "c7"):
             ram_map.update({
                 "netdisk_hot_directory_state": "C5A0h..C5A1h (2 bytes)",
@@ -266,7 +293,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             },
             "ram": ram_map,
             "tpa_gain_over_frozen_ram_bios": (
-                8704 if variant in ("c9", "c10") else 8192
+                8704 if variant in ("c9", "c10", "c11") else 8192
             ),
             "bindings": {
                 "rom_sha256": sha256(rom),
@@ -310,7 +337,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             if variant == "c9" else
             ({"physical_programming_ready": True,
               "programmer_order": rom_order}
-             if variant == "c10" else
+             if variant in ("c10", "c11") else
              {"programmer_order": rom_order})
         )
         package_manifest = {

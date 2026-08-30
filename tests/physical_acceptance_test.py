@@ -183,8 +183,9 @@ def resume_workload_test() -> None:
     console = acceptance.N4Console(master)
     boot, commands = acceptance.execute_workload(
         console,
-        {"boot_expect": ["A>"], "commands": [
-            {"name": "dir", "command": "DIR", "expect": ["DIAG"]},
+        {"boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"], "commands": [
+            {"name": "dir", "command": "DIR", "expect": ["COLD ONLY"],
+             "resume_expect": ["DIAG"]},
         ]},
         operator_wait=2, command_timeout=2, resume=True,
         emit=lambda event, **_fields: events.append(event),

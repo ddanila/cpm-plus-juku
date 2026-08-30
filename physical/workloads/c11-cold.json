@@ -1,12 +1,9 @@
 {
   "schema": "cpm-plus-juku-physical-workload-v1",
-  "name": "c10-cold",
-  "volume_profile": "c10-full-a",
+  "name": "c11-cold",
+  "volume_profile": "c11-full-a",
   "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
-  "required_coverage": [
-    "DIAG.COM",
-    "STATUS.COM"
-  ],
+  "required_coverage": ["DIAG.COM", "STATUS.COM"],
   "commands": [
     {
       "name": "status-cold",
@@ -38,6 +35,7 @@
       "command": "DIAG ALL",
       "expect": [
         "Juku Diag 0.7",
+        "JukuNet C11 ROM ABI 1.4 deterministic POST raster 2026-08-29",
         "CPU: PASS",
         "RAM data: PASS",
         "RAM address: PASS",

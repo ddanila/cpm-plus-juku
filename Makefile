@@ -52,6 +52,8 @@ C9_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-c9-system.bin
 C9_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-c9-fastboot-v16.bin
 C10_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-c10-system.bin
 C10_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-c10-fastboot-v16.bin
+C11_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-c11-system.bin
+C11_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-c11-fastboot-v16.bin
 CONTROL_NATIVE_ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-control-system.bin
 CONTROL_NATIVE_ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-control-fastboot-v16.bin
 NATIVE_TEST_VOLUME := $(OUT)/cpm-plus-juku-native-test.img
@@ -88,6 +90,7 @@ C6_RECOVERY_REPORT := $(OUT)/cpm-plus-juku-c6-recovery.report.json
 C7_RELEASE := $(OUT)/cpm-plus-3.1-juku-c7-modified-raw-bench
 C9_RELEASE := $(OUT)/cpm-plus-3.1-juku-c9-bounded-host-simulator
 C10_RELEASE := $(OUT)/cpm-plus-3.1-juku-c10-pof-release-candidate
+C11_RELEASE := $(OUT)/cpm-plus-3.1-juku-c11-post-raster-candidate
 C7_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c7-manifest.json
 C7_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c7.bin
 C7_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.2-c7.json
@@ -104,6 +107,11 @@ C10_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.4-c10.bin
 C10_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.4-c10.json
 C10_FULL_VOLUME := $(OUT)/cpm-plus-juku-c10-full.img
 C10_FULL_REPORT := $(OUT)/cpm-plus-juku-c10-full.report.json
+C11_BOOT_MANIFEST := $(OUT)/cpm-plus-juku-c11-manifest.json
+C11_ROM := $(C5_ROM_DIR)/juku-network-rom-abi1.4-c11.bin
+C11_ROM_METADATA := $(C5_ROM_DIR)/juku-network-rom-abi1.4-c11.json
+C11_FULL_VOLUME := $(OUT)/cpm-plus-juku-c11-full.img
+C11_FULL_REPORT := $(OUT)/cpm-plus-juku-c11-full.report.json
 HISTORY_CCP := $(BUILD)/cpm3-history/CCP.COM
 HISTORY_CCP_MANIFEST := $(BUILD)/cpm3-history/manifest.json
 HISTORY_RUNTIME_METRICS := $(BUILD)/cpm3-history-runtime.json
@@ -126,13 +134,14 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	netdisk-performance-check physical-performance-check physical-closure-check \
 	cpm3-toolchain cpm3-system-check native-services-check \
 	manifest-check c5-manifest-check c6-manifest-check c7-manifest-check \
-	c8-check c9-check c10-check \
+	c8-check c9-check c10-check c11-check \
 	session-state session-state-check \
 	release-candidate release-candidate-check \
 	c6-release-candidate c6-release-candidate-check \
 	c7-bench-candidate c7-bench-candidate-check \
 	c9-simulator-candidate c9-simulator-candidate-check \
 	c10-release-candidate c10-release-candidate-check \
+	c11-release-candidate c11-release-candidate-check \
 	regenerate-cpm3 regenerate-cpm3-rom \
 	network-rom-locale-cosim-check network-rom-extended-local-cosim-check \
 	network-rom-extended-cosim-check \
@@ -575,6 +584,19 @@ c10-release-candidate:
 c10-release-candidate-check: $(C10_BOOT_MANIFEST)
 	$(PYTHON) tests/c10_release_candidate_test.py
 
+c11-release-candidate:
+	$(PYTHON) $(JUKU_COSIM_ROOT)/spinoffs/jukuravi/network-rom/build_network_rom.py
+	$(JUKU_COSIM_ROOT)/sync/network_first_rom_abi_check.sh
+	$(JUKU_COSIM_ROOT)/sync/network_first_rom_hdl_check.sh
+	$(MAKE) c11-check
+	$(JUKU_COSIM_ROOT)/sync/jukuhost_linux_build.sh
+	$(JUKU_COSIM_ROOT)/sync/jukuhost_c11_cosim_check.sh
+	$(PYTHON) tools/package_release_candidate.py --variant c11 --output $(C11_RELEASE)
+	$(PYTHON) tests/c11_release_candidate_test.py
+
+c11-release-candidate-check: $(C11_BOOT_MANIFEST)
+	$(PYTHON) tests/c11_release_candidate_test.py
+
 network-rom-cosim-check: all
 	CPM_PLUS_JUKU_BOOT_PATH=network $(PYTHON) tests/cosim_check.py
 
@@ -759,6 +781,42 @@ c10-check: $(C10_BOOT_MANIFEST) $(SYSTEM) $(FASTBOOT) \
 	CPM_PLUS_JUKU_ROM_SYSTEM=$(C10_NATIVE_ROM_SYSTEM) \
 	CPM_PLUS_JUKU_ROM_FASTBOOT=$(C10_NATIVE_ROM_FASTBOOT) \
 	CPM_PLUS_JUKU_VOLUME=$(C10_FULL_VOLUME) \
+	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x08 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_REMOTE_IDLE_DELAY=0 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=4 \
+	$(PYTHON) tests/cosim_check.py
+
+c11-check: $(C11_BOOT_MANIFEST) $(SYSTEM) $(FASTBOOT) \
+		$(C10_NATIVE_ROM_SYSTEM) $(C10_NATIVE_ROM_FASTBOOT)
+	$(PYTHON) tests/c11_layout_test.py
+	$(PYTHON) tests/c10_video_observability_test.py
+	CPM_PLUS_JUKU_QUICK_SMOKE=1 \
+	CPM_PLUS_JUKU_QUICK_HOST_SERVICES=c11 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-smoke \
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C11_ROM) \
+	CPM_PLUS_JUKU_BOOT_HOST_DELAY=2 \
+	CPM_PLUS_JUKU_DISCARD_BOOT_READY=1 \
+	CPM_PLUS_JUKU_EXPECT_AUTO_READY_SEEN=0 \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(C11_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(C11_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(C11_FULL_VOLUME) \
+	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
+	CPM_PLUS_JUKU_S21_EXTRA=0x08 \
+	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
+	CPM_PLUS_JUKU_EXPECT_BOOT_ABI_MINOR=4 \
+	$(PYTHON) tests/cosim_check.py
+	CPM_PLUS_JUKU_QUICK_SMOKE=1 \
+	CPM_PLUS_JUKU_QUICK_HOST_SERVICES=c11 \
+	CPM_PLUS_JUKU_BOOT_PATH=network-remote \
+	CPM_PLUS_JUKU_NETWORK_ROM=$(C11_ROM) \
+	CPM_PLUS_JUKU_BOOT_HOST_DELAY=2 \
+	CPM_PLUS_JUKU_DISCARD_BOOT_READY=1 \
+	CPM_PLUS_JUKU_EXPECT_AUTO_READY_SEEN=0 \
+	CPM_PLUS_JUKU_ROM_SYSTEM=$(C11_NATIVE_ROM_SYSTEM) \
+	CPM_PLUS_JUKU_ROM_FASTBOOT=$(C11_NATIVE_ROM_FASTBOOT) \
+	CPM_PLUS_JUKU_VOLUME=$(C11_FULL_VOLUME) \
 	CPM_PLUS_JUKU_DRIVE_B=$(APPS_VOLUME) \
 	CPM_PLUS_JUKU_S21_EXTRA=0x08 \
 	CPM_PLUS_JUKU_REALTIME_HZ=20000000 \
@@ -1146,6 +1204,10 @@ $(BUILD)/adapter-romabi-c10-native.bin: \
 		$(BUILD)/adapter-romabi-c9-native.bin
 	cp $< $@
 
+$(BUILD)/adapter-romabi-c11-native.bin: \
+		$(BUILD)/adapter-romabi-c10-native.bin
+	cp $< $@
+
 $(BUILD)/adapter-romabi-extended-control.all: \
 		$(BUILD)/platform-adapter-romabi-extended-control.rel \
 		$(BUILD)/netconsole-romabi-extended-native.rel \
@@ -1226,6 +1288,9 @@ $(C9_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-c9-native.bin \
 # C10 changes only reset-time ROM hardware initialization. Keep the complete
 # C9 loaded system byte-identical under a separately bound C10 filename.
 $(C10_NATIVE_ROM_SYSTEM): $(C9_NATIVE_ROM_SYSTEM) | $(OUT)
+	cp $< $@
+
+$(C11_NATIVE_ROM_SYSTEM): $(C10_NATIVE_ROM_SYSTEM) | $(OUT)
 	cp $< $@
 
 $(CONTROL_NATIVE_ROM_SYSTEM): $(BUILD)/adapter-romabi-extended-control.bin \
@@ -1329,6 +1394,9 @@ $(C9_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
 		$(C9_NATIVE_ROM_SYSTEM) $(ZX0) $@
 
 $(C10_NATIVE_ROM_FASTBOOT): $(C9_NATIVE_ROM_FASTBOOT) | $(OUT)
+	cp $< $@
+
+$(C11_NATIVE_ROM_FASTBOOT): $(C10_NATIVE_ROM_FASTBOOT) | $(OUT)
 	cp $< $@
 
 $(CONTROL_NATIVE_ROM_FASTBOOT): $(BUILD)/fastboot-core-v16.cim \
@@ -1569,6 +1637,17 @@ $(C10_FULL_VOLUME): $(C9_FULL_VOLUME) $(FULL_VOLUME) $(BUILD)/status-c10.cim \
 $(C10_FULL_REPORT): $(C10_FULL_VOLUME)
 	@test -f $@ || $(BUILD_C10_FULL_VOLUME)
 
+BUILD_C11_FULL_VOLUME := $(PYTHON) tools/build_volume.py \
+	--profile volume/profiles/c11-full.json \
+	--output $(C11_FULL_VOLUME) --report $(C11_FULL_REPORT)
+
+$(C11_FULL_VOLUME): $(C10_FULL_VOLUME) volume/profiles/c10-full.json \
+		volume/profiles/c11-full.json tools/build_volume.py diskdefs | $(OUT)
+	$(BUILD_C11_FULL_VOLUME)
+
+$(C11_FULL_REPORT): $(C11_FULL_VOLUME)
+	@test -f $@ || $(BUILD_C11_FULL_VOLUME)
+
 BUILD_DEV_VOLUME := $(PYTHON) tools/build_volume.py \
 	--profile volume/profiles/dev.json \
 	--output $(DEV_VOLUME) --report $(DEV_REPORT)
@@ -1744,6 +1823,27 @@ $(C10_BOOT_MANIFEST): $(C10_NATIVE_ROM_SYSTEM) \
 		--primary-slot-name c10-native \
 		--volume $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
 		--volume $(C10_FULL_VOLUME) $(C10_FULL_REPORT) \
+		--volume $(DEV_VOLUME) $(DEV_REPORT) \
+		--volume $(APPS_VOLUME) $(APPS_REPORT) \
+		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@
+
+$(C11_BOOT_MANIFEST): $(C11_NATIVE_ROM_SYSTEM) \
+		$(C11_NATIVE_ROM_FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) \
+		$(BUILD)/adapter-romabi-c11-native.bin \
+		$(C11_ROM) $(C11_ROM_METADATA) \
+		$(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
+		$(C11_FULL_VOLUME) $(C11_FULL_REPORT) \
+		$(DEV_VOLUME) $(DEV_REPORT) $(APPS_VOLUME) $(APPS_REPORT) \
+		$(DEMO_VOLUME) $(DEMO_REPORT) tools/build_boot_manifest.py | $(OUT)
+	$(PYTHON) tools/build_boot_manifest.py \
+		--system $(C11_NATIVE_ROM_SYSTEM) \
+		--fast-stage $(C11_NATIVE_ROM_FASTBOOT) \
+		--fallback-system $(ROM_SYSTEM) --fallback-fast-stage $(ROM_FASTBOOT) \
+		--rom $(C11_ROM) --rom-metadata $(C11_ROM_METADATA) \
+		--rom-abi 1.4 --identity-prefix c11 \
+		--primary-slot-name c11-native \
+		--volume $(C6_RECOVERY_VOLUME) $(C6_RECOVERY_REPORT) \
+		--volume $(C11_FULL_VOLUME) $(C11_FULL_REPORT) \
 		--volume $(DEV_VOLUME) $(DEV_REPORT) \
 		--volume $(APPS_VOLUME) $(APPS_REPORT) \
 		--volume $(DEMO_VOLUME) $(DEMO_REPORT) --output $@

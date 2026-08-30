@@ -68,6 +68,9 @@ PROFILE_VOLUMES = {
     "c10-cold": "c10-full-a",
     "c10-display": "c10-full-a",
     "c10-full": "c10-full-a",
+    "c11-cold": "c11-full-a",
+    "c11-display": "c11-full-a",
+    "c11-full": "c11-full-a",
 }
 PROFILE_ROM_CANDIDATES = {
     "c7-raw": "network-first-abi1.2-c7-modified-raw-simulator",
@@ -89,6 +92,9 @@ PROFILE_ROM_CANDIDATES = {
     "c10-cold": "network-first-abi1.4-c10-pof-release-candidate",
     "c10-display": "network-first-abi1.4-c10-pof-release-candidate",
     "c10-full": "network-first-abi1.4-c10-pof-release-candidate",
+    "c11-cold": "network-first-abi1.4-c11-post-raster-candidate",
+    "c11-display": "network-first-abi1.4-c11-post-raster-candidate",
+    "c11-full": "network-first-abi1.4-c11-post-raster-candidate",
 }
 PROFILE_ROM_ABIS = {
     "c8-blind": "1.3",
@@ -109,6 +115,9 @@ PROFILE_ROM_ABIS = {
     "c10-cold": "1.4",
     "c10-display": "1.4",
     "c10-full": "1.4",
+    "c11-cold": "1.4",
+    "c11-display": "1.4",
+    "c11-full": "1.4",
 }
 DEFAULT_ROM_CANDIDATE = "network-first-abi1.2-c6-simulator"
 
@@ -312,9 +321,12 @@ def load_workload(profile: str, path: Path | None = None) \
             raise AcceptanceError(f"duplicate workload command name: {name}")
         names.add(name)
         expected = command.get("expect", [])
+        resume_expected = command.get("resume_expect", expected)
         steps = command.get("steps", [])
         if not isinstance(expected, list) or \
                 not all(isinstance(value, str) for value in expected) or \
+                not isinstance(resume_expected, list) or \
+                not all(isinstance(value, str) for value in resume_expected) or \
                 not isinstance(steps, list):
             raise AcceptanceError(f"workload command {name} checks are malformed")
         for step in steps:
@@ -393,11 +405,11 @@ def load_workload(profile: str, path: Path | None = None) \
         admitted = {"README.TXT"}
     elif profile == "c9-recovery-transition":
         admitted = {"N4BULK.COM", "SOAK.COM"}
-    elif profile == "c10-cold":
+    elif profile in ("c10-cold", "c11-cold"):
         admitted = {"DIAG.COM", "STATUS.COM"}
-    elif profile == "c10-display":
+    elif profile in ("c10-display", "c11-display"):
         admitted = {"VIDTEST.COM"}
-    elif profile == "c10-full":
+    elif profile in ("c10-full", "c11-full"):
         admitted = {
             "DATE.COM", "DIAG.COM", "PIP.COM", "README.TXT",
             "STATUS.COM", "VER.COM", "WBOOT.COM",
@@ -530,7 +542,9 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
     boot_end = console.wait_for(b"A>", start=0, timeout=operator_wait)
     boot_ended = time.monotonic()
     banner = bytes(console.transcript[:boot_end])
-    expected_banner = list(workload["boot_expect"])
+    # A resumed host can only elicit the current CCP prompt; the cold-boot
+    # banner belongs to the preceding cold session and cannot be replayed.
+    expected_banner = ["A>"] if resume else list(workload["boot_expect"])
     missing_banner = [marker for marker in expected_banner
                       if marker.encode("ascii") not in banner]
     if missing_banner:
@@ -557,7 +571,9 @@ def execute_workload(console: N4Console, workload: dict[str, Any], *,
     for item in workload["commands"]:
         name = item["name"]
         command = item["command"]
-        expected = list(item.get("expect", []))
+        expected = list(item.get(
+            "resume_expect" if resume else "expect", item.get("expect", []),
+        ))
         prompt = item.get("prompt", "A>")
         timeout = float(item.get("timeout", command_timeout))
         start = len(console.transcript)
@@ -1274,7 +1290,8 @@ def audit_directory(directory: Path) -> list[str]:
         boot_response = transcript[boot_start:boot_end]
         if sha256_bytes(boot_response) != boot.get("response_sha256"):
             failures.append("target boot transcript hash differs")
-        for marker in workload["boot_expect"]:
+        expected_boot = ["A>"] if resume else workload["boot_expect"]
+        for marker in expected_boot:
             if marker.encode("ascii") not in boot_response:
                 failures.append(f"target boot banner lacks {marker!r}")
     commands = result.get("commands")
@@ -1299,7 +1316,9 @@ def audit_directory(directory: Path) -> list[str]:
         prompt = expected_command.get("prompt", "A>")
         if prompt.encode("ascii") not in response:
             failures.append(f"command prompt is missing: {command['name']}")
-        for marker in expected_command.get("expect", []):
+        expectation_key = "resume_expect" if resume else "expect"
+        for marker in expected_command.get(
+                expectation_key, expected_command.get("expect", [])):
             if marker.encode("ascii") not in response:
                 failures.append(
                     f"command reply lacks {marker!r}: {command['name']}"

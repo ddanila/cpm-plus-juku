@@ -1,16 +1,11 @@
 {
   "schema": "cpm-plus-juku-physical-workload-v1",
-  "name": "c10-full",
-  "volume_profile": "c10-full-a",
+  "name": "c11-full",
+  "volume_profile": "c11-full-a",
   "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
   "required_coverage": [
-    "DATE.COM",
-    "DIAG.COM",
-    "PIP.COM",
-    "README.TXT",
-    "STATUS.COM",
-    "VER.COM",
-    "WBOOT.COM"
+    "DATE.COM", "DIAG.COM", "PIP.COM", "README.TXT",
+    "STATUS.COM", "VER.COM", "WBOOT.COM"
   ],
   "commands": [
     {
@@ -66,7 +61,7 @@
       "command": "DIAG ALL",
       "expect": [
         "Juku Diag 0.7",
-        "ROM: JukuNet ROM ABI 01.04",
+        "JukuNet C11 ROM ABI 1.4 deterministic POST raster 2026-08-29",
         "CPU: PASS",
         "RAM data: PASS",
         "RAM address: PASS",
@@ -82,39 +77,28 @@
     },
     {
       "name": "pip-copy",
-      "command": "PIP C10COPY.TXT=README.TXT",
+      "command": "PIP C11COPY.TXT=README.TXT",
       "coverage": ["PIP.COM"]
     },
     {
       "name": "type-copy",
-      "command": "TYPE C10COPY.TXT",
+      "command": "TYPE C11COPY.TXT",
       "expect": ["host-backed NetDisk-v3", "Project:"]
     },
-    {
-      "name": "erase-copy",
-      "command": "ERA C10COPY.TXT"
-    },
+    {"name": "erase-copy", "command": "ERA C11COPY.TXT"},
     {
       "name": "dir-after-erase",
       "command": "DIR",
       "expect": ["DIAG", "PIP", "README", "STATUS", "VER"]
     },
-    {
-      "name": "select-b",
-      "command": "B:",
-      "prompt": "B>"
-    },
+    {"name": "select-b", "command": "B:", "prompt": "B>"},
     {
       "name": "dir-b",
       "command": "DIR",
       "prompt": "B>",
       "expect": ["DIAG", "README"]
     },
-    {
-      "name": "select-a",
-      "command": "A:",
-      "prompt": "A>"
-    },
+    {"name": "select-a", "command": "A:", "prompt": "A>"},
     {
       "name": "warm-boot",
       "command": "WBOOT",
