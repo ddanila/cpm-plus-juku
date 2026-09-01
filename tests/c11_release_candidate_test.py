@@ -66,11 +66,14 @@ def main() -> int:
         clear = metadata.get("console", {}).get(
             "physical_raster_clear_bytes", {})
         if metadata.get("status") != \
-                "deterministic POST/raster simulator candidate; C10 remains immutable" or \
+                "deterministic POST/raster/recovery simulator candidate; C10 remains immutable" or \
                 video.get("release_after") != \
                 "deterministic-320x241-checkerboard" or \
                 video.get("checkerboard") != "8x8-full-raster" or \
-                clear.get("implementation_envelope") != 9648:
+                clear.get("implementation_envelope") != 9648 or \
+                metadata.get("embedded_fastboot_extension_bytes") != 456 or \
+                metadata.get("boot_discovery", {}).get("frame") != \
+                "4A 42 0B 01 02":
             raise AssertionError("C11 ROM raster metadata differs")
         if (first / f"{stem}-d15.bin").read_bytes() + \
                 (first / f"{stem}-d16.bin").read_bytes() != \

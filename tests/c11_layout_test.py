@@ -70,6 +70,15 @@ def main() -> int:
         "00": 9640, "01": 9640, "10": 9648, "11": 9600,
         "implementation_envelope": 9648,
     }, "C11 physical-raster clear metadata differs")
+    require(metadata.get("embedded_fastboot_extension_bytes") == 456 and
+            metadata.get("boot_discovery") == {
+                "framing": "19200-8O1",
+                "frame": "4A 42 0B 01 02",
+                "copies_per_interval": 2,
+                "idle_interval": "approximately 1 second at 1.7 MHz",
+                "fastboot_framing": "19200-8N1",
+                "scope": "idle JZ scanner only; payload receive remains blocking",
+            }, "C11 session-recovery metadata differs")
     require(b"JukuNet C11 ROM ABI 1.4 deterministic POST raster" in rom,
             "C11 resident identity differs")
 
@@ -98,7 +107,8 @@ def main() -> int:
     print(
         "C11-LAYOUT-TEST: PASS "
         f"ROM {digest(rom)}; D15 {digest(d15)}; D16 {digest(d16)}; "
-        "checker helper 47 bytes; clear envelope 9648; C10 carry-forward exact"
+        "checker helper 47 bytes; loader 456 bytes; clear envelope 9648; "
+        "C10 carry-forward exact"
     )
     return 0
 

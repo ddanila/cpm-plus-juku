@@ -1,6 +1,6 @@
 # JukuNet C11 programming and physical acceptance worksheet
 
-Status: **DESK-QUALIFIED; ROM PAIR READY TO PROGRAM; FOCUSED PHYSICAL ACCEPTANCE PENDING**
+Status: **RASTER/SESSION-RECOVERY DESK-QUALIFIED; ROM PAIR READY TO PROGRAM; FOCUSED PHYSICAL ACCEPTANCE PENDING**
 
 C11 keeps C10's proved PC7/POF video-enable fix and the exact C10 CP/M Plus
 system, Fastboot V16 stage, and resident adapter. It changes two visible raster
@@ -8,7 +8,10 @@ details: the power-on picture is initialized as a deterministic 8x8
 checkerboard before POF is released, and console initialization clears a safe
 9,648-byte envelope covering every supported physical raster. This addresses
 the random pixels in the power-on checkerboard and the retained bottom line in
-mode 0 without changing the 9,600-byte text surface.
+mode 0 without changing the 9,600-byte text surface. The revised, still
+unprogrammed C11 D15 also adds the checked 8O1 boot-discovery beacon used by
+the production host's passive `--recover-session` state machine. The earlier
+pre-recovery C11 D15 is superseded and must not be programmed.
 
 ## Frozen programming inputs
 
@@ -16,8 +19,8 @@ Program D15 first as the low 8 KiB half and D16 second as the high 8 KiB half.
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
-| combined C11 ROM | 16,384 | `49af4137be8cab2a487ccec0ac264e964b75f6699ebea8baf0f1a29d1ce292dc` |
-| D15 low half | 8,192 | `4040833d71fe9029d9cf5bc261b76b57edb87528d1d624e6b003fb2208bf2187` |
+| combined C11 ROM | 16,384 | `b93428bb33cd7e31c2d9b2b84aa07ea17edda76c9d53ab73b3cb8687e8d53dfd` |
+| D15 low half | 8,192 | `a94e8fa2911fd3f7e715c6086d237b45fe630e71e8e14786bdcce435d99a8134` |
 | D16 high half | 8,192 | `ac80ca047adeff842a911266ff1c054e30ac4628e925ea9fbb1be54e872b9581` |
 
 - D15 source: `juku-network-rom-abi1.4-c11-d15.bin`
@@ -26,6 +29,11 @@ Program D15 first as the low 8 KiB half and D16 second as the high 8 KiB half.
 - [ ] Recheck all three SHA-256 values before programming.
 - [ ] Confirm D15 followed by D16 reconstructs the combined image exactly.
 - [ ] Keep the working C10 or EKTA3.7 pair labelled for rollback.
+
+Superseded pre-recovery hashes (identification only; do not program): combined
+`49af4137be8cab2a487ccec0ac264e964b75f6699ebea8baf0f1a29d1ce292dc`,
+D15 `4040833d71fe9029d9cf5bc261b76b57edb87528d1d624e6b003fb2208bf2187`.
+D16 is unchanged.
 
 ## Programmer record
 
@@ -78,6 +86,12 @@ Run them with `tools/physical_acceptance.py` and
 Fastboot, and volume bindings before opening the serial device.
 
 - [ ] Cold boot reaches the CP/M Plus banner and `A>` automatically.
+- [ ] A host started after C11 is already waiting discovers the periodic
+      beacon and boots without RESET.
+- [ ] A replacement host started while CP/M is already running detects the
+      next checked NetDisk request without `--resume-disk`.
+- [ ] One attended RESET during NetDisk is detected from the fresh C11 beacon,
+      followed by a complete automatic V16 reboot.
 - [ ] `STATUS` reports ABI `01.04`, TPA `0100-9BFF`, Port C `01`, POF released,
       and POST `00`.
 - [ ] `DIAG ALL` identifies C11 and all checks pass.

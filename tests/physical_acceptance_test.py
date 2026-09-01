@@ -255,6 +255,23 @@ def operator_wait_budget_test() -> None:
             "--fast-stage" in resume_command:
         raise AssertionError("resume server command contains cold-boot options")
 
+    c11_args = acceptance.parser().parse_args([
+        "run", "/dev/null", "--profile", "c11-cold",
+        "--output", "/tmp/out",
+    ])
+    c11_artifacts = acceptance.verify_manifest(
+        ROOT / "out/cpm-plus-juku-c11-manifest.json",
+        acceptance.DEFAULT_COSIM, "c11-cold",
+    )
+    c11_command = acceptance.server_command(
+        c11_args, c11_artifacts, Path("/tmp/volume.img"),
+        "/dev/pts/0", Path("/tmp/requests.jsonl"),
+        acceptance.DEFAULT_COSIM / "build/jukuhost",
+    )
+    if "--recover-session" not in c11_command or \
+            "--network-rom" not in c11_command:
+        raise AssertionError("C11 cold command omits passive recovery")
+
 
 def request_clock_alignment_test() -> None:
     records = [

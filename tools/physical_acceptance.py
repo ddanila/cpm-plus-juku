@@ -677,6 +677,8 @@ def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
             "--network-rom",
             "--boot-restarts", "3",
         ))
+        if args.profile.startswith("c11-"):
+            command.append("--recover-session")
     command.extend(("--disk-timeout", str(math.ceil(args.session_timeout))))
     return command
 
