@@ -1045,24 +1045,36 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                     if service_release is None and os.environ.get(
                             "CPM_PLUS_JUKU_QUICK_C8_SERVICES") == "1":
                         service_release = "c8"
-                    if service_release in ("c8", "c9", "c10", "c11"):
-                        service_abi = b"01.04" if service_release in (
-                            "c9", "c10", "c11",
-                        ) \
-                            else b"01.03"
+                    if service_release in ("c8", "c9", "c10", "c11", "c12"):
+                        service_abi = (
+                            b"01.05" if service_release == "c12" else
+                            b"01.04" if service_release in (
+                                "c9", "c10", "c11",
+                            ) else b"01.03"
+                        )
                         send_console(b"STATUS\r")
                         status = read_until(b"A>", command_timeout)
                         require(
                             b"ROM: Juku ABI " + service_abi in status
                             and b"TPA 0100-9BFF" in status
                             and b"BIOS BE00-C1FF" in status
-                            and (service_release not in ("c9", "c10", "c11") or
+                            and (service_release not in (
+                                "c9", "c10", "c11", "c12",
+                            ) or
                                  (b"N4 state flags:" in status and
                                   b"N4 failure reason: none" in status))
-                            and (service_release not in ("c10", "c11") or
-                                 (b"Juku Status 1.5" in status and
+                            and (service_release not in (
+                                "c10", "c11", "c12",
+                            ) or
+                                 ((b"Juku Status 1.6" if service_release ==
+                                   "c12" else b"Juku Status 1.5") in status and
                                   b"PPI0 Port C: 01" in status and
-                                  b"POF: released (picture enabled)" in status)),
+                                  b"POF: released (picture enabled)" in status))
+                            and (service_release != "c12" or
+                                 (b"Active video: 03 (80x24)" in status and
+                                  b"Active charset: 01 Estonian" in status and
+                                  b"Video override: no" in status and
+                                  b"Charset override: no" in status)),
                             f"{service_release.upper()} status/map report "
                             f"differs: {status!r}",
                         )
@@ -1096,6 +1108,10 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                     b"JukuNet C11 ROM ABI 1.4 deterministic "
                                     b"POST raster" in diagnostic
                                     and b"Juku Diag 0.7" in diagnostic)
+                                or (service_release == "c12" and
+                                    b"JukuNet C12 ROM ABI 1.5 runtime console"
+                                    in diagnostic
+                                    and b"Juku Diag 0.8" in diagnostic)
                             )
                             and b"Usage: DIAG" not in diagnostic,
                             f"{service_release.upper()} diagnostic report "
@@ -1105,7 +1121,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                             f"COSIM {case.name}: "
                             f"{service_release.upper()} DIAG", flush=True,
                         )
-                        if service_release in ("c10", "c11"):
+                        if service_release in ("c10", "c11", "c12"):
                             send_console(b"DIAG VIDEO\r")
                             video_diagnostic = read_until(
                                 b"A>", command_timeout,
@@ -1122,6 +1138,36 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                 f"{service_release.upper()} DIAG VIDEO",
                                 flush=True,
                             )
+                        if service_release == "c12":
+                            send_console(b"CONSOLE MODE 40\r")
+                            console_mode = read_until(b"A>", command_timeout)
+                            require(
+                                b"Active: 40x24 / Estonian" in console_mode
+                                and b"Override: video=yes" in console_mode,
+                                f"C12 mode switch differs: {console_mode!r}",
+                            )
+                            send_console(b"CONSOLE CHARSET RUSSIAN\r")
+                            console_bank = read_until(b"A>", command_timeout)
+                            require(
+                                b"Active: 40x24 / Russian CP866" in
+                                console_bank
+                                and b"charset=yes" in console_bank,
+                                f"C12 charset switch differs: {console_bank!r}",
+                            )
+                            send_console(b"STATUS\r")
+                            switched_status = read_until(
+                                b"A>", command_timeout,
+                            )
+                            require(
+                                b"Active video: 00 (40x24)" in switched_status
+                                and b"Active charset: 02 Russian CP866" in
+                                switched_status
+                                and b"Video override: yes" in switched_status
+                                and b"Charset override: yes" in
+                                switched_status,
+                                f"C12 switched STATUS differs: "
+                                f"{switched_status!r}",
+                            )
                         send_console(b"WBOOT\r")
                         warm = read_until(b"A>", command_timeout)
                         require(
@@ -1133,10 +1179,26 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         warm_status = read_until(b"A>", command_timeout)
                         require(
                             b"Boot marker (00 cold/01 warm): 01" in
-                            warm_status,
+                            warm_status
+                            and (service_release != "c12" or
+                                 (b"Active video: 00 (40x24)" in warm_status
+                                  and b"Active charset: 02 Russian CP866" in
+                                  warm_status)),
                             f"{service_release.upper()} warm status differs: "
                             f"{warm_status!r}",
                         )
+                        if service_release == "c12":
+                            send_console(b"CONSOLE DEFAULT\r")
+                            default_status = read_until(
+                                b"A>", command_timeout,
+                            )
+                            require(
+                                b"Active: 80x24 / Estonian" in default_status
+                                and b"Override: video=no" in default_status
+                                and b"charset=no" in default_status,
+                                f"C12 default restore differs: "
+                                f"{default_status!r}",
+                            )
                         print(
                             f"COSIM {case.name}: "
                             f"{service_release.upper()} WBOOT", flush=True,
@@ -1146,7 +1208,7 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         + (
                             "VER, STATUS, DIAG, WBOOT)"
                             if service_release in (
-                                "c8", "c9", "c10", "c11",
+                                "c8", "c9", "c10", "c11", "c12",
                             ) else "VER)"
                         ),
                         flush=True,

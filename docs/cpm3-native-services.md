@@ -108,6 +108,17 @@ and clock result counters. Its USERF selector also emits NetDisk-v3 operation
 The operation is idempotent, bounded, and optional: an absent N4 host cannot
 starve the local status display or disk service.
 
+The C12 system retains the `0100h..9BFFh` TPA but publishes ROM ABI 1.5 in the
+same status record. Its matching `STATUS.COM` 1.6 queries `JCGCONCONFIG` and
+prints both reset-latched S21 defaults and the active mode/bank plus independent
+override flags. `CONSOLE.COM` 1.0 uses that same public vector for STATUS,
+MODE, CHARSET, and DEFAULT; it does not duplicate timing, framebuffer, font, or
+keyboard-transition logic in transient RAM. `DIAG.COM` 0.8 accepts a valid
+active tuple that differs from S21 and retains the POF check. The exact C12
+system and Fastboot SHA-256 values are respectively
+`74abab89c14e8429eec943c8b7c77ad33675cbf411fde5190d4657a3d28bdb79`
+and `51788bc93dac1e03a541239eb7f2837e3e03ef2519c3703aa052fe15b248f202`.
+
 The displayed map names the actual `0100h..99FFh` TPA and separate
 `9A00h..9CFFh` loader; the older `0100h..9CFFh` text incorrectly included the
 loader in the TPA. It also reports the BIOS and the complete `C000h..D5FFh`

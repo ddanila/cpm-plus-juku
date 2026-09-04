@@ -4,12 +4,11 @@ This repository contains a strict-Intel-8080, non-banked CP/M Plus 3.1 port for
 the Juku E5101/E5104. It uses Digital Research's CP/M 3 CCP, BDOS, SCB, and
 BIOS conventions; it is not CP/Mish 3.
 
-Status: **The immutable ABI 1.2 C6 ROM, Priority-7 strict-8080 distribution,
-and post-C6 M1--M5 desk implementation are complete. The corrected PIP path,
-command history, status panel, and measured NetDisk cache pass the complete
-simulator/recovery/package gates. CS00015 full/development evidence, the
-controlled cache comparison, and four display observations remain physical
-acceptance work.**
+Status: **C12 / ABI 1.5 runtime console control is implemented and passes the
+ROM, local/N4 CP/M, warm-boot, manifest, and reproducible simulator-package
+gates. Physical programming is not authorized; attended CS00000 acceptance and
+current-Windows payload qualification remain. Earlier named ROMs stay
+immutable.**
 
 Danila Sukharev owns the project-written code. OpenAI GPT-5.6 Sol was used as a
 development assistant. Third-party authors and licenses are retained in
@@ -115,7 +114,15 @@ The additive ROM line is:
   `01h`, adds `STATUS` 1.5 and `DIAG` 0.7 video-state coverage, and passes the
   complete C-model fault, visible-frame, HDL, local/remote CP/M, native-host
   replacement, media, manifest, and reproducible-package gates. Its D15/D16
-  pair is ready to program; CS00000 physical acceptance remains pending.
+  pair is ready to program; CS00000 physical acceptance remains pending;
+- C11 / ABI 1.4: deterministic full-raster checker/clear plus passive session
+  recovery. Its retained acceptance record remains separate, and its named
+  bytes stay immutable;
+- C12 / ABI 1.5: appends atomic runtime video-mode/character-bank control and
+  a distinct `JB/12` beacon. `CONSOLE 1.0`, `STATUS 1.6`, and `DIAG 0.8`
+  exercise query, 4x4-capable set, warm-boot preservation, diagnostics, and
+  default restoration without reducing the 39,680-byte TPA. The local and N4
+  gates pass; its simulator package explicitly forbids physical programming.
 
 ## Build and verification
 
@@ -196,6 +203,18 @@ The retained from-empty-output run is
 `out/c9-simulator-candidate-cleanroom-20260826.log`; its adjacent `.sha256`
 file binds the complete log. Physical work is recorded in
 [`docs/c9-physical-acceptance-worksheet.md`](docs/c9-physical-acceptance-worksheet.md).
+
+Build and exercise C12, including runtime switch and warm/default behavior:
+
+```sh
+make c12-check
+make c12-simulator-candidate
+```
+
+The package binds the ABI 1.5 ROM, matching system/Fastboot, C12 A: volume,
+and all fallback/media inputs, and records
+`physical_programming_authorized: false`. See
+[`docs/runtime-console-switching.md`](docs/runtime-console-switching.md).
 
 Build, fully exercise, and reproduce the burn-ready C10 candidate with:
 

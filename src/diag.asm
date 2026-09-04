@@ -14,6 +14,9 @@ DIAG_KEYCOL_PORT equ   004h
 DIAG_KEYROW_PORT equ   005h
 DIAG_MODE_PORT  equ     006h
 NATIVE_MARKER   equ     0c642h
+.ifdef ROM_ABI_C12
+        include "rom-abi.inc"
+.endif
 
         org     0100h
 
@@ -270,6 +273,22 @@ run_video_sub:
         call    bioscall
         inr     a                       ; FFh is ready
         jnz     run_video_fail
+.ifdef ROM_ABI_C12
+        ; Runtime overrides are valid. Verify the published active tuple and
+        ; flags, never equality with the reset-latched S21 defaults.
+        mvi     a,JROMCONCONFIGQUERY
+        call    JCGCONCONFIGADDR
+        jc      run_video_fail
+        mov     a,b
+        cpi     4
+        jnc     run_video_fail
+        mov     a,c
+        cpi     4
+        jnc     run_video_fail
+        mov     a,d
+        ani     0fch
+        jnz     run_video_fail
+.endif
 .ifdef ROM_ABI_C10
         ; C10's physical acceptance discriminator: mode/renderer readiness is
         ; insufficient while PPI0 PC7/POF is high. An output-port read returns
@@ -569,6 +588,11 @@ bioscall:
         call    0000h
         ret
 
+.ifdef ROM_ABI_C12
+banner:
+        db      13,10,'Juku Diag 0.8',13,10
+        db      'Self-contained non-destructive 8080 diagnostics.',13,10,'$'
+.else
 .ifdef ROM_ABI_C10
 banner:
         db      13,10,'Juku Diag 0.7',13,10
@@ -577,6 +601,7 @@ banner:
 banner:
         db      13,10,'Juku Diag 0.6',13,10
         db      'Self-contained non-destructive 8080 diagnostics.',13,10,'$'
+.endif
 .endif
 usage:
         db      'Usage: DIAG [CPU|MEM|ADDR|RET|RAM|SUM|PIT|USART|ROM',13,10

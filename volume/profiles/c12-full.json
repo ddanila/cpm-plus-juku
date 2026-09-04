@@ -1,0 +1,37 @@
+{
+  "schema": "cpm-plus-juku-volume-profile-v1",
+  "extends": "c11-full.json",
+  "name": "c12-full-a",
+  "description": "C12 ABI 1.5 runtime-console simulator qualification A:",
+  "files": [
+    {
+      "source": "build/status-c12.cim",
+      "destination": "0:STATUS.COM",
+      "override": true,
+      "provenance": {
+        "source": "src/status.asm",
+        "version": "Juku Status 1.6 with default/active console state",
+        "license": "LICENSE"
+      }
+    },
+    {
+      "source": "build/diag-c12.cim",
+      "destination": "0:DIAG.COM",
+      "override": true,
+      "provenance": {
+        "source": "src/diag.asm and pinned juku-common diagnostics",
+        "version": "Juku Diag 0.8 with runtime-console-aware video check",
+        "license": "LICENSE"
+      }
+    },
+    {
+      "source": "build/console-c12.cim",
+      "destination": "0:CONSOLE.COM",
+      "provenance": {
+        "source": "src/console.asm",
+        "version": "Juku Console 1.0",
+        "license": "LICENSE"
+      }
+    }
+  ]
+}

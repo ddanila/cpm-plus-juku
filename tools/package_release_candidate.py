@@ -138,6 +138,27 @@ VARIANTS = {
             "on\nthe checkerboard quality and absence of a retained bottom raster line."
         ),
     },
+    "c12": {
+        "candidate": "cpm-plus-3.1-juku-c12-runtime-console-simulator",
+        "abi": "1.5",
+        "rom_stem": "juku-network-rom-abi1.5-c12",
+        "manifest": "cpm-plus-juku-c12-manifest.json",
+        "system": "cpm-plus-juku-network-rom-c12-system.bin",
+        "fast_stage": "cpm-plus-juku-network-rom-c12-fastboot-v16.bin",
+        "recovery": "cpm-plus-juku-c6-recovery",
+        "full": "cpm-plus-juku-c12-full",
+        "adapter": "adapter-romabi-c12-native.bin",
+        "status": "simulator-qualified; physical programming not authorized",
+        "target": "Juku CS00000 runtime-console and recovery acceptance",
+        "qualification": (
+            "It preserves C11's TPA and memory map while updating the loaded "
+            "system\nfor ABI 1.5 publication, runtime console control, distinct "
+            "JB/12 discovery,\nand matching CONSOLE, STATUS, and DIAG "
+            "utilities. The ROM and CP/M\n4x4/local/remote gates pass. "
+            "Physical programming requires a separate\nattended decision and "
+            "is not claimed by this simulator package."
+        ),
+    },
 }
 
 
@@ -246,16 +267,18 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             shutil.copyfile(source, temporary / source.name)
 
         build_map_path = temporary / "memory-map.json"
-        adapter_start = 0xC200 if variant in ("c9", "c10", "c11") else 0xC000
+        adapter_start = 0xC200 if variant in (
+            "c9", "c10", "c11", "c12",
+        ) else 0xC000
         adapter_end = adapter_start + adapter.stat().st_size - 1
         ram_map = {
             "transient": ("0100h..9BFFh (39680 bytes)"
-                          if variant in ("c9", "c10", "c11")
+                          if variant in ("c9", "c10", "c11", "c12")
                           else "0100h..99FFh (39168 bytes)"),
-            "loader": "9C00h..9EFFh" if variant in ("c9", "c10", "c11") else "9A00h..9CFFh",
-            "bdos": "9F00h..BD9Bh" if variant in ("c9", "c10", "c11") else "9D00h..BB9Bh",
-            "scb": "BD9Ch..BDFFh" if variant in ("c9", "c10", "c11") else "BB9Ch..BBFFh",
-            "bios": "BE00h..BFFFh" if variant in ("c9", "c10", "c11") else "BC00h..BFFFh",
+            "loader": "9C00h..9EFFh" if variant in ("c9", "c10", "c11", "c12") else "9A00h..9CFFh",
+            "bdos": "9F00h..BD9Bh" if variant in ("c9", "c10", "c11", "c12") else "9D00h..BB9Bh",
+            "scb": "BD9Ch..BDFFh" if variant in ("c9", "c10", "c11", "c12") else "BB9Ch..BBFFh",
+            "bios": "BE00h..BFFFh" if variant in ("c9", "c10", "c11", "c12") else "BC00h..BFFFh",
             "adapter": (
                 f"{adapter_start:04X}h..{adapter_end:04X}h "
                 f"({adapter.stat().st_size} bytes)"
@@ -266,7 +289,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             "resident_state": "D780h",
             "framebuffer": "D800h..FD7Fh (9600 bytes, mode 3 RAM)",
         }
-        if variant == "c11":
+        if variant in ("c11", "c12"):
             ram_map["physical_raster_clear"] = (
                 "D800h..FDAFh (9648-byte safe envelope; visible raster is "
                 "mode-dependent)"
@@ -293,7 +316,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             },
             "ram": ram_map,
             "tpa_gain_over_frozen_ram_bios": (
-                8704 if variant in ("c9", "c10", "c11") else 8192
+                8704 if variant in ("c9", "c10", "c11", "c12") else 8192
             ),
             "bindings": {
                 "rom_sha256": sha256(rom),
@@ -308,7 +331,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
             f"{config['rom_stem']}-d16.bin (high). They are included only "
             "for reproducibility;\nphysical EPROM programming is not "
             "authorized by this simulator candidate.\n"
-            if variant == "c9" else
+            if variant in ("c9", "c12") else
             f"Program D15-low from {config['rom_stem']}-d15.bin and\n"
             f"D16-high from {config['rom_stem']}-d16.bin. Verify every\n"
             "file against manifest.json before bench use.\n"
@@ -334,7 +357,7 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
         rom_policy = (
             {"physical_programming_authorized": False,
              "rom_half_order": rom_order}
-            if variant == "c9" else
+            if variant in ("c9", "c12") else
             ({"physical_programming_ready": True,
               "programmer_order": rom_order}
              if variant in ("c10", "c11") else

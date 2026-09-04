@@ -1,10 +1,10 @@
-# Future runtime console switching
+# C12 runtime console switching
 
-Status: **PROPOSAL RECORDED; NO IMPLEMENTATION AUTHORIZED**
+Status: **IMPLEMENTED AND LOCAL/REMOTE CO-SIM QUALIFIED; PHYSICAL ACCEPTANCE PENDING**
 
-S21 defines the console configuration applied at cold reset. A future CP/M Plus
-utility may override that configuration for the current powered session without
-changing the switches or rebooting the machine. The intended interface is:
+S21 defines the console configuration applied at cold reset. C12 ABI 1.5 and
+`CONSOLE.COM` can override that configuration for the current powered session
+without changing the switches or rebooting the machine. The interface is:
 
 ```text
 CONSOLE STATUS
@@ -38,9 +38,11 @@ In particular, future diagnostics must obey these rules:
 - `DIAG ALL` passes when a deliberate runtime override differs from S21;
 - `CONSOLE DEFAULT` clears the override and makes the active state match S21.
 
-The current diagnostic comparison between S21-derived video mode and the active
-status field must be revised before runtime switching is enabled. Until then,
-the comparison remains useful for the current fixed-at-reset implementation.
+`STATUS.COM` 1.6 reports the S21 default, active mode/bank, and independent
+override flags. `DIAG.COM` 0.8 validates the active tuple and POF state without
+requiring it to equal S21. Local and N4 co-simulation switch 80x24/Estonian to
+40x24/Russian, pass `DIAG VIDEO`, preserve that pair across `WBOOT`, and restore
+the exact S21 default with `CONSOLE DEFAULT`.
 
 ## Transition requirements
 
@@ -65,11 +67,13 @@ console configuration. Its console initialization reads the reset configuration
 again, so this feature must not be presented as an already available CP/M-only
 change.
 
-The preferred implementation is an appended ABI service in a future C10 or
-later ROM that owns active mode and character-bank transitions and publishes
-the expanded status. C9 is fixed as the bounded-host ABI 1.4 candidate and
-does not include this feature. A carefully specified loaded-system override is
-acceptable only if it can preserve the same atomicity and compatibility. This
-proposal is not sufficient reason by itself to produce another ROM; it should
-accompany a measured improvement that justifies a new candidate and its
-qualification work.
+The implemented service is feature bit `1000h`, ROM vector `FF5Fh`, and low-RAM
+gate entry `D65Fh`. Selector 0 queries; selector 1 sets B=mode/C=bank; selector
+2 restores the default. Invalid selectors or values return A=`FFh`/carry set
+without state or pixel changes. The active byte and flags use `D7FDh..D7FEh`,
+after the resident-host state; the fixed workspace and TPA do not grow.
+
+C9, C10, and C11 remain immutable. The C12 package is deliberately marked
+`physical_programming_authorized: false` until the attended CS00000 switch,
+raster, keyboard-translation, warm-boot, default-restore, and recovery matrix
+passes.

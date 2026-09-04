@@ -429,6 +429,9 @@ NSBOOTPROTO:
 NSROMMAJOR:
         db      1
 NSROMMINOR:
+.ifdef ROM_ABI_C12
+        db      5
+.else
 .ifdef ROM_ABI_C9
         db      4
 .else
@@ -442,6 +445,7 @@ NSROMMINOR:
         db      1
 .else
         db      0
+.endif
 .endif
 .endif
 .endif

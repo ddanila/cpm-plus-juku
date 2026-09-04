@@ -6,6 +6,9 @@
 BDOS            equ     0005h
 PRINT           equ     9
 PPI0_PORT_C     equ     006h
+.ifdef ROM_ABI_C12
+        include "rom-abi.inc"
+.endif
 
         org     0100h
 
@@ -118,6 +121,73 @@ printmap:
         inx     h
         mov     d,m
         call    puts
+
+.ifdef ROM_ABI_C12
+        mvi     a,JROMCONCONFIGQUERY
+        call    JCGCONCONFIGADDR
+        jc      console_state_unavailable
+        sta     console_default
+        mov     a,b
+        sta     console_active_mode
+        mov     a,c
+        sta     console_active_bank
+        mov     a,d
+        sta     console_override_flags
+
+        lxi     d,activevideomsg
+        call    puts
+        lda     console_active_mode
+        push    psw
+        call    printhex
+        pop     psw
+        ani     3
+        add     a
+        mov     e,a
+        mvi     d,0
+        lxi     h,modetable
+        dad     d
+        mov     e,m
+        inx     h
+        mov     d,m
+        call    puts
+
+        lxi     d,activecharsetmsg
+        call    puts
+        lda     console_active_bank
+        push    psw
+        call    printhex
+        pop     psw
+        push    psw
+        lxi     d,valuespace
+        call    puts
+        pop     psw
+        ani     3
+        add     a
+        mov     e,a
+        mvi     d,0
+        lxi     h,localetable
+        dad     d
+        mov     e,m
+        inx     h
+        mov     d,m
+        call    puts
+
+        lxi     d,videooverridemsg
+        call    puts
+        lda     console_override_flags
+        ani     JROMCONOVERRIDEVIDEO
+        call    printyesno
+        lxi     d,charsetoverridemsg
+        call    puts
+        lda     console_override_flags
+        ani     JROMCONOVERRIDELOCALE
+        call    printyesno
+        jmp     console_state_done
+console_state_unavailable:
+        lxi     d,consolestateunavailablemsg
+        call    puts
+console_state_done:
+.endif
 
 .ifdef ROM_ABI_C10
         ; C9 could publish a valid geometry while PC7/POF still suppressed
@@ -392,6 +462,15 @@ printdigit:
         pop     h
         ret
 
+.ifdef ROM_ABI_C12
+printyesno:
+        ora     a
+        lxi     d,nomsg
+        jz      puts
+        lxi     d,yesmsg
+        jmp     puts
+.endif
+
 ; Patch a call to BIOS base + A*3. Address 0001h holds WBOOT (base+3).
 setvector:
         mov     l,a
@@ -413,6 +492,9 @@ bioscall:
         call    0000h
         ret
 
+.ifdef ROM_ABI_C12
+title:  db      13,10,'Juku Status 1.6',13,10,'$'
+.else
 .ifdef ROM_ABI_C10
 title:  db      13,10,'Juku Status 1.5',13,10,'$'
 .else
@@ -420,6 +502,7 @@ title:  db      13,10,'Juku Status 1.5',13,10,'$'
 title:  db      13,10,'Juku Status 1.4',13,10,'$'
 .else
 title:  db      13,10,'Juku Status 1.3',13,10,'$'
+.endif
 .endif
 .endif
 identity:
@@ -440,10 +523,31 @@ mapmsgc8:
         db      '     adapter/state C200-D5FF, ROM gate/work D600-D7FF',13,10
         db      '     framebuffer D800-FD7F (mode 3 RAM)',13,10,'$'
 s21msg: db      'S21 raw: $'
+.ifdef ROM_ABI_C12
+videomsg:
+        db      '  default video: $'
+localemsg:
+        db      'Default charset: $'
+activevideomsg:
+        db      'Active video: $'
+activecharsetmsg:
+        db      'Active charset: $'
+videooverridemsg:
+        db      'Video override: $'
+charsetoverridemsg:
+        db      'Charset override: $'
+valuespace:
+        db      ' $'
+yesmsg: db      'yes',13,10,'$'
+nomsg:  db      'no',13,10,'$'
+consolestateunavailablemsg:
+        db      'Runtime console state unavailable.',13,10,'$'
+.else
 videomsg:
         db      '  video: $'
 localemsg:
         db      'Locale: $'
+.endif
 .ifdef ROM_ABI_C10
 pofportmsg:
         db      'PPI0 Port C: $'
@@ -535,6 +639,16 @@ capsbase:
         dw      0
 .ifdef ROM_ABI_C10
 pofportc:
+        db      0
+.endif
+.ifdef ROM_ABI_C12
+console_default:
+        db      0
+console_active_mode:
+        db      0
+console_active_bank:
+        db      0
+console_override_flags:
         db      0
 .endif
         end
