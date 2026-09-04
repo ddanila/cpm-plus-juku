@@ -121,8 +121,10 @@ The additive ROM line is:
 - C12 / ABI 1.5: appends atomic runtime video-mode/character-bank control and
   a distinct `JB/12` beacon. `CONSOLE 1.0`, `STATUS 1.6`, and `DIAG 0.8`
   exercise query, 4x4-capable set, warm-boot preservation, diagnostics, and
-  default restoration without reducing the 39,680-byte TPA. The local and N4
-  gates pass; its simulator package explicitly forbids physical programming.
+  default restoration without reducing the 39,680-byte TPA. Runtime switches
+  discard a pending key but preserve installed key remaps. The C-model,
+  focused structural HDL, local, and N4 gates pass; its simulator package
+  explicitly forbids physical programming.
 
 ## Build and verification
 

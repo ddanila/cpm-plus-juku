@@ -64,7 +64,11 @@ def main() -> int:
                 "1000" or metadata.get("abi_vectors", {}).get(
                     "console_config") != "FF5F" or \
                 metadata.get("boot_discovery", {}).get("frame") != \
-                "4A 42 0C 01 05":
+                "4A 42 0C 01 05" or \
+                metadata.get("runtime_console", {}).get(
+                    "keyboard_transition") != {
+                        "pending_state": "discard", "key_remap": "preserve",
+                    }:
             raise AssertionError("C12 ROM ABI/runtime metadata differs")
         if (first / f"{stem}-d15.bin").read_bytes() + \
                 (first / f"{stem}-d16.bin").read_bytes() != \

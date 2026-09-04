@@ -42,7 +42,9 @@ In particular, future diagnostics must obey these rules:
 override flags. `DIAG.COM` 0.8 validates the active tuple and POF state without
 requiring it to equal S21. Local and N4 co-simulation switch 80x24/Estonian to
 40x24/Russian, pass `DIAG VIDEO`, preserve that pair across `WBOOT`, and restore
-the exact S21 default with `CONSOLE DEFAULT`.
+the exact S21 default with `CONSOLE DEFAULT`. The ROM's executable 4x4 fixture
+installs `T`-to-`X` before each transition and verifies the remap afterward in
+both the C-model and focused structural HDL path.
 
 ## Transition requirements
 
@@ -55,6 +57,10 @@ retaining bytes whose layout has a different row width.
 A character-bank change must switch the display font and matching keyboard
 translation together. It should clear or redraw the display so existing cells
 do not retain glyphs from the previous bank, then publish the active bank.
+An installed four-pair `JCGKEYREMAP` table remains in force across either kind
+of runtime switch; only debounce and a pending translated key are discarded.
+Reset or an explicit full keyboard initialization retains its established
+behavior of clearing the remap table.
 
 Failures must leave either the complete old state or the complete requested
 state; partially changed timing, geometry, font, or keyboard mappings are not
