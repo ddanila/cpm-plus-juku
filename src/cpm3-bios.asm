@@ -17,6 +17,7 @@ ccp             equ     0100h
 default$fcb     equ     005ch
 adapter         equ     0a000h
 native$services equ     0
+network$9600    equ     0
 
 ; CP/M 2-compatible adapter vectors.
 a$boot          equ     adapter+0
@@ -225,10 +226,18 @@ print:  mov     a,m
         jmp     print
 
 signon: db      13,10,'CP/M Plus 3.1 Juku',13,10
+if network$9600
+if native$services
+        db      'N3 9600',13,10,10,0
+else
+        db      'NetDisk v3, 9600',13,10,10,0
+endif
+else
 if native$services
         db      'N3 19200',13,10,10,0
 else
         db      'NetDisk v3, 19200',13,10,10,0
+endif
 endif
 
 devtbl: lxi     h,0ffffh

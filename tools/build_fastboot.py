@@ -22,6 +22,7 @@ VERSIONS = {
     b"JF14": (14, b"ZE"),
     b"JF15": (15, b"ZF"),
     b"JF16": (16, b"ZG"),
+    b"JF17": (17, b"ZH"),
 }
 EXTENSION_LENGTH_SENTINEL = bytes.fromhex("01 5A A5")
 LENGTH_SENTINEL = bytes.fromhex("21 5A A5 22")
@@ -75,7 +76,7 @@ def main() -> int:
         raise ValueError(
             f"fastboot v{version} extension has invalid size {len(extension)}"
         )
-    if version in (15, 16):
+    if version in (15, 16, 17):
         if not system_image.startswith(b"JUKURM1\x1a"):
             raise ValueError(
                 f"fastboot v{version} requires a JUKURM1 system image"
@@ -125,7 +126,7 @@ def main() -> int:
         compressed = compressed_path.read_bytes()
 
     compressed_limit = V15_COMPRESSED_LIMIT \
-        if version in (15, 16) else COMPRESSED_LIMIT
+        if version in (15, 16, 17) else COMPRESSED_LIMIT
     if len(compressed) < 0x100 or len(compressed) >= compressed_limit:
         raise ValueError(
             f"fastboot v{version} compressed system is {len(compressed)} bytes, "
@@ -134,11 +135,11 @@ def main() -> int:
     compressed_crc = crc16_ibm(compressed)
     if version != 16:
         length_sentinel = BUFFERED_LENGTH_SENTINEL \
-            if version in (14, 15) else LENGTH_SENTINEL
+            if version in (14, 15, 17) else LENGTH_SENTINEL
         crc_high_sentinel = BUFFERED_CRC_HIGH_SENTINEL \
-            if version in (14, 15) else CRC_HIGH_SENTINEL
+            if version in (14, 15, 17) else CRC_HIGH_SENTINEL
         crc_low_sentinel = BUFFERED_CRC_LOW_SENTINEL \
-            if version in (14, 15) else CRC_LOW_SENTINEL
+            if version in (14, 15, 17) else CRC_LOW_SENTINEL
         patch_unique(
             extension, length_sentinel, 1,
             len(compressed).to_bytes(2, "little"), "length",
@@ -148,7 +149,8 @@ def main() -> int:
             bytes((compressed_crc >> 8,)), "CRC high",
         )
         patch_unique(
-            extension, crc_low_sentinel, 1 if version in (14, 15) else 2,
+            extension, crc_low_sentinel,
+            1 if version in (14, 15, 17) else 2,
             bytes((compressed_crc & 0xFF,)), "CRC low",
         )
     system_crc = crc16_ibm(system)

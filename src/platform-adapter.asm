@@ -10,7 +10,9 @@
 
 CPM3ADAPTER     equ     1
 NETWORK        equ     1
+.ifndef NETWORK9600
 NETWORK19200   equ     1
+.endif
 NETWORKV2      equ     1
 NETWORKV3      equ     1
 NETWORKCONSOLE equ     1
@@ -156,9 +158,7 @@ DKRC           equ     013h
 USARTDATA      equ     008h
 USARTCTL       equ     009h
 PIT3COUNT0     equ     018h
-.ifdef NETWORK19200
 PIT3CTL        equ     01bh
-.endif
 PICMASK        equ     001h
 .ifdef CPM3ADAPTER
 .ifdef ROMABI
@@ -405,9 +405,17 @@ WBOOT:  ret
         call    PRINT
         db      'A: Janet 386K, B: native 784K',13,10
 .ifdef NETWORKV3
+.ifdef NETWORK19200
         db      '19200, NetDisk v3',13,10,10,0
 .else
+        db      '9600, NetDisk v3',13,10,10,0
+.endif
+.else
+.ifdef NETWORK19200
         db      '19200, NetDisk v2',13,10,10,0
+.else
+        db      '9600, NetDisk v2',13,10,10,0
+.endif
 .endif
 .else
 .ifdef NETWORK19200
@@ -1090,6 +1098,11 @@ NETINIT:
         out     PIT3CTL
         mvi     a,4
 .else
+        ; Stock-recovery builds keep the factory NetBios link exactly at
+        ; nominal 9600 baud: D57 channel 0 mode 3, BCD, LSB-only, count 8.
+        ; Program the control word too instead of assuming Fastboot state.
+        mvi     a,01fh
+        out     PIT3CTL
         mvi     a,8
 .endif
         out     PIT3COUNT0

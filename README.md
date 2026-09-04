@@ -28,6 +28,10 @@ development assistant. Third-party authors and licenses are retained in
 
 ## Working configurations
 
+The reset-safe stock-ROM profile is documented in
+[`docs/stock-rom-recovery.md`](docs/stock-rom-recovery.md). It retains the
+accelerated compressed bootstrap while keeping Janet and NetDisk at 9,600/8O1.
+
 The frozen stock-ROM/RAM-BIOS reference has a 30,976-byte transient area:
 
 ```text

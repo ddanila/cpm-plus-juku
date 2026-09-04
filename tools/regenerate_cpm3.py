@@ -184,6 +184,10 @@ def main() -> int:
         "--native-services", action="store_true",
         help="bind CP/M 3 native service entries to adapter extensions",
     )
+    parser.add_argument(
+        "--network-baud", type=int, choices=(9600, 19200), default=19200,
+        help="select the sign-on transport rate (default: 19200)",
+    )
     args = parser.parse_args()
     if args.adapter_address & 0xFF or \
             args.top_page != (args.adapter_address >> 8) - 1:
@@ -208,6 +212,9 @@ def main() -> int:
         if args.native_services:
             replacements["native$services equ     0"] = \
                 "native$services equ     1"
+        if args.network_baud == 9600:
+            replacements["network$9600    equ     0"] = \
+                "network$9600    equ     1"
         dos_text(
             ROOT / "src" / "cpm3-bios.asm", work / "jbios.asm",
             replacements,

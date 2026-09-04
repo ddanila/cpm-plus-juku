@@ -34,6 +34,9 @@ JUKU_COSIM_ROOT ?= ../8080-cosim
 
 SYSTEM := $(OUT)/cpm-plus-juku-system.bin
 FASTBOOT := $(OUT)/cpm-plus-juku-fastboot-v15.bin
+STOCK_RECOVERY_SYS := $(BUILD)/cpm3-stock-recovery.sys
+STOCK_RECOVERY_SYSTEM := $(OUT)/cpm-plus-juku-stock-recovery-system.bin
+STOCK_RECOVERY_FASTBOOT := $(OUT)/cpm-plus-juku-stock-recovery-fastboot-v17.bin
 ROM_SYSTEM := $(OUT)/cpm-plus-juku-network-rom-system.bin
 ROM_FASTBOOT := $(OUT)/cpm-plus-juku-network-rom-fastboot-v15.bin
 NATIVE_ROM_SYS := $(BUILD)/cpm3-network-rom-native.sys
@@ -154,8 +157,10 @@ PANEL_RUNTIME_METRICS := $(BUILD)/cpm3-panel-runtime.json
 	regenerate-cpm3 regenerate-cpm3-rom \
 	network-rom-locale-cosim-check network-rom-extended-local-cosim-check \
 	network-rom-extended-cosim-check \
-	bootstrap-observability-check diag-check diag-compat-cosim-check
-all: $(SYSTEM) $(FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
+	bootstrap-observability-check diag-check diag-compat-cosim-check \
+	stock-recovery-check
+all: $(SYSTEM) $(FASTBOOT) $(STOCK_RECOVERY_SYSTEM) \
+	$(STOCK_RECOVERY_FASTBOOT) $(ROM_SYSTEM) $(ROM_FASTBOOT) $(VOLUME) \
 	$(LOCALE_NATIVE_ROM_SYSTEM) $(LOCALE_NATIVE_ROM_FASTBOOT) \
 	$(EXTENDED_NATIVE_ROM_SYSTEM) $(EXTENDED_NATIVE_ROM_FASTBOOT) \
 	distribution $(BOOT_MANIFEST)
@@ -185,8 +190,12 @@ verify-prebuilt: all
 
 rom-budget-check: tools $(BUILD)/fastboot-core.cim \
 		$(BUILD)/fastboot-extension.cim $(BUILD)/fastboot-extension-rom-locale.cim \
-		$(BUILD)/fastboot-core-v16.cim $(BUILD)/fastboot-extension-rom-v16.cim
+		$(BUILD)/fastboot-core-v16.cim $(BUILD)/fastboot-extension-rom-v16.cim \
+		$(BUILD)/fastboot-core-v17.cim $(BUILD)/fastboot-extension-v17.cim
 	$(PYTHON) tools/rom_budget.py --check
+
+stock-recovery-check: $(STOCK_RECOVERY_SYSTEM) $(STOCK_RECOVERY_FASTBOOT)
+	$(PYTHON) tests/stock_recovery_artifact_test.py
 
 check: verify-prebuilt rom-budget-check distribution-input-check \
 	utility-catalogue-check dev-utility-rebuild-check \
@@ -1013,6 +1022,14 @@ $(BUILD)/platform-adapter.rel: src/platform-adapter.asm \
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 \
 		-I$(COMMON)/platform -o $@ $<
 
+$(BUILD)/platform-adapter-stock-recovery.rel: src/platform-adapter.asm \
+		$(COMMON)/platform/ram-console.asm \
+		$(COMMON)/platform/ram-console-font.asm \
+		$(COMMON)/platform/creep-console-font.asm \
+		$(COMMON)/platform/locale-console-fonts.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DNETWORK9600 \
+		-I$(COMMON)/platform -o $@ $<
+
 $(BUILD)/platform-adapter-romabi.rel: src/platform-adapter.asm \
 		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m --rel7 -8 -DROMABI \
@@ -1174,6 +1191,20 @@ $(BUILD)/adapter.bin: $(BUILD)/adapter.all
 	tail -c+40961 $< >$@
 	test $$(wc -c < $@) -le 4096
 
+$(BUILD)/adapter-stock-recovery.all: \
+		$(BUILD)/platform-adapter-stock-recovery.rel \
+		$(BUILD)/ram-keyboard.rel $(BUILD)/netdisk-v3.rel \
+		$(BUILD)/netconsole.rel $(LD80)
+	$(LD80) -m -O bin -o $@ -s /dev/null \
+		-P0xa000 $(BUILD)/platform-adapter-stock-recovery.rel \
+		-P0xaae0 $(BUILD)/ram-keyboard.rel \
+		-P0xac60 $(BUILD)/netdisk-v3.rel \
+		-P0xae88 $(BUILD)/netconsole.rel
+
+$(BUILD)/adapter-stock-recovery.bin: $(BUILD)/adapter-stock-recovery.all
+	tail -c+40961 $< >$@
+	test $$(wc -c < $@) -le 4096
+
 $(BUILD)/adapter-romabi.all: $(BUILD)/platform-adapter-romabi.rel \
 		$(BUILD)/netconsole-romabi.rel $(LD80)
 	$(LD80) -m -O bin -o $@ -s /dev/null \
@@ -1326,6 +1357,17 @@ $(BUILD)/adapter-romabi-extended-control.bin: \
 $(SYSTEM): prebuilt/cpm-plus-juku-system.bin | $(OUT)
 	cp $< $@
 
+$(STOCK_RECOVERY_SYS): src/cpm3-bios.asm tools/regenerate_cpm3.py \
+		third_party/cpm3/bdos3.spr third_party/cpm3/gencpm.dat \
+		third_party/cpm3/scb.asm $(ZXCC) | $(BUILD)
+	$(PYTHON) tools/regenerate_cpm3.py --network-baud 9600 \
+		--metadata-policy qualified --output $@
+
+$(STOCK_RECOVERY_SYSTEM): $(BUILD)/adapter-stock-recovery.bin \
+		$(STOCK_RECOVERY_SYS) tools/mksystem3.py | $(OUT)
+	$(PYTHON) tools/mksystem3.py $(BUILD)/adapter-stock-recovery.bin \
+		$(STOCK_RECOVERY_SYS) $@
+
 $(ROM_SYSTEM): prebuilt/cpm-plus-juku-network-rom-system.bin | $(OUT)
 	cp $< $@
 
@@ -1415,6 +1457,10 @@ FASTBOOT_CORE_V16_DEFS := FASTBOOT_8N1 FASTBOOT_ZX0 FASTBOOT_STREAM \
 FASTBOOT_EXTENSION_V16_DEFS := FASTBOOT_8N1 FASTBOOT_ZX0 FASTBOOT_STREAM \
 	FASTBOOT_V16 FASTBOOT_STREAM_ACK FASTBOOT_CPM3 FASTBOOT_CPM3_ROM \
 	FASTBOOT_BOOT_RECORD
+FASTBOOT_CORE_V17_DEFS := FASTBOOT_ZX0 FASTBOOT_STREAM FASTBOOT_V17 \
+	FASTBOOT_EXACT FASTBOOT_EXT_ACK FASTBOOT_PROBE_SYNC FASTBOOT_9600
+FASTBOOT_EXTENSION_V17_DEFS := FASTBOOT_ZX0 FASTBOOT_TIGHT FASTBOOT_V17 \
+	FASTBOOT_STREAM_ACK FASTBOOT_CPM3 FASTBOOT_9600
 
 $(BUILD)/fastboot-core.cim: $(COMMON)/transport/fastboot-core.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 \
@@ -1424,6 +1470,11 @@ $(BUILD)/fastboot-core-v16.cim: \
 		$(COMMON)/transport/fastboot-core.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 \
 		$(addprefix -D,$(FASTBOOT_CORE_V16_DEFS)) -o $@ $<
+
+$(BUILD)/fastboot-core-v17.cim: \
+		$(COMMON)/transport/fastboot-core.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 \
+		$(addprefix -D,$(FASTBOOT_CORE_V17_DEFS)) -o $@ $<
 
 $(BUILD)/fastboot-extension.cim: \
 		$(COMMON)/transport/fastboot-extension.asm $(ZMAC) | $(BUILD)
@@ -1453,8 +1504,20 @@ $(BUILD)/fastboot-extension-rom-c8.cim: \
 		$(addprefix -D,$(FASTBOOT_EXTENSION_V16_DEFS) FASTBOOT_CPM3_C8) \
 		-o $@ $<
 
+$(BUILD)/fastboot-extension-v17.cim: \
+		$(COMMON)/transport/fastboot-extension.asm $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 \
+		$(addprefix -D,$(FASTBOOT_EXTENSION_V17_DEFS)) -o $@ $<
+
 $(FASTBOOT): prebuilt/cpm-plus-juku-fastboot-v15.bin | $(OUT)
 	cp $< $@
+
+$(STOCK_RECOVERY_FASTBOOT): $(BUILD)/fastboot-core-v17.cim \
+		$(BUILD)/fastboot-extension-v17.cim $(STOCK_RECOVERY_SYSTEM) \
+		$(ZX0) tools/build_fastboot.py | $(OUT)
+	$(PYTHON) tools/build_fastboot.py $(BUILD)/fastboot-core-v17.cim \
+		$(BUILD)/fastboot-extension-v17.cim $(STOCK_RECOVERY_SYSTEM) \
+		$(ZX0) $@
 
 $(ROM_FASTBOOT): prebuilt/cpm-plus-juku-network-rom-fastboot-v15.bin | $(OUT)
 	cp $< $@
