@@ -90,6 +90,13 @@ def main() -> int:
             raise AssertionError("packaged C12 boot manifest differs")
         if not (first / "cpm-plus-juku-c12-full.img").is_file():
             raise AssertionError("C12 package omits its runtime-console volume")
+        for filename in (
+                "c12-physical-acceptance-worksheet.md",
+                "c12-cold.json", "c12-runtime.json", "c12-full.json"):
+            if not (first / filename).is_file():
+                raise AssertionError(
+                    f"C12 package omits acceptance input {filename}"
+                )
 
         print(
             "C12-SIMULATOR-CANDIDATE: PASS "

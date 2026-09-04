@@ -86,10 +86,14 @@ def main() -> int:
     for destination, source in (
             ("0:CONSOLE.COM", "src/console.asm"),
             ("0:STATUS.COM", "src/status.asm"),
-            ("0:DIAG.COM", "src/diag.asm and pinned juku-common diagnostics")):
+            ("0:DIAG.COM", "src/diag.asm and pinned juku-common diagnostics"),
+            ("0:VIDTEST.COM", "src/vidtest.asm")):
         require(destination in files and
                 files[destination]["provenance"]["source"] == source,
                 f"C12 volume lacks {destination} provenance")
+    require(files["0:VIDTEST.COM"]["provenance"]["version"] ==
+            "Juku Vidtest 1.0 with C12 active-console query",
+            "C12 VIDTEST provenance differs")
 
     require(manifest["build_identity"].startswith("c12-") and
             manifest["system"]["sha256"] == digest(system) and
@@ -105,7 +109,7 @@ def main() -> int:
     print(
         "C12-LAYOUT-TEST: PASS "
         f"ROM {digest(rom)}; ABI 1.5; TPA 0100h..9BFFh; "
-        "C11 memory map retained; CONSOLE/STATUS/DIAG present"
+        "C11 memory map retained; CONSOLE/STATUS/DIAG/active VIDTEST present"
     )
     return 0
 

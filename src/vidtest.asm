@@ -3,6 +3,10 @@
 ; Developed with OpenAI GPT-5.6 Sol assistance.
 ; BSD-2-Clause; see ../LICENSE.
 
+.ifdef ROM_ABI_C12
+        include "rom-abi.inc"
+.endif
+
 BDOS            equ     0005h
 CONOUT          equ     2
 DIRECTIO        equ     6
@@ -132,6 +136,18 @@ read_config:
         rrc
         ani     3
         sta     locale
+.ifdef ROM_ABI_C12
+        ; C12 can differ from its reset-latched S21 configuration. The C12
+        ; release build must exercise the active geometry and font rather than
+        ; silently drawing an obsolete cold-reset test page.
+        mvi     a,JROMCONCONFIGQUERY
+        call    JCGCONCONFIGADDR
+        jc      config_bad
+        mov     a,b
+        sta     video_mode
+        mov     a,c
+        sta     locale
+.endif
         ora     a                       ; clear carry
         ret
 config_bad:

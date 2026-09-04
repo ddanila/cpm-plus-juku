@@ -2,8 +2,9 @@
 """Flow-aware static Intel 8080 audit for CP/M COM binaries.
 
 The audit follows reachable control flow from 0100h, rejects undocumented
-8080 opcode aliases and target-specific I/O, and permits only CP/M's warm-boot
-and BDOS gates as external control transfers.  Its canonical listing includes
+8080 opcode aliases and target-specific I/O, and by default permits only CP/M's
+warm-boot and BDOS gates as external control transfers. Explicit source-backed
+ROM-call targets can be admitted by a caller. Its canonical listing includes
 both reachable instructions and every remaining byte as data, so its digest
 accounts for the complete executable without interpreting strings as code.
 """
@@ -232,6 +233,7 @@ def audit_bytes(
     entry_points: Iterable[int] | None = None,
     indirect_targets: Mapping[int, Iterable[int]] | None = None,
     indirect_external_targets: Mapping[int, Mapping[int, str]] | None = None,
+    external_call_targets: Mapping[int, str] | None = None,
     dynamic_indirect_exits: Mapping[int, str] | None = None,
     dynamic_indirect_calls: Mapping[
         int, tuple[Iterable[int], str]
@@ -253,6 +255,7 @@ def audit_bytes(
         address: dict(targets)
         for address, targets in (indirect_external_targets or {}).items()
     }
+    external_calls = dict(external_call_targets or {})
     dynamic = dict(dynamic_indirect_exits or {})
     dynamic_calls = {
         address: (tuple(value[0]), value[1])
@@ -290,6 +293,7 @@ def audit_bytes(
     if any(not reason.strip() for reason in (
         *dynamic.values(), *(value[1] for value in dynamic_calls.values()),
         *dynamic_direct.values(), *noreturn.values(),
+        *external_calls.values(),
         *(reason for targets in indirect_external.values()
           for reason in targets.values()),
     )):
@@ -302,6 +306,7 @@ def audit_bytes(
     approved_indirect_returns = 0
     used_indirect: set[int] = set()
     used_indirect_external: set[int] = set()
+    used_external_calls: set[int] = set()
     used_dynamic: set[int] = set()
     used_dynamic_calls: set[int] = set()
     used_dynamic_direct: set[int] = set()
@@ -321,6 +326,12 @@ def audit_bytes(
             return
         if target == 0x0005 and kind == "jump":
             dependencies.add("0005h CP/M BDOS tail-call gate")
+            return
+        if target in external_calls and kind == "call":
+            used_external_calls.add(target)
+            dependencies.add(
+                f"{target:04X}h external call: {external_calls[target]}"
+            )
             return
         raise AuditError(
             f"unapproved external {kind} from {source.address:04X}h "
@@ -454,6 +465,7 @@ def audit_bytes(
         ("dynamic PCHL call", set(dynamic_calls), used_dynamic_calls),
         ("dynamic direct exit", set(dynamic_direct), used_dynamic_direct),
         ("non-returning target", set(noreturn), used_noreturn),
+        ("external call", set(external_calls), used_external_calls),
     ):
         for address in sorted(configured - used):
             unused.append(f"{label} {address:04X}h")
@@ -493,6 +505,10 @@ def audit_bytes(
         "approved_xthl_pchl_returns": approved_indirect_returns,
         "approved_bdos_system_resets": bdos_system_resets,
         "approved_bdos_tail_calls": bdos_tail_calls,
+        "approved_external_calls": [
+            {"address": f"{address:04X}", "reason": external_calls[address]}
+            for address in sorted(used_external_calls)
+        ],
         "approved_bounded_pchl": [
             {
                 "address": f"{address:04X}",

@@ -93,6 +93,14 @@ def main() -> int:
     tail, _ = module.audit_bytes(bytes((0xC3, 0x05, 0x00)))
     assert tail["approved_bdos_tail_calls"] == 1
 
+    rom_call, _ = module.audit_bytes(
+        bytes((0xCD, 0x5F, 0xD6, 0xC3, 0x00, 0x00)),
+        external_call_targets={0xD65F: "JCGCONCONFIG ABI 1.5 gate"},
+    )
+    assert rom_call["approved_external_calls"] == [{
+        "address": "D65F", "reason": "JCGCONCONFIG ABI 1.5 gate",
+    }]
+
     # A source-proven fatal routine suppresses fallthrough after its caller.
     fatal = bytes((
         0xCD, 0x06, 0x01,       # CALL 0106h (non-returning)

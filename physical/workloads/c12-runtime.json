@@ -1,0 +1,164 @@
+{
+  "schema": "cpm-plus-juku-physical-workload-v1",
+  "name": "c12-runtime",
+  "volume_profile": "c12-full-a",
+  "boot_expect": ["CP/M Plus 3.1 Juku", "N3 19200"],
+  "required_coverage": [
+    "CONSOLE.COM", "DIAG.COM", "STATUS.COM", "VIDTEST.COM", "WBOOT.COM"
+  ],
+  "commands": [
+    {
+      "name": "status-default",
+      "command": "CONSOLE STATUS",
+      "expect": [
+        "Juku Console 1.0",
+        "S21 default: 80x24 / Estonian (raw 0E)",
+        "Active: 80x24 / Estonian",
+        "Override: video=no  charset=no"
+      ],
+      "coverage": ["CONSOLE.COM"]
+    },
+    {
+      "name": "diag-default",
+      "command": "DIAG VIDEO",
+      "expect": ["Juku Diag 0.8", "Video enable/console state: PASS"],
+      "coverage": ["DIAG.COM"]
+    },
+    {
+      "name": "mode-40",
+      "command": "CONSOLE MODE 40",
+      "expect": ["Active: 40x24 / Estonian", "Override: video=yes"]
+    },
+    {
+      "name": "charset-english",
+      "command": "CONSOLE CHARSET ENGLISH",
+      "expect": ["Active: 40x24 / English", "charset=yes"]
+    },
+    {
+      "name": "vidtest-40-english",
+      "command": "VIDTEST",
+      "steps": [
+        {
+          "wait": "VIDTEST READY",
+          "operator": "Verify the complete 40x24 English page, borders, locale sample and clear raster; then press Return on the Juku keyboard and confirm here."
+        }
+      ],
+      "expect": [
+        "Mode 0: 40x24, 8x10 cells",
+        "Locale 0: English + CP437 UI",
+        "VIDTEST READY",
+        "Juku Vidtest 1.0 DONE"
+      ],
+      "coverage": ["VIDTEST.COM"]
+    },
+    {
+      "name": "mode-53",
+      "command": "CONSOLE MODE 53",
+      "expect": ["Active: 53x24 / English", "Override: video=yes"]
+    },
+    {
+      "name": "charset-estonian",
+      "command": "CONSOLE CHARSET ESTONIAN",
+      "expect": ["Active: 53x24 / Estonian", "charset=no"]
+    },
+    {
+      "name": "vidtest-53-estonian",
+      "command": "VIDTEST",
+      "steps": [
+        {
+          "wait": "VIDTEST READY",
+          "operator": "Verify the complete 53x24 Estonian page, all eight Estonian sample glyphs, borders and clear raster; then press Return on the Juku keyboard and confirm here."
+        }
+      ],
+      "expect": [
+        "Mode 1: 53x24, 6x10 cells",
+        "Locale 1: Estonian ISO-8859-1",
+        "VIDTEST READY",
+        "Juku Vidtest 1.0 DONE"
+      ]
+    },
+    {
+      "name": "mode-64",
+      "command": "CONSOLE MODE 64",
+      "expect": ["Active: 64x20 / Estonian", "Override: video=yes"]
+    },
+    {
+      "name": "charset-russian",
+      "command": "CONSOLE CHARSET RUSSIAN",
+      "expect": ["Active: 64x20 / Russian CP866", "charset=yes"]
+    },
+    {
+      "name": "vidtest-64-russian",
+      "command": "VIDTEST",
+      "steps": [
+        {
+          "wait": "VIDTEST READY",
+          "operator": "Verify the complete 64x20 Russian page, eight distinct Cyrillic sample glyphs, borders and clear raster; then press Return on the Juku keyboard and confirm here."
+        }
+      ],
+      "expect": [
+        "Mode 2: 64x20, 6x10 cells",
+        "Locale 2: Russian CP866",
+        "VIDTEST READY",
+        "Juku Vidtest 1.0 DONE"
+      ]
+    },
+    {
+      "name": "mode-80",
+      "command": "CONSOLE MODE 80",
+      "expect": ["Active: 80x24 / Russian CP866", "Override: video=no"]
+    },
+    {
+      "name": "charset-user",
+      "command": "CONSOLE CHARSET USER",
+      "expect": ["Active: 80x24 / English/user remap", "charset=yes"]
+    },
+    {
+      "name": "vidtest-80-user",
+      "command": "VIDTEST",
+      "steps": [
+        {
+          "wait": "VIDTEST READY",
+          "operator": "Verify the complete 80x24 user/remap page, connected CP437 borders and clear raster; then press Return on the Juku keyboard and confirm here."
+        }
+      ],
+      "expect": [
+        "Mode 3: 80x24, 5x8 cells",
+        "Locale 3: English/remap fallback",
+        "VIDTEST READY",
+        "Juku Vidtest 1.0 DONE"
+      ]
+    },
+    {
+      "name": "warm-boot",
+      "command": "WBOOT",
+      "coverage": ["WBOOT.COM"]
+    },
+    {
+      "name": "status-warm-override",
+      "command": "STATUS",
+      "expect": [
+        "Juku Status 1.6",
+        "Active video: 03 (80x24)",
+        "Active charset: 03 English/user remap",
+        "Video override: no",
+        "Charset override: yes",
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00"
+      ],
+      "coverage": ["STATUS.COM"]
+    },
+    {
+      "name": "restore-default",
+      "command": "CONSOLE DEFAULT",
+      "expect": [
+        "Active: 80x24 / Estonian",
+        "Override: video=no  charset=no"
+      ]
+    },
+    {
+      "name": "diag-restored",
+      "command": "DIAG VIDEO",
+      "expect": ["Juku Diag 0.8", "Video enable/console state: PASS"]
+    }
+  ]
+}

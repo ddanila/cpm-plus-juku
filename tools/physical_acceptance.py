@@ -71,6 +71,9 @@ PROFILE_VOLUMES = {
     "c11-cold": "c11-full-a",
     "c11-display": "c11-full-a",
     "c11-full": "c11-full-a",
+    "c12-cold": "c12-full-a",
+    "c12-runtime": "c12-full-a",
+    "c12-full": "c12-full-a",
 }
 PROFILE_ROM_CANDIDATES = {
     "c7-raw": "network-first-abi1.2-c7-modified-raw-simulator",
@@ -95,6 +98,9 @@ PROFILE_ROM_CANDIDATES = {
     "c11-cold": "network-first-abi1.4-c11-post-raster-candidate",
     "c11-display": "network-first-abi1.4-c11-post-raster-candidate",
     "c11-full": "network-first-abi1.4-c11-post-raster-candidate",
+    "c12-cold": "network-first-abi1.5-c12-runtime-console-candidate",
+    "c12-runtime": "network-first-abi1.5-c12-runtime-console-candidate",
+    "c12-full": "network-first-abi1.5-c12-runtime-console-candidate",
 }
 PROFILE_ROM_ABIS = {
     "c8-blind": "1.3",
@@ -118,6 +124,9 @@ PROFILE_ROM_ABIS = {
     "c11-cold": "1.4",
     "c11-display": "1.4",
     "c11-full": "1.4",
+    "c12-cold": "1.5",
+    "c12-runtime": "1.5",
+    "c12-full": "1.5",
 }
 DEFAULT_ROM_CANDIDATE = "network-first-abi1.2-c6-simulator"
 
@@ -414,6 +423,18 @@ def load_workload(profile: str, path: Path | None = None) \
             "DATE.COM", "DIAG.COM", "PIP.COM", "README.TXT",
             "STATUS.COM", "VER.COM", "WBOOT.COM",
         }
+    elif profile == "c12-cold":
+        admitted = {"DIAG.COM", "STATUS.COM"}
+    elif profile == "c12-runtime":
+        admitted = {
+            "CONSOLE.COM", "DIAG.COM", "STATUS.COM", "VIDTEST.COM",
+            "WBOOT.COM",
+        }
+    elif profile == "c12-full":
+        admitted = {
+            "CONSOLE.COM", "DATE.COM", "DIAG.COM", "PIP.COM",
+            "README.TXT", "STATUS.COM", "VER.COM", "WBOOT.COM",
+        }
     elif profile == "c8-sound":
         admitted = {"SOUND.COM"}
     elif isinstance(programs, dict):
@@ -677,7 +698,7 @@ def server_command(args: argparse.Namespace, artifacts: dict[str, Any],
             "--network-rom",
             "--boot-restarts", "3",
         ))
-        if args.profile.startswith("c11-"):
+        if args.profile.startswith(("c11-", "c12-")):
             command.append("--recover-session")
     command.extend(("--disk-timeout", str(math.ceil(args.session_timeout))))
     return command

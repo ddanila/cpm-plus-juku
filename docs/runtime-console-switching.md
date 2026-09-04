@@ -46,6 +46,12 @@ the exact S21 default with `CONSOLE DEFAULT`. The ROM's executable 4x4 fixture
 installs `T`-to-`X` before each transition and verifies the remap afterward in
 both the C-model and focused structural HDL path.
 
+The C12 volume carries a dedicated `VIDTEST.COM` build that queries the active
+ABI 1.5 tuple. It therefore draws the runtime geometry and font bank rather
+than the reset-latched S21 page. Local and N4 co-simulation compare its switched
+40x24/Russian hidden- and visible-cursor frames with the exact framebuffer
+oracle; older release volumes retain their byte-identical S21-based utility.
+
 ## Transition requirements
 
 A mode change must be atomic from the perspective of console writers: suspend
@@ -54,8 +60,8 @@ clear or safely redraw the framebuffer, reset cursor and blink state, publish
 the new active state, and resume output. Clearing the screen is preferable to
 retaining bytes whose layout has a different row width.
 
-A character-bank change must switch the display font and matching keyboard
-translation together. It should clear or redraw the display so existing cells
+A character-bank change must switch the display font and byte-to-glyph
+interpretation together. It should clear or redraw the display so existing cells
 do not retain glyphs from the previous bank, then publish the active bank.
 An installed four-pair `JCGKEYREMAP` table remains in force across either kind
 of runtime switch; only debounce and a pending translated key are discarded.
@@ -81,5 +87,7 @@ after the resident-host state; the fixed workspace and TPA do not grow.
 
 C9, C10, and C11 remain immutable. The C12 package is deliberately marked
 `physical_programming_authorized: false` until the attended CS00000 switch,
-raster, keyboard-translation, warm-boot, default-restore, and recovery matrix
-passes.
+raster/font, remap, warm-boot, default-restore, and recovery matrix passes. The
+manifest-bound `c12-cold`, `c12-runtime`, and `c12-full` workloads and exact
+operator checklist are in
+[`c12-physical-acceptance-worksheet.md`](c12-physical-acceptance-worksheet.md).

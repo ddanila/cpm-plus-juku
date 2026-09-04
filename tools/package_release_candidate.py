@@ -235,13 +235,17 @@ def build(output: Path, cosim: Path, variant: str = "c5") -> tuple[Path, Path]:
         out / "cpm-plus-juku-apps.report.json",
         ROOT / "LICENSE", ROOT / "NOTICE.md",
     ]
-    if variant in ("c10", "c11"):
+    if variant in ("c10", "c11", "c12"):
         sources.extend([
             ROOT / f"docs/{variant}-physical-acceptance-worksheet.md",
             ROOT / f"physical/workloads/{variant}-cold.json",
-            ROOT / f"physical/workloads/{variant}-display.json",
             ROOT / f"physical/workloads/{variant}-full.json",
         ])
+        sources.append(
+            ROOT / "physical/workloads" /
+            ("c12-runtime.json" if variant == "c12" else
+             f"{variant}-display.json")
+        )
     missing = [str(path) for path in sources if not path.is_file()]
     if missing:
         raise FileNotFoundError("missing release inputs: " + ", ".join(missing))

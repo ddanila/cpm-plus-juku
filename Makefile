@@ -221,7 +221,8 @@ development-tool-audit-check:
 	$(PYTHON) tests/cpm3_development_tool_audit_test.py
 
 physical-acceptance-check: $(C6_BOOT_MANIFEST) $(C7_BOOT_MANIFEST) \
-		$(C8_BOOT_MANIFEST) $(BUILD)/physical-sound.cim
+		$(C8_BOOT_MANIFEST) $(C10_BOOT_MANIFEST) $(C12_BOOT_MANIFEST) \
+		$(BUILD)/physical-sound.cim
 	test "$$(sha256sum $(BUILD)/physical-sound.cim | cut -d' ' -f1)" = \
 		888399fbe423da8e077935e557af57ec6fda4d7412090877a04dc0aa40646b9d
 	$(PYTHON) tests/physical_acceptance_test.py
@@ -848,6 +849,7 @@ c11-check: $(C11_BOOT_MANIFEST) $(SYSTEM) $(FASTBOOT) \
 c12-check: $(C12_BOOT_MANIFEST) $(SYSTEM) $(FASTBOOT) \
 		$(C11_NATIVE_ROM_SYSTEM) $(C11_NATIVE_ROM_FASTBOOT)
 	$(PYTHON) tests/c12_layout_test.py
+	$(PYTHON) tests/c12_vidtest_test.py
 	$(PYTHON) tests/c10_video_observability_test.py
 	CPM_PLUS_JUKU_QUICK_SMOKE=1 \
 	CPM_PLUS_JUKU_QUICK_HOST_SERVICES=c12 \
@@ -1606,6 +1608,11 @@ $(BUILD)/keytest.cim: src/keytest.asm $(ZMAC) | $(BUILD)
 $(BUILD)/vidtest.cim: src/vidtest.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
+$(BUILD)/vidtest-c12.cim: src/vidtest.asm \
+		$(COMMON)/platform/rom-abi.inc $(ZMAC) | $(BUILD)
+	$(ZMAC) --nmnv --zmac -m -8 -DROM_ABI_C12 \
+		-I$(COMMON)/platform -o $@ $<
+
 $(BUILD)/vidprobe.cim: src/vidprobe.asm $(ZMAC) | $(BUILD)
 	$(ZMAC) --nmnv --zmac -m -8 -o $@ $<
 
@@ -1779,6 +1786,7 @@ BUILD_C12_FULL_VOLUME := $(PYTHON) tools/build_volume.py \
 
 $(C12_FULL_VOLUME): $(C11_FULL_VOLUME) $(BUILD)/status-c12.cim \
 		$(BUILD)/diag-c12.cim $(BUILD)/console-c12.cim \
+		$(BUILD)/vidtest-c12.cim \
 		volume/profiles/c11-full.json volume/profiles/c12-full.json \
 		tools/build_volume.py diskdefs | $(OUT)
 	$(BUILD_C12_FULL_VOLUME)

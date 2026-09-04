@@ -426,6 +426,7 @@ def main() -> int:
     c7_manifest = ROOT / "out/cpm-plus-juku-c7-manifest.json"
     c8_manifest = ROOT / "out/cpm-plus-juku-c8-manifest.json"
     c10_manifest = ROOT / "out/cpm-plus-juku-c10-manifest.json"
+    c12_manifest = ROOT / "out/cpm-plus-juku-c12-manifest.json"
     for profile, minimum_commands, manifest in (
         ("full", 30, acceptance.DEFAULT_MANIFEST),
         ("development", 10, acceptance.DEFAULT_MANIFEST),
@@ -439,6 +440,9 @@ def main() -> int:
         ("c10-cold", 2, c10_manifest),
         ("c10-display", 1, c10_manifest),
         ("c10-full", 15, c10_manifest),
+        ("c12-cold", 2, c12_manifest),
+        ("c12-runtime", 18, c12_manifest),
+        ("c12-full", 17, c12_manifest),
     ):
         artifacts = acceptance.verify_manifest(
             manifest, acceptance.DEFAULT_COSIM, profile,

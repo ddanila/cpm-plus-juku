@@ -214,9 +214,12 @@ make c12-simulator-candidate
 ```
 
 The package binds the ABI 1.5 ROM, matching system/Fastboot, C12 A: volume,
-and all fallback/media inputs, and records
-`physical_programming_authorized: false`. See
-[`docs/runtime-console-switching.md`](docs/runtime-console-switching.md).
+all fallback/media inputs, an active-state-aware `VIDTEST`, and the
+manifest-bound cold/runtime/full physical workloads. It records
+`physical_programming_authorized: false`; the prepared workflow does not
+authorize a burn. See
+[`docs/runtime-console-switching.md`](docs/runtime-console-switching.md) and
+[`docs/c12-physical-acceptance-worksheet.md`](docs/c12-physical-acceptance-worksheet.md).
 
 Build, fully exercise, and reproduce the burn-ready C10 candidate with:
 

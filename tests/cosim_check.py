@@ -722,13 +722,18 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         ),
                     }
 
-                def capture_vidtest() -> None:
+                def capture_vidtest(expected_mode: int | None = None,
+                                    expected_locale: int | None = None) -> None:
+                    captured_mode = video_mode \
+                        if expected_mode is None else expected_mode
+                    captured_locale = active_locale \
+                        if expected_locale is None else expected_locale
                     expected = {
                         "hidden": vidtest_framebuffer(
-                            video_mode, active_locale, cursor=False,
+                            captured_mode, captured_locale, cursor=False,
                         ),
                         "visible": vidtest_framebuffer(
-                            video_mode, active_locale, cursor=True,
+                            captured_mode, captured_locale, cursor=True,
                         ),
                     }
                     seen: set[str] = set()
@@ -761,8 +766,8 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                         }
                         raise AssertionError(
                             "VIDTEST did not reproduce both exact cursor "
-                            f"phases for mode {video_mode}/locale "
-                            f"{active_locale}; seen={sorted(seen)} "
+                            f"phases for mode {captured_mode}/locale "
+                            f"{captured_locale}; seen={sorted(seen)} "
                             f"samples={samples} first_differences="
                             f"{differences}",
                         )
@@ -1167,6 +1172,28 @@ def run(trace: Path, work: Path, *, direct_core: bool,
                                 switched_status,
                                 f"C12 switched STATUS differs: "
                                 f"{switched_status!r}",
+                            )
+                            send_console(b"VIDTEST\r")
+                            runtime_vidtest = read_until(
+                                b"VIDTEST READY", command_timeout,
+                            )
+                            require(
+                                b"Mode 0: 40x24, 8x10 cells" in
+                                runtime_vidtest
+                                and b"Locale 2: Russian CP866" in
+                                runtime_vidtest,
+                                "C12 VIDTEST ignored active console state: "
+                                f"{runtime_vidtest!r}",
+                            )
+                            capture_vidtest(0, 2)
+                            send_console(b"\r")
+                            runtime_vidtest += read_until(
+                                b"A>", command_timeout,
+                            )
+                            require(
+                                b"Juku Vidtest 1.0 DONE" in runtime_vidtest,
+                                f"C12 runtime VIDTEST did not finish: "
+                                f"{runtime_vidtest!r}",
                             )
                         send_console(b"WBOOT\r")
                         warm = read_until(b"A>", command_timeout)

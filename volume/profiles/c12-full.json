@@ -32,6 +32,16 @@
         "version": "Juku Console 1.0",
         "license": "LICENSE"
       }
+    },
+    {
+      "source": "build/vidtest-c12.cim",
+      "destination": "0:VIDTEST.COM",
+      "override": true,
+      "provenance": {
+        "source": "src/vidtest.asm",
+        "version": "Juku Vidtest 1.0 with C12 active-console query",
+        "license": "LICENSE"
+      }
     }
   ]
 }
