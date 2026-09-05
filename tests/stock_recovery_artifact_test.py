@@ -39,6 +39,10 @@ def main() -> int:
     assert int.from_bytes(system[14:16], "little") == crc16_ibm(body)
     assert b"NetDisk v3, 9600" in body
     assert b"N3 19200" not in body and b"NetDisk v3, 19200" not in body
+    # Check the downloaded adapter as well as the loader: CP/M has its own
+    # serial handoff, and a stale count-four setup stalls physical boards.
+    assert bytes.fromhex("3e 1f d3 1b 3e 08 d3 18") in body
+    assert bytes.fromhex("3e 15 d3 1b 3e 04 d3 18") not in body
 
     assert len(core) <= 128 and len(extension) == 267
     assert core[3:7] == b"JF17"

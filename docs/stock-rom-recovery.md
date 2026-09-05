@@ -31,3 +31,17 @@ make stock-recovery-check
 The check verifies the system header and CRC, 9,600-baud sign-on, explicit D57
 count-8 and 8251 8O1 setup, `JF17` metadata, compressed-stream CRCs, and a
 deterministic rebuild of the bundle.
+
+## Physical CS00014 qualification — 2026-09-05
+
+The initial physical test exposed a second serial initializer in the CP/M
+adapter startup that still selected 19200. NETWORK9600 now selects D57 count
+eight there as well as in NETINIT. The artifact check inspects the downloaded
+system for the 9600 setup and rejects the stale 19200 sequence.
+
+With this correction, stock-ROM CS00014 reached `A>`, passed `DIR`, then
+repeated both after hardware reset and manual T → N with the same recovery
+host process. The host counted one target reset and one bootstrap restart,
+with zero retries or UART errors. A replacement host also resumed the running
+session and passed `DIR` without reloading CP/M. Full capture and identities:
+[8080-cosim physical evidence](https://github.com/ddanila/8080-cosim/tree/master/docs/evidence/juku-serial/cs00014-stock-jf17-20260905).

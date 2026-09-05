@@ -344,9 +344,16 @@ BOOT:
         call    NCENA
 .endif
 .else
+.ifdef NETWORK9600
+        ; Stock JF17 must retain the ROM rate through the CP/M handoff too.
+        mvi     a,01fh
+        out     PIT3CTL
+        mvi     a,8
+.else
         mvi     a,015h
         out     PIT3CTL
         mvi     a,4
+.endif
         out     PIT3COUNT0
         xra     a
         out     USARTCTL
