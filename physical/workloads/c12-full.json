@@ -37,6 +37,19 @@
         "N4 state flags: 0F",
         "N4 failure reason: none"
       ],
+      "resume_expect": [
+        "Juku Status 1.6",
+        "ROM: Juku ABI 01.05",
+        "Map: TPA 0100-9BFF",
+        "Active video: 03 (80x24)",
+        "Active charset: 01 Estonian",
+        "Video override: no",
+        "Charset override: no",
+        "PPI0 Port C: 01  POF: released (picture enabled)",
+        "POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "Host caps: NetDisk v03"
+      ],
       "coverage": ["STATUS.COM"]
     },
     {
@@ -121,6 +134,18 @@
         "N4 last failure: 00",
         "N4 state flags: 0F",
         "N4 failure reason: none"
+      ],
+      "resume_expect": [
+        "Juku Status 1.6",
+        "ROM: Juku ABI 01.05",
+        "Active video: 00 (40x24)",
+        "Active charset: 01 Estonian",
+        "Video override: yes",
+        "Charset override: no",
+        "PPI0 Port C: 01  POF: released (picture enabled)",
+        "Boot marker (00 cold/01 warm): 01  POST: 00  ROM ABI: 00",
+        "Disk status: 00",
+        "Host caps: NetDisk v03"
       ]
     },
     {
@@ -128,7 +153,7 @@
       "command": "CONSOLE DEFAULT",
       "expect": [
         "Active: 80x24 / Estonian",
-        "Override: video=no  charset=no"
+        "Override: video=no", "  charset=no"
       ]
     }
   ]

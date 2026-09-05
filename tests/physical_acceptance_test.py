@@ -218,6 +218,97 @@ def host_snapshot_test() -> None:
             )
 
 
+def c12_recorded_console_test() -> None:
+    """Replay actual bench replies through the executor, without hardware.
+
+    This exercises current workload expectations, not a retroactive change to
+    the original physical verdicts. Paging/PTY behavior has separate tests.
+    """
+    fixtures = ROOT / "tests/fixtures/c12-CS00000-20260905"
+    cold = (fixtures / "cold.console").read_bytes()
+    resumed = (fixtures / "full-resumed.console").read_bytes()
+    assert acceptance.sha256_bytes(cold) == \
+        "2a0717b6e7249fdc1fae35b585a039adfc9bda509aafb48422e614eda0bf2cd5"
+    assert acceptance.sha256_bytes(resumed) == \
+        "f89d85e739ed936824e5355ccfcbd400b1fc2f85845084c3e3a079aa47f60683"
+
+    class RecordedConsole:
+        def __init__(self, recording: bytes):
+            self.recording = recording
+            self.transcript = bytearray()
+            self.page_returns = 0
+
+        def send(self, data: bytes) -> None:
+            if not self.transcript and data == b"\r":
+                return  # The resumed host elicits the first prompt.
+            assert self.recording[len(self.transcript):].startswith(data), data
+
+        def wait_for(self, marker: bytes, *, start: int, timeout: float) -> int:
+            end = self.recording.index(marker, start) + len(marker)
+            self.transcript[:] = self.recording[:end]
+            return end
+
+    def replay(profile: str, recording: bytes, *, resume: bool,
+               command_name: str | None = None, fails: bool = False) -> None:
+        _, workload = acceptance.load_workload(profile)
+        if command_name is not None:
+            workload["commands"] = [
+                item for item in workload["commands"]
+                if item["name"] == command_name
+            ]
+            assert len(workload["commands"]) == 1
+        try:
+            _, commands = acceptance.execute_workload(
+                RecordedConsole(recording), workload, resume=resume,
+                operator_wait=1, command_timeout=1,
+                emit=lambda _event, **_fields: None,
+            )
+        except acceptance.WorkloadFailure:
+            if not fails:
+                raise
+        else:
+            assert not fails, "incorrect target state was accepted"
+            assert all(command["result"] == "pass" for command in commands)
+            assert len(commands) == len(workload["commands"])
+
+    replay("c12-cold", cold, resume=False)
+    replay("c12-full", resumed, resume=True)
+    replay("c12-full", resumed.replace(b"\r\n  charset=", b"  charset="),
+           resume=True)
+    # Cold runs must still reject warm/recovered state; resume must still
+    # reject wrong ABI, picture blanking, disk failure and lost mode state.
+    replay("c12-cold", cold.replace(
+        b"Boot marker (00 cold/01 warm): 00",
+        b"Boot marker (00 cold/01 warm): 01"), resume=False, fails=True)
+    replay("c12-cold", cold.replace(b"N4 last failure: 00",
+                                   b"N4 last failure: 02"),
+           resume=False, fails=True)
+    for original, damaged in (
+        (b"ROM: Juku ABI 01.05", b"ROM: Juku ABI 01.04"),
+        (b"PPI0 Port C: 01", b"PPI0 Port C: 81"),
+        (b"Disk status: 00", b"Disk status: 01"),
+        (b"Active video: 00 (40x24)", b"Active video: 03 (80x24)"),
+        (b"Override: video=no\r\n  charset=no",
+         b"Override: video=no\r\n  charset=yes"),
+    ):
+        assert original in resumed
+        replay("c12-full", resumed.replace(original, damaged),
+               resume=True, fails=True)
+
+    # The runtime profile uses the same console report as DEFAULT. Its
+    # display checks must work with either value of unrelated S21 bit 0.
+    default = resumed[resumed.index(b"A>CONSOLE DEFAULT\r"):]
+    for raw in (b"0E", b"0F"):
+        response = default.replace(b"raw 0F", b"raw " + raw)
+        replay("c12-runtime", response, resume=True,
+               command_name="restore-default")
+        replay("c12-runtime", response.replace(b"CONSOLE DEFAULT\r",
+                                                b"CONSOLE STATUS\r"),
+               resume=True, command_name="status-default")
+    replay("c12-runtime", default.replace(b"  charset=no", b"  charset=yes"),
+           resume=True, command_name="restore-default", fails=True)
+
+
 def operator_wait_budget_test() -> None:
     args = acceptance.parser().parse_args([
         "run", "/dev/null", "--profile", "full", "--output", "/tmp/out",
@@ -426,6 +517,7 @@ def main() -> int:
     c7_manifest = ROOT / "out/cpm-plus-juku-c7-manifest.json"
     c8_manifest = ROOT / "out/cpm-plus-juku-c8-manifest.json"
     c10_manifest = ROOT / "out/cpm-plus-juku-c10-manifest.json"
+    c11_manifest = ROOT / "out/cpm-plus-juku-c11-manifest.json"
     c12_manifest = ROOT / "out/cpm-plus-juku-c12-manifest.json"
     for profile, minimum_commands, manifest in (
         ("full", 30, acceptance.DEFAULT_MANIFEST),
@@ -440,6 +532,9 @@ def main() -> int:
         ("c10-cold", 2, c10_manifest),
         ("c10-display", 1, c10_manifest),
         ("c10-full", 15, c10_manifest),
+        ("c11-cold", 2, c11_manifest),
+        ("c11-display", 1, c11_manifest),
+        ("c11-full", 15, c11_manifest),
         ("c12-cold", 2, c12_manifest),
         ("c12-runtime", 18, c12_manifest),
         ("c12-full", 17, c12_manifest),
@@ -456,6 +551,7 @@ def main() -> int:
     timeout_diagnostic_test()
     delayed_console_open_test()
     resume_workload_test()
+    c12_recorded_console_test()
     host_snapshot_test()
     operator_wait_budget_test()
     request_clock_alignment_test()

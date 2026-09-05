@@ -230,7 +230,8 @@ development-tool-audit-check:
 	$(PYTHON) tests/cpm3_development_tool_audit_test.py
 
 physical-acceptance-check: $(C6_BOOT_MANIFEST) $(C7_BOOT_MANIFEST) \
-		$(C8_BOOT_MANIFEST) $(C10_BOOT_MANIFEST) $(C12_BOOT_MANIFEST) \
+		$(C8_BOOT_MANIFEST) $(C10_BOOT_MANIFEST) $(C11_BOOT_MANIFEST) \
+		$(C12_BOOT_MANIFEST) \
 		$(BUILD)/physical-sound.cim
 	test "$$(sha256sum $(BUILD)/physical-sound.cim | cut -d' ' -f1)" = \
 		888399fbe423da8e077935e557af57ec6fda4d7412090877a04dc0aa40646b9d

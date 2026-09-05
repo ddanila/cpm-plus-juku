@@ -1,0 +1,50 @@
+
+CP/M Plus 3.1 Juku
+N3 19200
+
+A>STATUS
+
+Juku Status 1.6
+System: CP/M Plus 3.1, native profile 1
+Transport: NetDisk v3, 19200 baud, N4 services
+ROM: Juku ABI 01.05 network-first
+Map: TPA 0100-9BFF, loader 9C00-9EFF
+     BDOS 9F00-BD9B, SCB BD9C-BDFF, BIOS BE00-C1FF
+     adapter/state C200-D5FF, ROM gate/work D600-D7FF
+     framebuffer D800-FD7F (mode 3 RAM)
+S21 raw: 0F  default video: 03 (80x24)
+Default charset: Estonian
+Active video: 03 (80x24)
+Active charset: 01 Estonian
+Video override: no
+Charset override: no
+PPI0 Port C: 01  POF: released (picture enabled)
+
+Features: 1F  last MULTIO: 03
+Clock status: 00  good: 0000  failed: 0000
+Boot marker (00 cold/01 warm): 00  POST: 00  ROM ABI: 00
+Disk status: 00  tries left: 03
+N4 last failure: 00  reconnects: 00
+N4 state flags: 0F  last operation: 00
+N4 failure reason: none
+Bootstrap stage: 50  CRC retries: 00  protocol: 10
+Host caps: NetDisk v03  read-ahead: 08  features: 7F  drives: 02
+
+A>DIAG ALL
+
+Juku Diag 0.8
+Self-contained non-destructive 8080 diagnostics.
+ROM: JukuNet ROM ABI 01.05 - JukuNet C12 ROM ABI 1.5 runtime console 2026-09-04
+CPU: PASS
+RAM data: PASS
+RAM address: PASS
+RAM retention: PASS
+Checksum: PASS
+D57 PIT clock: PASS
+D11 USART status: PASS
+ROM image: PASS
+Video enable/console state: PASS
+Keyboard/S21: PASS
+  S21 raw: 0F
+
+A>

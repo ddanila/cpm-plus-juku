@@ -12,9 +12,9 @@
       "command": "CONSOLE STATUS",
       "expect": [
         "Juku Console 1.0",
-        "S21 default: 80x24 / Estonian (raw 0E)",
+        "S21 default: 80x24 / Estonian",
         "Active: 80x24 / Estonian",
-        "Override: video=no  charset=no"
+        "Override: video=no", "  charset=no"
       ],
       "coverage": ["CONSOLE.COM"]
     },
@@ -152,7 +152,7 @@
       "command": "CONSOLE DEFAULT",
       "expect": [
         "Active: 80x24 / Estonian",
-        "Override: video=no  charset=no"
+        "Override: video=no", "  charset=no"
       ]
     },
     {
